@@ -282,7 +282,7 @@ void read_parameter_file(char *fname)
     while(!feof(fd))
     {
       *buf = 0;
-      fgets(buf, 200, fd);
+      fgets(buf, 400, fd);
       if(sscanf(buf, "%s%s%s", buf1, buf2, buf3) < 2)
         continue;
 
@@ -319,7 +319,7 @@ void read_parameter_file(char *fname)
       }
       else
       {
-        printf("Error in file %s:   Tag '%s' not allowed or multiple defined.\n", fname, buf1);
+          printf("Error in file %s:   Tag '%s' not allowed or multiple defined (entire buffer = %s).\n", fname, buf1, buf);
         errorFlag = 1;
       }
     }
