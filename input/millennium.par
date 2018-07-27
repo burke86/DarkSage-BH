@@ -24,9 +24,8 @@ NumOutputs        12   ; sets the desired number of galaxy outputs; use -1 for a
 %------------------------------------------
 
 TreeName					    trees_063		; assumes the trees are named TreeName.n where n is the snapshot number
-%SimulationDir               /Volumes/AdamDrive/Research/treefiles/millennium/full
-SimulationDir               /Volumes/AdamDrive/Research/treefiles/millennium/millennium_mini/treedata
-FileWithSnapList			/Volumes/AdamDrive/Research/treefiles/millennium/millennium_mini/millennium.a_list
+SimulationDir               /Users/adam/millennium_mini/treedata
+FileWithSnapList			/Users/adam/millennium_mini/millennium.a_list
 LastSnapShotNr				63
 
 Omega				0.25
