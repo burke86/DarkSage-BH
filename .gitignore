@@ -34,3 +34,11 @@ code/core_build_model_REMOTE_92425.c
 code/core_save.c.orig
 code/model_misc_old.c
 test
+
+autocalibration/aux_out/
+autocalibration/DS_output*/
+autocalibration/*.pyc
+output/*.pyc
+autocalibration/*.par
+autocalibration/*.pdf
+Screen Shot 2019-01-31 at 4.10.58 pm.png
