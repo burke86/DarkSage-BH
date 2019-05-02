@@ -189,9 +189,9 @@ def run_darksage(particle, *args):
     Np = len(space['name'])
     Ndone = 0
     for l, line in enumerate(f):
-        if 'OutputDir' in line: f[l] = 'OutputDir              '+modeldir+'\n'
+        if line[:9] == 'OutputDir': f[l] = 'OutputDir              '+modeldir+'\n'
         for p in xrange(Np):
-            if space['name'][p] in line: 
+            if line[:len(space['name'][p])] == space['name'][p]: 
                 f[l] = space['name'][p]+'          '+str(round(particle[p],5))+'\n'
                 Ndone += 1
         if Ndone==Np: break

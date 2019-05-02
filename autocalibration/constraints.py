@@ -92,7 +92,7 @@ class Constraint(object):
 
         fields = ['StellarMass', 'DiscHI', 'LenMax']
         # hard coding stuff here that should be generalised
-        files = range(8)
+        files = range(3,5)
         G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, fields=fields) 
         h0 = 0.6751
         vol = (75./h0)**3 * (1.0*len(files)/8.)
@@ -158,6 +158,10 @@ class Constraint(object):
         y_mod = np.interp(x_obs, x_mod, y_mod)
         ind = np.where((x_obs >= self.domain[0]) & (x_obs <= self.domain[1]))
         err = np.maximum(np.abs(y_dn[ind]), np.abs(y_up[ind]))
+        print 'in get_data:'
+        print 'obs x:', x_obs[ind]
+        print 'obs y:', y_obs[ind]
+        print 'mod y:', y_mod[ind]
         return y_obs[ind], y_mod[ind], err
 
     def __str__(self):

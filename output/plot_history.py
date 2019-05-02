@@ -11,8 +11,8 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-indir = '/Volumes/AdamDrive/Research/SAGE_disc_runs/SMDPL/3_newtrees/' # directory where the Dark Sage data are
-sim = 2 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
+indir = '/Users/adam/DarkSage_runs/NewSNfeedback/03/' # directory where the Dark Sage data are
+sim = 0 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
@@ -78,7 +78,8 @@ SFRD = np.zeros(Nsnap)
 SFRD_resolved = np.zeros(Nsnap)
 
 for i in xrange(Nsnap):
-    G = r.darksage_snap(indir+fpre+redshiftstr[i], filenumbers, Nannuli=Nannuli)
+    fields = ['SfrFromH2', 'SfrInstab', 'SfrMergeBurst', 'LenMax']
+    G = r.darksage_snap(indir+fpre+redshiftstr[i], filenumbers, Nannuli=Nannuli, fields=fields)
     SFRD[i] = np.sum(G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst']) / vol
     SFRD_resolved[i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[G['LenMax']>=100]) / vol
 ##### ============================================= #####

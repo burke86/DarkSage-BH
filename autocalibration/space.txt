@@ -1,6 +1,2 @@
-SfrEfficiency,SFE,0,0.1,1.0
-FeedbackReheatingEpsilon,eHeat,0,1.0,10.0
-FeedbackGasSigma,Sigma0,0,1.0,10.0
-FeedbackEjectionEfficiency,eEject,0,0.1,1.0
-RadioModeEfficiency,eRadio,0,0.001,0.1
-BlackHoleGrowthRate,BHgrowth,0,0.001,0.2
+SfrEfficiency,SFE,0,0.15,0.35
+RadioModeEfficiency,eRadio,0,0.001,0.01

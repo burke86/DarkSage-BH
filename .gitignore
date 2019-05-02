@@ -35,7 +35,7 @@ code/core_save.c.orig
 code/model_misc_old.c
 test
 
-autocalibration/aux_out/
+autocalibration/aux_out*/
 autocalibration/DS_output*/
 autocalibration/*.pyc
 output/*.pyc
