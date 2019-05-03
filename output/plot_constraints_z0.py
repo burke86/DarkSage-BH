@@ -11,13 +11,15 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-indir = '/Volumes/AdamDrive/Research/SAGE_disc_runs/Genesis/L500n2160/13/' # directory where the Dark Sage data are
-#indir = '/Users/adam/DarkSage_runs/562_full/'
-sim = 3 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
+#indir = '/Volumes/AdamDrive/Research/SAGE_disc_runs/Genesis/L75n324/14/' # directory where the Dark Sage data are
+#indir = '/Users/adam/DarkSage/autocalibration/DS_output_25339/'
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/19/'
+#indir = '/Users/adam/DarkSage_runs/NewSNfeedback/03/'
+sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration
 
 fpre = 'model_z0.000' # what is the prefix name of the z=0 files
-files = range(128) # list of file numbers you want to read
+files = range(8) # list of file numbers you want to read
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
 FirstBin = 1.0 # copy from parameter file -- sets the annuli's sizes
@@ -86,16 +88,16 @@ if SM_med < 8.5: ymax *= 10**(0.5*(8.5-SM_med))
 
 r.massfunction(SM, Lbox, range=[SM_med-0.1, 12.1], ls='--', ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p}\!\geq\!20$')
 r.massfunction(SM[G['LenMax']>=100], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!100$')
-r.massfunction(SM[(BTT<=0.5)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ax=ax[0])
-r.massfunction(SM[BTT<=0.5], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ls='--', ax=ax[0])
-r.massfunction(SM[(BTT>0.5)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='r', lw=1, ax=ax[0])
-r.massfunction(SM[BTT>0.5], Lbox, range=[SM_med-0.1, 12], c='r', lw=1, ls='--', ax=ax[0])
-r.stellar_massfunction_obsdata(h, ax[0])
-SMF_bd, logM_bd = r.schechter(3.67e-3*(h/0.7)**3, 10**(10.74)/(h/0.7)**2, -0.525, logM=np.arange(SM_med-0.1, 12.1,0.1))
-SMF_dd, logM_dd = r.schechter(0.855e-3*(h/0.7)**3, 10**(10.70)/(h/0.7)**2, -1.39, logM=np.arange(SM_med-0.1, 12.1,0.1))
-ax[0].plot(logM_dd, SMF_dd, 'b-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) disc-dominated', zorder=0)
-ax[0].plot(logM_bd, SMF_bd, 'r-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) bulge-dominated', zorder=0)
-ax[0].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.025, -0.03))
+#r.massfunction(SM[(BTT<=0.5)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ax=ax[0])
+#r.massfunction(SM[BTT<=0.5], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ls='--', ax=ax[0])
+#r.massfunction(SM[(BTT>0.5)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='r', lw=1, ax=ax[0])
+#r.massfunction(SM[BTT>0.5], Lbox, range=[SM_med-0.1, 12], c='r', lw=1, ls='--', ax=ax[0])
+r.stellar_massfunction_obsdata(h, ax[0], B=False, W=True)
+#SMF_bd, logM_bd = r.schechter(3.67e-3*(h/0.7)**3, 10**(10.74)/(h/0.7)**2, -0.525, logM=np.arange(SM_med-0.1, 12.1,0.1))
+#SMF_dd, logM_dd = r.schechter(0.855e-3*(h/0.7)**3, 10**(10.70)/(h/0.7)**2, -1.39, logM=np.arange(SM_med-0.1, 12.1,0.1))
+#ax[0].plot(logM_dd, SMF_dd, 'b-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) disc-dominated', zorder=0)
+#ax[0].plot(logM_bd, SMF_bd, 'r-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) bulge-dominated', zorder=0)
+ax[0].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.02, -0.02))
 ax[0].set_xlim(SM_med, 12)
 ax[0].set_xlabel(r'$\log_{10}(m_*~[{\rm M}_{\odot}])$')
 ax[0].set_ylabel(r'$\Phi~[{\rm Mpc}^{-3}~{\rm dex}^{-1}]$')
@@ -108,10 +110,10 @@ HIM = np.array(np.sum(G['DiscHI'],axis=1)*1e10/h, dtype=np.float32)
 f_HIM = (G['LenMax']==NpartMed) * (HIM>0) * np.isfinite(HIM)
 HIM_med = round(np.median(np.log10(HIM[f_HIM])), 3) if len(f_HIM[f_HIM])>0 else 9.05
 
-r.HIH2_massfunction_obsdata(h=h, HI=True, H2=False, Z=True, M=True, J=True, ax=ax[1])
+r.HIH2_massfunction_obsdata(h=h, HI=True, H2=False, Z=False, M=False, J=True, ax=ax[1])
 #HIMF_J18, logM_J18 = r.schechter(4.5e-3*(h/0.7)**3, (10**9.94)*(0.7/h)**2, -1.25, logM=np.arange(HIM_med-0.1, 11.5,0.1))
 #ax[1].plot(logM_J18, HIMF_J18, '-', color='chocolate', lw=6, alpha=0.4, label=r'Jones et al.~(2018)')
-ax[1].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.025, -0.03))
+ax[1].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.02, -0.02))
 r.massfunction(HIM, Lbox, range=[HIM_med-0.1, 11.5], ls='--', ax=ax[1])
 r.massfunction(HIM[G['LenMax']>=100], Lbox, range=[HIM_med-0.1, 11.5], ax=ax[1])
 ax[1].set_xlabel(r'$\log_{10}(m_{\rm H\,{\LARGE {\textsc i}}}~[{\rm M}_{\odot}])$')
@@ -126,7 +128,7 @@ f_H2M = (G['LenMax']==NpartMed) * (H2M>0) * np.isfinite(H2M)
 H2M_med = round(np.median(np.log10(H2M[f_H2M])), 3) if len(f_H2M[f_H2M])>0 else 8.5
 
 r.HIH2_massfunction_obsdata(h=h, HI=False, H2=True, K=True, OR=False, B=True, ax=ax[2])
-ax[2].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.025, -0.03))
+ax[2].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.02, -0.02))
 r.massfunction(H2M, Lbox, range=[H2M_med-0.1, 11.5], ls='--', ax=ax[2])
 r.massfunction(H2M[G['LenMax']>=100], Lbox, range=[H2M_med-0.1, 11.5], ax=ax[2])
 ax[2].set_xlabel(r'$\log_{10}(m_{\rm H_2}~[{\rm M}_{\odot}])$')

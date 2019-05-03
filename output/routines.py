@@ -142,8 +142,8 @@ def schechter(phistar, Mstar, alpha, Mlog=False, range=[7,12], Npoints=2000, log
     return Phi, logM
 
 
-def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1):
-    B = np.array([
+def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1, B=True, W=True):
+    Bdata = np.array([
                   [7.05, 1.3531e-01, 6.0741e-02],
                   [7.15, 1.3474e-01, 6.0109e-02],
                   [7.25, 2.0971e-01, 7.7965e-02],
@@ -196,8 +196,11 @@ def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1):
                   [11.95, 7.4764e-06, 7.4764e-06]
                   ], dtype=np.float32)
     if ax is None: ax = plt.gca()
-    ax.fill_between(B[:,0]+np.log10(0.7**2)-np.log10(h**2), (B[:,1]+B[:,2])*h**3, (B[:,1]-B[:,2])*h**3, facecolor='purple', alpha=0.2, zorder=zo)
-    ax.plot([1,1], [1,2], color='purple', linewidth=8, alpha=0.3, label=r'Baldry et al.~(2008)') # Just for the legend
+    
+    
+    if B:
+        ax.fill_between(Bdata[:,0]+np.log10(0.7**2)-np.log10(h**2), (Bdata[:,1]+Bdata[:,2])*h**3, (Bdata[:,1]-Bdata[:,2])*h**3, facecolor='purple', alpha=0.2, zorder=zo)
+        ax.plot([1,1], [1,2], color='purple', linewidth=8, alpha=0.3, label=r'Baldry et al.~(2008)') # Just for the legend
 
     W17_data = np.array([[1.200e+01, 1.929e-05, 2.623e-05, 2.912e-05, 0.000e+00, 0.000e+00, 1.467e-05],
                      [1.185e+01, 2.448e-05, 1.783e-05, 2.178e-05, 1.973e-05, 2.280e-05, 4.893e-05],
@@ -245,9 +248,11 @@ def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1):
                      [5.550e+00, 3.742e-02, 3.572e-02, 4.519e-02, 1.257e-02, 1.567e-02, 2.418e-02],
                      [5.400e+00, 1.581e-02, 2.140e-02, 5.194e-02, 1.040e-02, 1.432e-02, 2.597e-02],
                      [5.250e+00, 6.482e-03, 6.445e-03, 6.068e-03, 0.000e+00, 0.000e+00, 6.446e-06]])
-    ax.fill_between(W17_data[:,0]+2*np.log10(0.7/h), (W17_data[:,1]+W17_data[:,3])*(h/0.7)**3, (W17_data[:,1]- W17_data[:,2])*(h/0.7)**3,color='goldenrod', alpha=0.3, zorder=zo)
-    ax.plot(W17_data[:,0]+2*np.log10(0.7/h), W17_data[:,1]*(h/0.7)**3, '-', color='goldenrod', lw=2, zorder=zo)
-    ax.plot([0,1], [0,1], '-', color='goldenrod', lw=8, alpha=0.3, label=r'Wright et al.~(2017)') # Just for legend
+                     
+    if W:
+        ax.fill_between(W17_data[:,0]+2*np.log10(0.7/h), (W17_data[:,1]+W17_data[:,3])*(h/0.7)**3, (W17_data[:,1]- W17_data[:,2])*(h/0.7)**3,color='goldenrod', alpha=0.3, zorder=zo)
+        ax.plot(W17_data[:,0]+2*np.log10(0.7/h), W17_data[:,1]*(h/0.7)**3, '-', color='goldenrod', lw=2, zorder=zo)
+        ax.plot([0,1], [0,1], '-', color='goldenrod', lw=8, alpha=0.3, label=r'Wright et al.~(2017)') # Just for legend
 
 
 def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=None, Z=True, M=False, B=False, J=True):
