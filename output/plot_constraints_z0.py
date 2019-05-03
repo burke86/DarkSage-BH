@@ -108,9 +108,9 @@ HIM = np.array(np.sum(G['DiscHI'],axis=1)*1e10/h, dtype=np.float32)
 f_HIM = (G['LenMax']==NpartMed) * (HIM>0) * np.isfinite(HIM)
 HIM_med = round(np.median(np.log10(HIM[f_HIM])), 3) if len(f_HIM[f_HIM])>0 else 9.05
 
-r.HIH2_massfunction_obsdata(h=h, HI=True, H2=False, Z=True, M=True, ax=ax[1])
-HIMF_J18, logM_J18 = r.schechter(4.5e-3*(h/0.7)**3, (10**9.94)*(0.7/h)**2, -1.25, logM=np.arange(HIM_med-0.1, 11.5,0.1))
-ax[1].plot(logM_J18, HIMF_J18, '-', color='chocolate', lw=6, alpha=0.4, label=r'Jones et al.~(2018)')
+r.HIH2_massfunction_obsdata(h=h, HI=True, H2=False, Z=True, M=True, J=True, ax=ax[1])
+#HIMF_J18, logM_J18 = r.schechter(4.5e-3*(h/0.7)**3, (10**9.94)*(0.7/h)**2, -1.25, logM=np.arange(HIM_med-0.1, 11.5,0.1))
+#ax[1].plot(logM_J18, HIMF_J18, '-', color='chocolate', lw=6, alpha=0.4, label=r'Jones et al.~(2018)')
 ax[1].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.025, -0.03))
 r.massfunction(HIM, Lbox, range=[HIM_med-0.1, 11.5], ls='--', ax=ax[1])
 r.massfunction(HIM[G['LenMax']>=100], Lbox, range=[HIM_med-0.1, 11.5], ax=ax[1])

@@ -64,7 +64,13 @@ elif sim==1:
 elif sim==2:
     h = 0.6777
     vol = (400.0/h)**3 * len(filenumbers)/1000.
-# add here 'elif sim==3:' etc for a new simulation
+elif sim==3:
+    h = 0.6751
+    vol = (500.0/h)**3 * len(filenumbers)/128.
+elif sim==4:
+    h = 0.6751
+    vol = (75.0/h)**3 * len(filenumbers)/8.
+# add here 'elif sim==5:' etc for a new simulation
 else:
     print 'Please specify a valid simulation.  You may need to add its defaults to this code.'
     quit()

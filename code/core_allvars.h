@@ -344,7 +344,7 @@ extern double SfrEfficiency;
 extern double FeedbackReheatingEpsilon;
 extern double FeedbackGasSigma;
 extern double FeedbackExponent;
-extern double FeedbackEjectionEfficiency;
+extern double FeedbackEjectionRatio;
 extern double RadioModeEfficiency;
 extern double QuasarModeEfficiency;
 extern double BlackHoleGrowthRate;
@@ -394,6 +394,7 @@ extern int FileNum;
 
 double DiscBinEdge[N_BINS+1];
 int RetroCount, ProCount;
+double FeedbackEjectionEfficiency;
 
 #ifdef MINIMIZE_IO
 extern char *ptr_treedata, *ptr_galaxydata, *ptr_galsnapdata[ABSOLUTEMAXSNAPS];

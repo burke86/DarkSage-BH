@@ -205,8 +205,8 @@ void read_parameter_file(char *fname)
     addr[nt] = &FeedbackExponent;
     id[nt++] = DOUBLE;
     
-  strcpy(tag[nt], "FeedbackEjectionEfficiency");
-  addr[nt] = &FeedbackEjectionEfficiency;
+  strcpy(tag[nt], "FeedbackEjectionRatio");
+  addr[nt] = &FeedbackEjectionRatio;
   id[nt++] = DOUBLE;
 
   strcpy(tag[nt], "BlackHoleGrowthRate");

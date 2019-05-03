@@ -117,6 +117,7 @@ int main(int argc, char **argv)
     }
     RetroCount = 0;
     ProCount = 0;
+    FeedbackEjectionEfficiency = FeedbackEjectionRatio * FeedbackReheatingEpsilon;
 #ifdef MPI
     // A small delay so that processors don't use the same file
     //    printf("Small delay for processors\n");

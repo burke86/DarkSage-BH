@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir              /Volumes/AdamDrive/Research/SAGE_disc_runs/Genesis/L75n324/13/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/19/
 
 FirstFile                   0
 LastFile                    7
@@ -68,20 +68,21 @@ ExponentBin                 1.4     ; The factor in spec ang mom between bins
 %----- Parameters of physical model -------
 %------------------------------------------
 
-SfrEfficiency               0.23
+SfrEfficiency               0.9832
 
-FeedbackReheatingEpsilon    6.0
-FeedbackGasSigma            2.0     ; For SupernovaRecipeOn=1, scales SN feedback based on this density scale [h Msun/pc^2]
+FeedbackReheatingEpsilon    4.3567
+FeedbackGasSigma            2.8865     ; For SupernovaRecipeOn=1, scales SN feedback based on this density scale [h Msun/pc^2]
 FeedbackExponent            1.0    ; Exponent for scaled SN feedback (SupernovaRecipeOn=1)
-FeedbackEjectionEfficiency  0.6
+%FeedbackEjectionEfficiency  0.6
+FeedbackEjectionRatio      0.1649 ; Ties the value of FeedbackEjectionEfficiency to FeedbackReheatingEpsilon
 
 ReIncorporationFactor        0.15    ; For ReincorpotationModel=0
 
 CoolingScaleSlope           0.23    ; cf. eq. 18 of Stevens et al. (2017)
 CoolingScaleConst           1.0
 
-RadioModeEfficiency         0.0025
-QuasarModeEfficiency        0.005
+RadioModeEfficiency         0.001
+QuasarModeEfficiency        0.01962
 BlackHoleGrowthRate         0.008
 
 H2FractionFactor            1.0    ;Controls the normalisation of the H2/HI calculation if H2prescription=0. (1/h^2 for Fu+10)

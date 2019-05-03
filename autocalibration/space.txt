@@ -1,2 +1,6 @@
-SfrEfficiency,SFE,0,0.15,0.35
-RadioModeEfficiency,eRadio,0,0.001,0.01
+SfrEfficiency,SFE,0,0.1,1.0
+FeedbackReheatingEpsilon,eHeat,0,1.0,10.0
+FeedbackGasSigma,Sigma0,0,1.0,10.0
+FeedbackEjectionRatio,eEject/eHeat,0,0.05,0.2
+RadioModeEfficiency,eRadio,0,0.001,0.5
+QuasarModeEfficiency,eQuasar,0,0.001,0.025

@@ -83,7 +83,7 @@ double SfrEfficiency;
 double FeedbackReheatingEpsilon;
 double FeedbackGasSigma;
 double FeedbackExponent;
-double FeedbackEjectionEfficiency;
+double FeedbackEjectionRatio;
 double RadioModeEfficiency;
 double QuasarModeEfficiency;
 double BlackHoleGrowthRate;

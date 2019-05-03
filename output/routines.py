@@ -250,7 +250,7 @@ def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1):
     ax.plot([0,1], [0,1], '-', color='goldenrod', lw=8, alpha=0.3, label=r'Wright et al.~(2017)') # Just for legend
 
 
-def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=None, Z=True, M=False, B=False):
+def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=None, Z=True, M=False, B=False, J=True):
     Zwaan = np.array([[6.933,   -0.333],
                       [7.057,   -0.490],
                       [7.209,   -0.698],
@@ -319,6 +319,36 @@ def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=No
       
     HI_x = Zwaan[:,0] - 2*np.log10(h)
     HI_y = 10**Zwaan[:,1] * h**3
+    
+    Jones_data = np.array([[6.49655, -1.29050, -1.50559, -1.11453],
+                            [6.71034, -1.05587, -1.21229, -0.938547],
+                            [6.90345, -1.36872, -1.54469, -1.29050],
+                            [7.09655, -1.36872, -1.42737, -1.31006],
+                            [7.29655, -1.25140, -1.32961, -1.21229],
+                            [7.48276, -1.29050, -1.34916, -1.23184],
+                            [7.70345, -1.40782, -1.46648, -1.36872],
+                            [7.91034, -1.46648, -1.56425, -1.42737],
+                            [8.11034, -1.52514, -1.54469, -1.46648],
+                            [8.29655, -1.58380, -1.62291, -1.52514],
+                            [8.50345, -1.62291, -1.66201, -1.60335],
+                            [8.70345, -1.70112, -1.74022, -1.64246],
+                            [8.89655, -1.77933, -1.81844, -1.75978],
+                            [9.10345, -1.77933, -1.81844, -1.75978],
+                            [9.30345, -1.91620, -1.97486, -1.89665],
+                            [9.49655, -2.01397, -2.09218, -1.99441],
+                            [9.70345, -2.18994, -2.26816, -2.13128],
+                            [9.90345, -2.36592, -2.40503, -2.3072],
+                            [10.0966, -2.60056, -2.63966, -2.58101],
+                            [10.2897, -3.06983, -3.12849, -3.05028],
+                            [10.4966, -3.73464, -3.83240, -3.69553],
+                            [10.6966, -4.63408, -4.77095, -4.51676],
+                            [10.9034, -5.80726, -6.35475, -5.55307]])
+
+    Jones_x = Jones_data[:,0] + 2*np.log10(0.7/h)
+    Jones_mid = Jones_data[:,1] + 3*np.log10(h/0.7)
+    Jones_high = Jones_data[:,3] + 3*np.log10(h/0.7)
+    Jones_low = Jones_data[:,2] + 3*np.log10(h/0.7)
+    
 
     Boselli_const_XCO = np.array([[7.39189, -3.06989, -3.32527, -2.86828],
                                 [7.78378, -2.45161, -2.54570, -2.37097],
@@ -337,21 +367,33 @@ def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=No
                               [9.59838, -2.72043, -2.92204, -2.62634], 
                               [9.98922, -3.67473, -5.98656, -3.31183]])
     
-    if ax is None: ax = plt.gca()         
-    if HI and Z: ax.plot(HI_x, HI_y, '-', color='g', lw=8, alpha=0.4, label=r'Zwaan et al.~(2005)')
-    if HI and M: ax.fill_between(Martin_x, 10**Martin_high, 10**Martin_low, color='c', alpha=0.4)
-    if HI and M: ax.plot([0,1], [1,1], 'c-', lw=8, alpha=0.4, label=r'Martin et al.~(2010)')
+    if ax is None: ax = plt.gca()      
+    
+    if HI and Z: 
+        ax.plot(HI_x, HI_y, '-', color='g', lw=8, alpha=0.4, label=r'Zwaan et al.~(2005)')
+    
+    if HI and M: 
+        ax.fill_between(Martin_x, 10**Martin_high, 10**Martin_low, color='c', alpha=0.4)
+        ax.plot([0,1], [1,1], 'c-', lw=8, alpha=0.4, label=r'Martin et al.~(2010)')
 
-    if H2 and K: ax.fill_between(Keres_M, 10**Keres_high, 10**Keres_low, color='teal', alpha=0.4)
-    if H2 and K: ax.plot([0,1], [1,1], '-', color='teal', lw=8, alpha=0.4, label=r'Keres et al.~(2003)')
+    if HI and J:
+        ax.fill_between(Jones_x, 10**Jones_high, 10**Jones_low, color='chocolate', alpha=0.4)
+        ax.plot([0,1], [1,1], '-', color='chocolate', lw=8, alpha=0.4, label=r'Jones et al.~(2018)')
 
-    if H2 and OR: ax.fill_between(ObrRaw_M, 10**ObrRaw_high, 10**ObrRaw_low, color='darkcyan', alpha=0.4)
-    if H2 and OR: ax.plot([0,1], [1,1], '-', color='darkcyan', lw=8, alpha=0.4, label=r'Obreschkow \& Rawlings (2009)')
+
+    if H2 and K: 
+        ax.fill_between(Keres_M, 10**Keres_high, 10**Keres_low, color='teal', alpha=0.4)
+        ax.plot([0,1], [1,1], '-', color='teal', lw=8, alpha=0.4, label=r'Keres et al.~(2003)')
+
+    if H2 and OR: 
+        ax.fill_between(ObrRaw_M, 10**ObrRaw_high, 10**ObrRaw_low, color='darkcyan', alpha=0.4)
+        ax.plot([0,1], [1,1], '-', color='darkcyan', lw=8, alpha=0.4, label=r'Obreschkow \& Rawlings (2009)')
                         
-    if H2 and B: ax.fill_between(Boselli_const_XCO[:,0]+2*np.log10(0.7/h), 10**Boselli_const_XCO[:,2]*(h/0.7)**3/0.4, 10**Boselli_const_XCO[:,3]*(h/0.7)**3/0.4, color='orange', alpha=0.4)
-    if H2 and B: ax.plot([0,1], [1,1], '-', color='orange', lw=8, alpha=0.4, label=r'Boselli et al.~(2014), const.~$X_{\rm CO}$')
-    if H2 and B: ax.fill_between(Boselli_var_XCO[:,0]+2*np.log10(0.7/h), 10**Boselli_var_XCO[:,2]*(h/0.7)**3/0.4, 10**Boselli_var_XCO[:,3]*(h/0.7)**3/0.4, color='violet', alpha=0.4)
-    if H2 and B: ax.plot([0,1], [1,1], '-', color='violet', lw=8, alpha=0.4, label=r'Boselli et al.~(2014), var.~$X_{\rm CO}$')
+    if H2 and B: 
+        ax.fill_between(Boselli_const_XCO[:,0]+2*np.log10(0.7/h), 10**Boselli_const_XCO[:,2]*(h/0.7)**3/0.4, 10**Boselli_const_XCO[:,3]*(h/0.7)**3/0.4, color='orange', alpha=0.4)
+        ax.plot([0,1], [1,1], '-', color='orange', lw=8, alpha=0.4, label=r'Boselli et al.~(2014), const.~$X_{\rm CO}$')
+        ax.fill_between(Boselli_var_XCO[:,0]+2*np.log10(0.7/h), 10**Boselli_var_XCO[:,2]*(h/0.7)**3/0.4, 10**Boselli_var_XCO[:,3]*(h/0.7)**3/0.4, color='violet', alpha=0.4)
+        ax.plot([0,1], [1,1], '-', color='violet', lw=8, alpha=0.4, label=r'Boselli et al.~(2014), var.~$X_{\rm CO}$')
 
     ax.set_xlabel(r'$\log_{10}(M_{\mathrm{H}\,\huge\textsc{i}}\ \mathrm{or}\ M_{\mathrm{H}_2}\ [\mathrm{M}_{\bigodot}])$')
     ax.set_ylabel(r'$\Phi\ [\mathrm{Mpc}^{-3}\ \mathrm{dex}^{-1}]$')
