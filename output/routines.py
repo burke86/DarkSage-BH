@@ -119,7 +119,7 @@ def darksage_snap(fpre, filelist, fields=[], Nannuli=30):
 
 
 
-def massfunction(mass, Lbox, range=[8,12.5], c='k', lw=2, ls='-', label='', ax=None, zo=2):
+def massfunction(mass, Lbox, range=[8,12.5], c='k', lw=2, ls='-', label='', ax=None, zo=2, return_data=False):
     masslog = np.log10(mass[(mass>0)*np.isfinite(mass)])
     N, edges = np.histogram(masslog, bins=np.arange(range[0],range[1]+0.1,0.1))
     binwidth = edges[1]-edges[0]
@@ -132,6 +132,8 @@ def massfunction(mass, Lbox, range=[8,12.5], c='k', lw=2, ls='-', label='', ax=N
         ax.plot(x, y, c+ls, linewidth=lw, label=label, zorder=zo)
     else:
         ax.plot(x, y, c+ls, linewidth=lw, zorder=zo)
+
+    if return_data: return x, y
 
 
 def schechter(phistar, Mstar, alpha, Mlog=False, range=[7,12], Npoints=2000, logM=None):
