@@ -15,7 +15,7 @@
 
 void init_galaxy(int p, int halonr)
 {
-    int j, step;
+    int j, k, step;
     double SpinMag;
     
     if(halonr != Halo[halonr].FirstHaloInFOFgroup)
@@ -145,6 +145,21 @@ void init_galaxy(int p, int halonr)
     Gal[p].infallMvir = -1.0;  //infall properties
     Gal[p].infallVvir = -1.0;
     Gal[p].infallVmax = -1.0;
+    
+    for(k=0; k<N_AGE_BINS; k++)
+    {
+        Gal[p].ClassicalBulgeMassAge[k] = 0.0;
+        Gal[p].SecularBulgeMassAge[k] = 0.0;
+        Gal[p].ClassicalMetalsBulgeMassAge[k] = 0.0;
+        Gal[p].SecularMetalsBulgeMassAge[k] = 0.0;
+        
+        for(j=0; j<N_BINS; j++)
+        {
+            Gal[p].DiscStarsAge[j][k] = 0.0;
+            Gal[p].DiscStarsMetalsAge[j][k] = 0.0;
+        }
+    }
+
     
 }
 

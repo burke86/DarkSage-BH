@@ -157,6 +157,10 @@ void read_parameter_file(char *fname)
   addr[nt] = &MvirDefinition;
   id[nt++] = INT;
 
+  strcpy(tag[nt], "AgeStructOut");
+  addr[nt] = &AgeStructOut;
+  id[nt++] = INT;
+
   strcpy(tag[nt], "BaryonFrac");
   addr[nt] = &BaryonFrac;
   id[nt++] = DOUBLE;

@@ -4,8 +4,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def galdtype_darksage(Nannuli=30):
+def galdtype_darksage(Nannuli=30,Nage=1):
     floattype = np.float32
+    
+    # Account for whether age bins are used for stars or not
+    if Nage>1:
+        disc_arr_dim = (Nannuli,Nage)
+        bulge_arr_type = (floattype, Nage)
+    else:
+        disc_arr_dim = Nannuli
+        bulge_arr_type = floattype
+
     Galdesc_full = [
                     ('Type'                         , np.int32),
                     ('GalaxyIndex'                  , np.int64),
@@ -32,14 +41,14 @@ def galdtype_darksage(Nannuli=30):
                     ('DiscRadii'                    , (floattype, Nannuli+1)), 
                     ('ColdGas'                      , floattype),
                     ('StellarMass'                  , floattype),
-                    ('MergerBulgeMass'              , floattype),
-                    ('InstabilityBulgeMass'          , floattype),
+                    ('MergerBulgeMass'              , bulge_arr_type),
+                    ('InstabilityBulgeMass'         , bulge_arr_type),
                     ('HotGas'                       , floattype),
                     ('EjectedMass'                  , floattype),
                     ('BlackHoleMass'                , floattype),
                     ('IntraClusterStars'            , floattype),
                     ('DiscGas'                      , (floattype, Nannuli)),
-                    ('DiscStars'                    , (floattype, Nannuli)),
+                    ('DiscStars'                    , (floattype, disc_arr_dim)),
                     ('SpinStars'                    , (floattype, 3)),
                     ('SpinGas'                      , (floattype, 3)),
                     ('SpinClassicalBulge'           , (floattype, 3)),
@@ -51,13 +60,13 @@ def galdtype_darksage(Nannuli=30):
                     ('DiscSFR'                      , (floattype, Nannuli)), 
                     ('MetalsColdGas'                , floattype),
                     ('MetalsStellarMass'            , floattype),
-                    ('ClassicalMetalsBulgeMass'     , floattype),
-                    ('SecularMetalsBulgeMass'       , floattype),
+                    ('MetalsMergerBulgeMass'        , bulge_arr_type),
+                    ('MetalsInstabilityBulgeMass'   , bulge_arr_type),
                     ('MetalsHotGas'                 , floattype),
                     ('MetalsEjectedMass'            , floattype),
                     ('MetalsIntraClusterStars'      , floattype),
                     ('DiscGasMetals'                , (floattype, Nannuli)),
-                    ('DiscStarsMetals'              , (floattype, Nannuli)),
+                    ('DiscStarsMetals'              , (floattype, disc_arr_dim)),
                     ('SfrFromH2'                    , floattype),
                     ('SfrInstab'                    , floattype),
                     ('SfrMergeBurst'                , floattype),
@@ -82,12 +91,12 @@ def galdtype_darksage(Nannuli=30):
 
 
 
-def darksage_out_single(fname, fields=[], Nannuli=30):
+def darksage_out_single(fname, fields=[], Nannuli=30, Nage=1):
     # Read a single Dark Sage output file, returning all the galaxy data
     # fname is the full name for the file to read, including its path
     # fields is the list of fields you want to read in.  If empty, will read all fields.
     
-    Galdesc = galdtype_darksage(Nannuli)
+    Galdesc = galdtype_darksage(Nannuli, Nage)
     if len(fields)==0: fields=list(Galdesc.names)
     
     fin = open(fname, 'rb')  # Open the file
@@ -100,12 +109,12 @@ def darksage_out_single(fname, fields=[], Nannuli=30):
     return G 
 
 
-def darksage_snap(fpre, filelist, fields=[], Nannuli=30):
+def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
     # Read full Dark Sage snapshot, going through each file and compiling into 1 array
     # fpre is the name of the file up until the _ before the file number
     # filelist contains all the file numbers you want to read in
     
-    Galdesc = galdtype_darksage()
+    Galdesc = galdtype_darksage(Nannuli, Nage)
     if len(fields)==0: fields=list(Galdesc.names)
     NtotGalsSum = 0
     

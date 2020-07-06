@@ -21,6 +21,7 @@ void load_tree(int nr);
 void save_galaxies(int filenr, int tree);
 
 void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GALAXY_OUTPUT *o);
+void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, struct GALAXY_OUTPUT_LARGE *o);
 
 void free_galaxies_and_tree(void);
 void free_tree_table(void);

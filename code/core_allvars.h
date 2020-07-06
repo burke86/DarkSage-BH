@@ -36,6 +36,7 @@ do {                                                                \
 #define N_BINS 30
 #define MIN_STARS_FOR_SN 1e-8
 #define MIN_STARFORMATION 1e-10
+#define N_AGE_BINS 20 // REDUCE THIS VALUE TO ZERO SAVE RAM WHEN FLAG IS OFF IN PARAMETER FILE
 
 struct GALAXY_OUTPUT  
 {
@@ -145,6 +146,114 @@ struct GALAXY_OUTPUT
   float infallVmax;
 };
 
+
+struct GALAXY_OUTPUT_LARGE // new for age dimension
+{
+  int   Type;
+  long long   GalaxyIndex;
+  int   HaloIndex;
+  int SimulationHaloIndex;
+  int   TreeIndex;
+    
+  int   SnapNum;
+  long long CentralGalaxyIndex;
+  float CentralMvir;
+
+  int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=disk instability; 4=disrupt to ICS
+  int   mergeIntoID;
+  int   mergeIntoSnapNum;
+  float   dT;
+
+  // properties of subhalo at the last time this galaxy was a central galaaxy 
+  float Pos[3];
+  float Vel[3];
+  float Spin[3];
+  int   Len;
+    int LenMax;
+  float Mvir;
+  float Rvir;
+  float Vvir;
+  float Vmax;
+  float VelDisp;
+    
+  // Radius of each annulus boundary
+  float DiscRadii[N_BINS+1];
+
+  // baryonic reservoirs 
+  float ColdGas;
+  float StellarMass;
+  float ClassicalBulgeMass[N_AGE_BINS];
+  float SecularBulgeMass[N_AGE_BINS];
+  float HotGas;
+  float EjectedMass;
+  float BlackHoleMass;
+  float ICS;
+  float DiscGas[N_BINS];
+  float DiscStars[N_BINS][N_AGE_BINS];
+  float SpinStars[3];
+  float SpinGas[3];
+//  float SpinSecularBulge[3];
+  float SpinClassicalBulge[3];
+  float StarsFromH2;
+  float StarsInstability;
+  float StarsMergeBurst;
+  float DiscHI[N_BINS];
+  float DiscH2[N_BINS];
+  float DiscSFR[N_BINS];
+    
+    // inflow/outflow tracking
+//    float AccretedGasMass;
+//    float EjectedSNGasMass;
+//    float EjectedQuasarGasMass;
+    
+    // Instability tracking
+//  int TotInstabEvents;
+//  int TotInstabEventsGas;
+//  int TotInstabEventsStar;
+//  int TotInstabAnnuliGas;
+//  int TotInstabAnnuliStar;
+//  float FirstUnstableAvGas;
+//  float FirstUnstableAvStar;
+//  float TotSinkGas[N_BINS];
+//  float TotSinkStar[N_BINS];
+    
+  // metals
+  float MetalsColdGas;
+  float MetalsStellarMass;
+  float ClassicalMetalsBulgeMass[N_AGE_BINS];
+  float SecularMetalsBulgeMass[N_AGE_BINS];
+  float MetalsHotGas;
+  float MetalsEjectedMass;
+  float MetalsICS;
+  float DiscGasMetals[N_BINS];
+  float DiscStarsMetals[N_BINS][N_AGE_BINS];
+
+  // to calculate magnitudes
+  float SfrFromH2;
+  float SfrInstab;
+  float SfrMerge;
+  float SfrDiskZ;
+  float SfrBulgeZ;
+//  float SfZ_H2;
+//  float SfZ_Instab;
+//  float SfZ_Merge;
+  
+  // misc 
+  float DiskScaleRadius;
+  float CoolScaleRadius;
+  float StellarDiscScaleRadius;
+//  float GasDiscScaleRadius;
+  float Cooling;
+  float Heating;
+  float LastMajorMerger;
+  float LastMinorMerger;
+  float OutflowRate;
+
+  //infall properties
+  float infallMvir;
+  float infallVvir;
+  float infallVmax;
+};
 
 struct GALAXY
 {
@@ -259,6 +368,15 @@ struct GALAXY
   double infallMvir;
   double infallVvir;
   double infallVmax;
+    
+    //properties for age binning of stars -- only used if flag in parameter file is on
+    double ClassicalBulgeMassAge[N_AGE_BINS];
+    double SecularBulgeMassAge[N_AGE_BINS];
+    double ClassicalMetalsBulgeMassAge[N_AGE_BINS];
+    double SecularMetalsBulgeMassAge[N_AGE_BINS];
+    double DiscStarsAge[N_BINS][N_AGE_BINS];
+    double DiscStarsMetalsAge[N_BINS][N_AGE_BINS];
+    
 }
 *Gal, *HaloGal;
 
@@ -330,6 +448,7 @@ extern int    HeatedToCentral;
 extern int    ReincorpotationModel;
 extern int    CoolingExponentialRadiusOn;
 extern int    MvirDefinition;
+extern int    AgeStructOut;
 
 // recipe parameters 
 extern double RecycleFraction;
@@ -393,6 +512,7 @@ extern int TreeID;
 extern int FileNum;
 
 double DiscBinEdge[N_BINS+1];
+double AgeBinEdge[N_AGE_BINS+1];
 int RetroCount, ProCount;
 
 #ifdef MINIMIZE_IO

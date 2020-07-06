@@ -22,9 +22,8 @@ void save_galaxies(int filenr, int tree)
 #ifndef MINIMIZE_IO
     char buf[1000];
 #endif
-    int i, n;
-    struct GALAXY_OUTPUT galaxy_output;
-    memset(&galaxy_output, 0, sizeof(struct GALAXY_OUTPUT));
+    int i, n, size_struct;
+
     int OutputGalCount[MAXSNAPS], *OutputGalOrder;
     
     OutputGalOrder = (int*)malloc( NumGals*sizeof(int) );
@@ -53,43 +52,96 @@ void save_galaxies(int filenr, int tree)
     if(HaloGal[i].mergeIntoID > -1)
     HaloGal[i].mergeIntoID = OutputGalOrder[HaloGal[i].mergeIntoID];
     
-    // now prepare and write galaxies
-    for(n = 0; n < NOUT; n++)
+    if(AgeStructOut==0)
     {
-#ifndef MINIMIZE_IO
-        // only open the file if it is not already open.
-        if( !save_fd[n] )
-        {
-            sprintf(buf, "%s/%s_z%1.3f_%d", OutputDir, FileNameGalaxies, ZZ[ListOutputSnaps[n]], filenr);
-            
-            if(!(save_fd[n] = fopen(buf, "r+")))
-            {
-                printf("can't open file `%s'\n", buf);
-                ABORT(0);
-            }
-            
-            // write out placeholders for the header data.
-            size_t size = (Ntrees + 2)*sizeof(int);
-            int* tmp_buf = (int*)malloc( size );
-            memset( tmp_buf, 0, size );
-            fwrite( tmp_buf, sizeof(int), Ntrees + 2, save_fd[n] );
-            free( tmp_buf );
-        }
-#endif
+        struct GALAXY_OUTPUT galaxy_output;
+        size_struct = sizeof(struct GALAXY_OUTPUT);
+        memset(&galaxy_output, 0, size_struct);
         
-        for(i = 0; i < NumGals; i++)
+        // now prepare and write galaxies
+        for(n = 0; n < NOUT; n++)
         {
-            if(HaloGal[i].SnapNum == ListOutputSnaps[n])
+    #ifndef MINIMIZE_IO
+            // only open the file if it is not already open.
+            if( !save_fd[n] )
             {
-                prepare_galaxy_for_output(filenr, tree, &HaloGal[i], &galaxy_output);
-                myfwrite(&galaxy_output, sizeof(struct GALAXY_OUTPUT), 1, save_fd[n]);
+                sprintf(buf, "%s/%s_z%1.3f_%d", OutputDir, FileNameGalaxies, ZZ[ListOutputSnaps[n]], filenr);
                 
-                TotGalaxies[n]++;
-                TreeNgals[n][tree]++;
+                if(!(save_fd[n] = fopen(buf, "r+")))
+                {
+                    printf("can't open file `%s'\n", buf);
+                    ABORT(0);
+                }
+                
+                // write out placeholders for the header data.
+                size_t size = (Ntrees + 2)*sizeof(int);
+                int* tmp_buf = (int*)malloc( size );
+                memset( tmp_buf, 0, size );
+                fwrite( tmp_buf, sizeof(int), Ntrees + 2, save_fd[n] );
+                free( tmp_buf );
             }
+    #endif
+            
+            for(i = 0; i < NumGals; i++)
+            {
+                if(HaloGal[i].SnapNum == ListOutputSnaps[n])
+                {
+                    prepare_galaxy_for_output(filenr, tree, &HaloGal[i], &galaxy_output);
+                    myfwrite(&galaxy_output, sizeof(struct GALAXY_OUTPUT), 1, save_fd[n]);
+
+                    TotGalaxies[n]++;
+                    TreeNgals[n][tree]++;
+                }
+            }
+            
         }
-        
     }
+    else // much of the code below is the same. The important thing is the change in definition from GALAXY_OUTPUT to GALAXY_OUTPUT_LARGE
+    {
+        struct GALAXY_OUTPUT_LARGE galaxy_output;
+        size_struct = sizeof(struct GALAXY_OUTPUT_LARGE);
+        memset(&galaxy_output, 0, size_struct);
+        
+        // now prepare and write galaxies
+        for(n = 0; n < NOUT; n++)
+        {
+    #ifndef MINIMIZE_IO
+            // only open the file if it is not already open.
+            if( !save_fd[n] )
+            {
+                sprintf(buf, "%s/%s_z%1.3f_%d", OutputDir, FileNameGalaxies, ZZ[ListOutputSnaps[n]], filenr);
+                
+                if(!(save_fd[n] = fopen(buf, "r+")))
+                {
+                    printf("can't open file `%s'\n", buf);
+                    ABORT(0);
+                }
+                
+                // write out placeholders for the header data.
+                size_t size = (Ntrees + 2)*sizeof(int);
+                int* tmp_buf = (int*)malloc( size );
+                memset( tmp_buf, 0, size );
+                fwrite( tmp_buf, sizeof(int), Ntrees + 2, save_fd[n] );
+                free( tmp_buf );
+            }
+    #endif
+            
+            for(i = 0; i < NumGals; i++)
+            {
+                if(HaloGal[i].SnapNum == ListOutputSnaps[n])
+                {
+                    prepare_galaxy_for_output_large(filenr, tree, &HaloGal[i], &galaxy_output);
+                    myfwrite(&galaxy_output, sizeof(struct GALAXY_OUTPUT_LARGE), 1, save_fd[n]);
+
+                    TotGalaxies[n]++;
+                    TreeNgals[n][tree]++;
+                }
+            }
+            
+        }
+    }
+    
+    
     
     // don't forget to free the workspace.
     free( OutputGalOrder );
@@ -174,6 +226,151 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
 	o->DiscStars[j] = g->DiscStars[j];
 	o->DiscGasMetals[j] = g->DiscGasMetals[j];
 	o->DiscStarsMetals[j] = g->DiscStarsMetals[j];
+      o->DiscHI[j] = g->DiscHI[j];
+      o->DiscH2[j] = g->DiscH2[j];
+      o->DiscSFR[j] = g->DiscSFR[j] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
+  }
+
+  o->SfrFromH2 = 0.0;
+  o->SfrInstab = 0.0;
+  o->SfrMerge = 0.0;
+  o->SfrDiskZ = 0.0;
+  o->SfrBulgeZ = 0.0;
+  
+  // NOTE: in Msun/yr 
+  for(step = 0; step < STEPS; step++)
+  {
+    o->SfrFromH2 += g->SfrFromH2[step] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
+    o->SfrInstab += g->SfrInstab[step] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
+    o->SfrMerge += g->SfrMerge[step] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
+    
+    if(g->SfrDiskColdGas[step] > 0.0)
+      o->SfrDiskZ += g->SfrDiskColdGasMetals[step] / g->SfrDiskColdGas[step] / STEPS;
+
+    if(g->SfrBulgeColdGas[step] > 0.0)
+      o->SfrBulgeZ += g->SfrBulgeColdGasMetals[step] / g->SfrBulgeColdGas[step] / STEPS;
+  }
+
+  o->DiskScaleRadius = g->DiskScaleRadius;
+  o->CoolScaleRadius = g->CoolScaleRadius;
+  o->StellarDiscScaleRadius = g->StellarDiscScaleRadius;
+
+  if (g->Cooling > 0.0)
+    o->Cooling = log10(g->Cooling * UnitEnergy_in_cgs / UnitTime_in_s);
+  else
+    o->Cooling = 0.0;
+  if (g->Heating > 0.0)
+    o->Heating = log10(g->Heating * UnitEnergy_in_cgs / UnitTime_in_s);
+  else
+    o->Heating = 0.0;
+
+  o->LastMajorMerger = g->LastMajorMerger * UnitTime_in_Megayears;
+  o->LastMinorMerger = g->LastMinorMerger * UnitTime_in_Megayears;
+  o->OutflowRate = g->OutflowRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+
+  //infall properties
+  if(g->Type != 0)
+  {
+    o->infallMvir = g->infallMvir;
+    o->infallVvir = g->infallVvir;
+    o->infallVmax = g->infallVmax;
+  }
+  else
+  {
+    o->infallMvir = 0.0;
+    o->infallVvir = 0.0;
+    o->infallVmax = 0.0;
+  }
+
+}
+
+
+
+void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, struct GALAXY_OUTPUT_LARGE *o)
+{
+  int j, k, step;
+    
+  o->SnapNum = g->SnapNum;
+  o->Type = g->Type;
+    
+    assert( g->GalaxyNr < TREE_MUL_FAC ); // breaking tree size assumption
+    assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
+    o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+    assert( (o->GalaxyIndex - g->GalaxyNr - TREE_MUL_FAC*tree)/FILENR_MUL_FAC == filenr );
+    assert( (o->GalaxyIndex - g->GalaxyNr -FILENR_MUL_FAC*filenr) / TREE_MUL_FAC == tree );
+    assert( o->GalaxyIndex - TREE_MUL_FAC*tree - FILENR_MUL_FAC*filenr == g->GalaxyNr );
+    
+    o->CentralGalaxyIndex = HaloGal[HaloAux[Halo[g->HaloNr].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+    
+    o->HaloIndex = g->HaloNr;
+    o->TreeIndex = tree;
+    o->SimulationHaloIndex = Halo[g->HaloNr].SubhaloIndex;
+
+
+  o->mergeType = g->mergeType;
+  o->mergeIntoID = g->mergeIntoID;
+  o->mergeIntoSnapNum = g->mergeIntoSnapNum;
+  o->dT = g->dT * UnitTime_in_s / SEC_PER_MEGAYEAR;
+
+  for(j = 0; j < 3; j++)
+  {
+    o->Pos[j] = g->Pos[j];
+    o->Vel[j] = g->Vel[j];
+    o->Spin[j] = Halo[g->HaloNr].Spin[j];
+    o->SpinStars[j] = g->SpinStars[j];
+    o->SpinGas[j] = g->SpinGas[j];
+    o->SpinClassicalBulge[j] = g->SpinClassicalBulge[j];
+  }
+
+  o->Len = g->Len;
+    o->LenMax = g->LenMax;
+  o->Mvir = g->Mvir;
+  o->CentralMvir = get_virial_mass(Halo[g->HaloNr].FirstHaloInFOFgroup, -1);
+  o->Rvir = get_virial_radius(g->HaloNr, -1);
+  o->Vvir = get_virial_velocity(g->HaloNr, -1); 
+  o->Vmax = g->Vmax;
+  o->VelDisp = Halo[g->HaloNr].VelDisp;
+    
+    for(j=0; j<N_BINS+1; j++)
+    o->DiscRadii[j] = g->DiscRadii[j];
+    
+  o->ColdGas = g->ColdGas;
+  o->StellarMass = g->StellarMass;
+  for(k=0; k<N_AGE_BINS; k++)
+  {
+    o->ClassicalBulgeMass[k] = g->ClassicalBulgeMassAge[k];
+    o->SecularBulgeMass[k] = g->SecularBulgeMassAge[k];
+  }
+  o->HotGas = g->HotGas;
+  o->EjectedMass = g->EjectedMass;
+  o->BlackHoleMass = g->BlackHoleMass;
+  o->ICS = g->ICS;
+
+  o->MetalsColdGas = g->MetalsColdGas;
+  o->MetalsStellarMass = g->MetalsStellarMass;
+  for(k=0; k<N_AGE_BINS; k++)
+  {
+    o->ClassicalMetalsBulgeMass[k] = g->ClassicalMetalsBulgeMassAge[k];
+    o->SecularMetalsBulgeMass[k] = g->SecularMetalsBulgeMassAge[k];
+  }
+  o->MetalsHotGas = g->MetalsHotGas;
+  o->MetalsEjectedMass = g->MetalsEjectedMass;
+  o->MetalsICS = g->MetalsICS;
+    
+  o->StarsFromH2 = g->StarsFromH2;
+  o->StarsInstability = g->StarsInstability;
+  o->StarsMergeBurst = g->StarsMergeBurst;
+    
+  
+  for(j=0; j<N_BINS; j++)
+  {
+    for(k=0; k<N_AGE_BINS; k++)
+    {
+      o->DiscStars[j][k] = g->DiscStarsAge[j][k];
+      o->DiscStarsMetals[j][k] = g->DiscStarsMetalsAge[j][k];
+    }
+    o->DiscGas[j] = g->DiscGas[j];
+    o->DiscGasMetals[j] = g->DiscGasMetals[j];
       o->DiscHI[j] = g->DiscHI[j];
       o->DiscH2[j] = g->DiscH2[j];
       o->DiscSFR[j] = g->DiscSFR[j] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;

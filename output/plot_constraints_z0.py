@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-indir = 'results/millennium/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/571/' # directory where the Dark Sage data are
 sim = 0 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
@@ -20,6 +20,7 @@ fpre = 'model_z0.000' # what is the prefix name of the z=0 files
 files = range(8) # list of file numbers you want to read
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
+Nage = 20 # number of age bins used for stars -- not advised to use a run with this for calibration
 FirstBin = 1.0 # copy from parameter file -- sets the annuli's sizes
 ExponentBin = 1.4
 ###### ============================== ######
@@ -56,7 +57,7 @@ else:
 ##### READ DARK SAGE DATA #####
 start = time.time()
 DiscBinEdge = np.append(0, np.array([FirstBin*ExponentBin**i for i in range(Nannuli)])) / h
-G = r.darksage_snap(indir+fpre, files, Nannuli=Nannuli)
+G = r.darksage_snap(indir+fpre, files, Nannuli=Nannuli, Nage=Nage)
 print('Time taken to read = {0} s'.format(round(time.time()-start, 2)))
 ######  ================= #####
 
@@ -81,7 +82,7 @@ try:
     # Stellar mass function
     fig, ax = plt.subplots(1, 3, sharey=True)
     SM = np.array(G['StellarMass']*1e10/h, dtype=np.float32)
-    BTT = (G['InstabilityBulgeMass'] + G['MergerBulgeMass']) / G['StellarMass']
+    BTT = (G['InstabilityBulgeMass'] + G['MergerBulgeMass']) / G['StellarMass'] if Nage<=1 else np.sum(G['InstabilityBulgeMass'] + G['MergerBulgeMass'], axis=1) / G['StellarMass']
     f_SM = (G['LenMax']==NpartMed)*(SM>0)*np.isfinite(SM)
     SM_med = round(np.median(np.log10(SM[f_SM])), 3) if len(f_SM[f_SM])>0 else 8.9
 
@@ -201,7 +202,8 @@ except Exception as excptn:
 ##### PLOT 3: BLACK HOLE -- BULGE MASS #####
 try:
     plt.clf()
-    BM = (G['InstabilityBulgeMass'] + G['MergerBulgeMass']) * 1e10/h
+    BM = (G['InstabilityBulgeMass'] + G['MergerBulgeMass']) if Nage<=1 else np.sum(G['InstabilityBulgeMass'] + G['MergerBulgeMass'], axis=1)
+    BM *= 1e10/h
     BM_med = np.log10(np.median(BM[(G['LenMax']==NpartMed)*(BM>0)]))
     BHM = G['BlackHoleMass'] * 1e10/h
     bins = 10**np.arange(BM_med, 12.5, 0.1)
