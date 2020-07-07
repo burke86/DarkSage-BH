@@ -281,7 +281,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 
 void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-background subhalo (i.e. main halo)
 {
-  int p, i, step, centralgal, merger_centralgal, currenthalo, offset;
+  int p, i, step, centralgal, merger_centralgal, currenthalo, offset, k;
   double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt;
 
   centralgal = Gal[0].CentralGal;
@@ -358,7 +358,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         update_disc_radii(p);
 	
 	  // stars form and then explode!
-      starformation_and_feedback(p, centralgal, dt, step);
+      starformation_and_feedback(p, centralgal, dt, step, time);
 
       // precess gas disc
       if(GasPrecessionOn && Gal[p].StellarMass>0.0 && get_disc_gas(p)>0.0)
@@ -367,8 +367,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         
       // Check for disk instability
       if(DiskInstabilityOn>0)
-        check_disk_instability(p, centralgal, dt, step);
-        
+        check_disk_instability(p, centralgal, dt, step, time);
     }
 
     // check for satellite disruption and merger events 

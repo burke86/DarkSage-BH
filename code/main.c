@@ -116,10 +116,10 @@ int main(int argc, char **argv)
         DiscBinEdge[i] = FirstBin*(CM_PER_MPC/UnitLength_in_cm/1e3)/(UnitVelocity_in_cm_per_s/1e5) *pow(ExponentBin, i-1);
     }
     
-    // Define age bins (in terms of expansion factor) for stellar content
-    AgeBinEdge[0] = 1.0;
+    // Define age bins (in terms of look-back time) for stellar content
+    AgeBinEdge[0] = time_to_present(1000.);
     for(i=1; i<N_AGE_BINS; i++)
-        AgeBinEdge[i] = 1.0 / (1.0 + 0.007*pow(1.47,i-1));
+        AgeBinEdge[i] = time_to_present(0.007*pow(1.47,i-1));
     AgeBinEdge[N_AGE_BINS] = 0.0;
     
     // Set counts for prograde and retrograde satellite collisions

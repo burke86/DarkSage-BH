@@ -10,15 +10,18 @@
 
 
 
-void starformation_and_feedback(int p, int centralgal, double dt, int step)
+void starformation_and_feedback(int p, int centralgal, double dt, int step, double time)
 {
   double strdot, stars, reheated_mass, ejected_mass, fac, metallicity, stars_sum, area, SFE_H2, f_H2_const, Sigma_0gas, DiscGasSum, DiscStarsSum, DiscPre, ColdPre;
   double r_inner, r_outer;
   double reff, tdyn, cold_crit, strdotfull, H2sum; // For SFprescription==3
 
   double NewStars[N_BINS], NewStarsMetals[N_BINS];
-  int i;
+  int i, k;
 
+//  for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
+
+    
   double StarsPre = Gal[p].StellarMass;
   check_channel_stars(p);
 
@@ -210,7 +213,10 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step)
     
   // Sum stellar discs together
   if(NewStarSum>0.0)
-    combine_stellar_discs(p, NewStars, NewStarsMetals);
+  {
+//      for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
+    combine_stellar_discs(p, NewStars, NewStarsMetals, time);
+  }
 
   // Update the star formation rate 
   Gal[p].SfrFromH2[step] += stars_sum / dt;
@@ -395,15 +401,26 @@ void update_from_ejection(int p, int centralgal, double ejected_mass)
 }
 
 
-void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals[N_BINS])
+void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals[N_BINS], double time)
 {
 	double sdisc_spin_mag, J_sdisc, J_new, J_retro, J_sum, cos_angle_sdisc_comb, cos_angle_new_comb, DiscStarSum;
 	double SDiscNewSpin[3];
 	double Disc1[N_BINS], Disc1Metals[N_BINS], Disc2[N_BINS], Disc2Metals[N_BINS];
-	int i;
+    double Disc1Age[N_AGE_BINS][N_BINS], Disc1MetalsAge[N_AGE_BINS][N_BINS]; // NOTE THE REVERSE ORDER HERE!
+	int i, k, k_now;
 	
+    // Determine which age bin new stars should be put into
+    for(k_now=0; k_now<N_AGE_BINS; k_now++)
+    {
+        if(AgeBinEdge[k_now+1]<=time)
+            break;
+    }
+    
     //printf("disc stars from combine discs 1\n");
+//    for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
     DiscStarSum = get_disc_stars(p);
+//    for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
+
     
 	for(i=0; i<N_BINS; i++)
     {
@@ -477,6 +494,16 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 		project_disc(Gal[p].DiscStarsMetals, cos_angle_sdisc_comb, p, Disc1Metals);
 		project_disc(NewStars, cos_angle_new_comb, p, Disc2);
 		project_disc(NewStarsMetals, cos_angle_new_comb, p, Disc2Metals);
+        
+        if(AgeStructOut>0)
+        {
+            for(k=0; k<N_AGE_BINS; k++)
+            {
+//                for(i=0; i<N_BINS; i++) printf("%i, %i, %e\n", i, k, Gal[p].DiscStarsAge[i][k]);
+                project_disc_age(Gal[p].DiscStarsAge, cos_angle_sdisc_comb, p, k, Disc1Age[k]);
+                project_disc_age(Gal[p].DiscStarsMetalsAge, cos_angle_sdisc_comb, p, k, Disc1MetalsAge[k]);
+            }
+        }
 		
         Gal[p].StellarMass = Gal[p].SecularBulgeMass + Gal[p].ClassicalBulgeMass;
         Gal[p].MetalsStellarMass = Gal[p].SecularMetalsBulgeMass + Gal[p].ClassicalMetalsBulgeMass;
@@ -491,6 +518,18 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
             Gal[p].MetalsStellarMass += Gal[p].DiscStarsMetals[i];
 			if(Gal[p].DiscStarsMetals[i] > Gal[p].DiscStars[i]) printf("DiscStars, Metals = %e, %e\n", Gal[p].DiscStars[i], Gal[p].DiscStarsMetals[i]);
 			assert(Gal[p].DiscStarsMetals[i] <= Gal[p].DiscStars[i]);
+            
+            if(AgeStructOut>0)
+            {
+                for(k=0; k<N_AGE_BINS; k++)
+                {
+                    Gal[p].DiscStarsAge[i][k] = 1.0*Disc1Age[k][i];
+                    Gal[p].DiscStarsMetalsAge[i][k] = 1.0*Disc1MetalsAge[k][i];
+                }
+                
+                Gal[p].DiscStarsAge[i][k_now] += 1.0*Disc2[i];
+                Gal[p].DiscStarsMetalsAge[i][k_now] += 1.0*Disc2Metals[i];
+            }
 		}
 	}
     else
@@ -510,6 +549,12 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
             Gal[p].MetalsStellarMass += NewStarsMetals[i];
 			if(Gal[p].DiscStarsMetals[i] > Gal[p].DiscStars[i]) printf("DiscStars, Metals = %e, %e\n", Gal[p].DiscStars[i], Gal[p].DiscStarsMetals[i]);
 			assert(Gal[p].DiscStarsMetals[i] <= Gal[p].DiscStars[i]);
+            
+            if(AgeStructOut>0)
+            {
+                Gal[p].DiscStarsAge[i][k_now] += 1.0*NewStars[i];
+                Gal[p].DiscStarsMetalsAge[i][k_now] += 1.0*NewStarsMetals[i];
+            }
 		}
 	}
 	
@@ -536,6 +581,21 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 			Gal[p].DiscStarsMetals[i] = Disc1Metals[i];
 			assert(Gal[p].DiscStarsMetals[i] <= Gal[p].DiscStars[i]);
 		}
+        
+        if(AgeStructOut>0)
+        {
+            for(k=0; k<N_AGE_BINS; k++)
+            {
+                project_disc_age(Gal[p].DiscStarsAge, (J_sum - 2.0*J_retro)/J_sum, p, k, Disc1Age[k]);
+                project_disc_age(Gal[p].DiscStarsMetalsAge, (J_sum - 2.0*J_retro)/J_sum, p, k, Disc1MetalsAge[k]);
+                
+                for(i=0; i<N_BINS; i++)
+                {
+                    Gal[p].DiscStarsAge[i][k] = Disc1Age[k][i];
+                    Gal[p].DiscStarsMetalsAge[i][k] = Disc1MetalsAge[k][i];
+                }
+            }
+        }
 	}
 	
 	// Set the new spin direction of the stellar disc
@@ -561,7 +621,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewDisc)
 {
 	double high_bound, ratio_last_bin;
-	int i, j, j_old, k;
+	int i, j, j_old, l;
     
 	cos_angle = fabs(cos_angle); // This function will not deal with retrograde motion so needs an angle less than pi/2
 	
@@ -580,10 +640,10 @@ void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewD
 		j -= 1;
 		
 		NewDisc[i] = 0.0;
-		for(k=j_old; k<j; k++) 
+		for(l=j_old; l<j; l++) 
 		{
-			NewDisc[i] += DiscMass[k];
-			DiscMass[k] = 0.0;
+			NewDisc[i] += DiscMass[l];
+			DiscMass[l] = 0.0;
 		}
 		if(i!=N_BINS-1)
 		{
@@ -608,6 +668,65 @@ void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewD
 	}
 }
 
+
+void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, int p, int k, double *NewDiscAge)
+{ // Essentially a copy of project_disc but designed for working with discs with an age axis
+    double high_bound, ratio_last_bin;
+    int i, j, j_old, l;
+        
+    cos_angle = fabs(cos_angle); // This function will not deal with retrograde motion so needs an angle less than pi/2
+    
+    j_old = 0;
+
+    for(i=0; i<N_BINS; i++)
+    {
+        if(!(DiscMassAge[i][k]>=0.0)) printf("i, k, DiscMassAge[i][k] = %i, %i, %e\n", i, k, DiscMassAge[i][k]);
+        assert(DiscMassAge[i][k]>=0.0);
+
+        high_bound = DiscBinEdge[i+1] / cos_angle;
+        j = j_old;
+        
+        while(DiscBinEdge[j]<=high_bound)
+        {
+            j++;
+            if(j==N_BINS) break;
+        } 
+        j -= 1;
+        
+
+        NewDiscAge[i] = 0.0;
+        for(l=j_old; l<j; l++) 
+        {
+            NewDiscAge[i] += DiscMassAge[l][k];
+            DiscMassAge[l][k] = 0.0;
+        }
+        
+        if(i!=N_BINS-1)
+        {
+            if(j!=N_BINS-1){
+                ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (DiscBinEdge[j+1]-DiscBinEdge[j]));
+                assert(ratio_last_bin<=1.0);}
+            else if(high_bound < Gal[p].Rvir/Gal[p].Vvir){
+                ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (Gal[p].Rvir/Gal[p].Vvir-DiscBinEdge[j]));
+                assert(ratio_last_bin<=1.0);}
+            else
+                ratio_last_bin = 1.0;
+            
+
+            NewDiscAge[i] += ratio_last_bin * DiscMassAge[j][k];
+            DiscMassAge[j][k] -= ratio_last_bin * DiscMassAge[j][k];
+        }
+        else
+        {
+            NewDiscAge[i] = DiscMassAge[i][k];
+        }
+        
+        if(!(NewDiscAge[i]>=0.0)) printf("NewDiscAge[i] = %e\n", NewDiscAge[i]);
+        assert(NewDiscAge[i]>=0.0);
+
+        j_old = j;
+    }
+}
 
 void update_HI_H2(int p)
 {

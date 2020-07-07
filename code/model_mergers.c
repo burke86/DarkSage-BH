@@ -42,7 +42,14 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 {
   double mi, ma, mass_ratio;
   double disc_mass_ratio[N_BINS], PostRetroGas[N_BINS];
-  int i;
+  int i, k_now;
+  
+  // Determine which age bin new stars should be put into
+  for(k_now=0; k_now<N_AGE_BINS; k_now++)
+  {
+    if(AgeBinEdge[k_now+1]<=time)
+        break;
+  }
     
   for(i=0; i<N_BINS; i++)
     disc_mass_ratio[i] = 0.0;
@@ -71,11 +78,11 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 	printf("Had to correct mass_ratio < 0.0");
   }
 
-  add_galaxies_together(merger_centralgal, p, mass_ratio, disc_mass_ratio, PostRetroGas);
+  add_galaxies_together(merger_centralgal, p, mass_ratio, k_now, disc_mass_ratio, PostRetroGas);
   
   for(i=0; i<N_BINS; i++) assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
 
-  collisional_starburst_recipe(disc_mass_ratio, merger_centralgal, centralgal, dt, 0, step);
+  collisional_starburst_recipe(disc_mass_ratio, merger_centralgal, centralgal, dt, 0, step, k_now);
 
   double BHaccrete = grow_black_hole(merger_centralgal, disc_mass_ratio);
 
@@ -111,6 +118,9 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
         {
             Gal[merger_centralgal].ClassicalBulgeMass += net_stars;
             Gal[merger_centralgal].ClassicalMetalsBulgeMass += metallicity * net_stars;
+            
+            Gal[merger_centralgal].ClassicalBulgeMassAge[k_now] += net_stars;
+            Gal[merger_centralgal].ClassicalMetalsBulgeMassAge[k_now] += metallicity * net_stars;
         }
 
 	}
@@ -130,7 +140,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 
 
   if(DiskInstabilityOn>0)
-  	check_disk_instability(merger_centralgal, centralgal, dt, step);
+  	check_disk_instability(merger_centralgal, centralgal, dt, step, time);
   else
     update_stellardisc_scaleradius(p); // will already be done within check_disk_instability otherwise
 }
@@ -304,7 +314,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 
 
 
-void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
+void add_galaxies_together(int t, int p, double mass_ratio, int k_now, double *disc_mass_ratio, double *PostRetroGas)
 {
   int step, i, s;
   double DiscGasSum, CentralGasOrig, ExpFac;
@@ -544,6 +554,9 @@ void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ra
   Gal[t].MetalsStellarMass += Gal[p].MetalsStellarMass;
   Gal[t].ClassicalBulgeMass += Gal[p].StellarMass;
   Gal[t].ClassicalMetalsBulgeMass += Gal[p].MetalsStellarMass;
+  Gal[t].ClassicalBulgeMassAge[k_now] += Gal[p].StellarMass;
+  Gal[t].ClassicalMetalsBulgeMassAge[k_now] += Gal[p].MetalsStellarMass;
+
     
   check_channel_stars(t);
 
@@ -585,7 +598,7 @@ void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ra
 
 void stars_to_bulge(int t)
 {
-  int step, i;
+  int step, i, k;
     
   // generate bulge 
   Gal[t].ClassicalBulgeMass = Gal[t].StellarMass;
@@ -598,10 +611,30 @@ void stars_to_bulge(int t)
   // Remove stars from the disc annuli
   for(i=0; i<N_BINS; i++)
   {
-	Gal[t].DiscStars[i] = 0.0;
-	Gal[t].DiscStarsMetals[i] = 0.0;
+    Gal[t].DiscStars[i] = 0.0;
+    Gal[t].DiscStarsMetals[i] = 0.0;
   }  
 
+  // Put stars from different age bins into appropriate ones for the merger-driven bulge
+  if(AgeStructOut>0)
+  {
+    for(k=0; k<N_AGE_BINS; k++)
+    {
+        Gal[t].ClassicalBulgeMassAge[k] += Gal[t].SecularBulgeMassAge[k];
+        Gal[t].ClassicalMetalsBulgeMassAge[k] += Gal[t].SecularMetalsBulgeMassAge[k];
+        Gal[t].SecularBulgeMassAge[k] = 0.0;
+        Gal[t].SecularMetalsBulgeMassAge[k] = 0.0;
+        
+        for(i=0; i<N_BINS; i++)
+        {
+            Gal[t].ClassicalBulgeMassAge[k] += Gal[t].DiscStarsAge[i][k];
+            Gal[t].ClassicalMetalsBulgeMassAge[k] += Gal[t].DiscStarsMetalsAge[i][k];
+            Gal[t].DiscStarsAge[i][k] = 0.0;
+            Gal[t].DiscStarsMetalsAge[i][k] = 0.0;
+        }
+    }
+  }
+    
     
   // update the star formation rate 
   for(step = 0; step < STEPS; step++)
@@ -637,7 +670,7 @@ void disrupt_satellite_to_ICS(int centralgal, int gal)
 }
 
 
-void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_centralgal, int centralgal, double dt, int mode, int step)
+void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_centralgal, int centralgal, double dt, int mode, int step, int k_now)
 {
  double stars, reheated_mass, ejected_mass, fac, metallicity, CentralVvir, eburst, Sigma_0gas, area, stars_sum, metals_stars, stars_angmom;
  double r_inner, r_outer, j_bin;
@@ -793,6 +826,10 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
      Gal[merger_centralgal].ClassicalBulgeMass += stars_sum;
      Gal[merger_centralgal].MetalsStellarMass += metals_stars_sum;
      Gal[merger_centralgal].ClassicalMetalsBulgeMass += metals_stars_sum;
+      
+     Gal[merger_centralgal].ClassicalBulgeMassAge[k_now] += stars_sum;
+     Gal[merger_centralgal].ClassicalMetalsBulgeMassAge[k_now] += metals_stars_sum;
+
   }
 
   Gal[merger_centralgal].SfrMerge[step] += stars_sum / dt;
