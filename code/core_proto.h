@@ -35,7 +35,7 @@ void myexit(int signum);
 void finalize_galaxy_file(int filenr);
 
 void starformation_and_feedback(int p, int centralgal, double dt, int step, double time);
-void add_galaxies_together(int t, int p, double mass_ratio, int k_now, double *disc_mass_ratio, double *PostRetroGas);
+void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas);
 void init_galaxy(int p, int halonr);
 double infall_recipe(int centralgal, int ngal, double Zcurr);
 void add_infall_to_hot(int centralgal, double infallingGas);

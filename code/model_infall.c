@@ -12,9 +12,10 @@
 
 double infall_recipe(int centralgal, int ngal, double Zcurr)
 {
-  int i;
+  int i, k;
   double tot_stellarMass, tot_BHMass, tot_coldMass, tot_hotMass, tot_hotMetals, tot_ejected, tot_ejectedMetals;
   double tot_ICS, tot_ICSMetals;
+  double tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS];
   double infallingMass, reionization_modifier, DiscGasSum, Rsat, ExpFac;
 
   ExpFac = AA[Gal[centralgal].SnapNum]; // Expansion factor
@@ -27,6 +28,8 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
 
   // need to add up all the baryonic mass asociated with the full halo 
   tot_stellarMass = tot_coldMass = tot_hotMass = tot_hotMetals = tot_ejected = tot_BHMass = tot_ejectedMetals = tot_ICS = tot_ICSMetals = 0.0;
+  if(AgeStructOut>0) for(k=0; k<N_AGE_BINS; k++) tot_ICS_Age[k] = tot_ICSMetals_Age[k] = 0.0;
+    
 
   for(i = 0; i < ngal; i++)      // Loop over all galaxies in the FoF-halo 
   {
@@ -46,14 +49,24 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
     tot_ejectedMetals += Gal[i].MetalsEjectedMass;
     tot_ICS += Gal[i].ICS;
     tot_ICSMetals += Gal[i].MetalsICS;
-
-    // satellite ejected gas goes to central ejected reservior
+      
+    // Age structure of ICS
+    if(AgeStructOut>0)
+    {
+      for(k=0; k<N_AGE_BINS; k++)
+      {
+          tot_ICS_Age[k] += Gal[i].ICS_Age[k];
+          tot_ICSMetals_Age[k] += Gal[i].MetalsICS_Age[k];
+      }
+    }
+    
     if(i != centralgal)
-      Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0;
-
-    // satellite ICS goes to central ICS
-    if(i != centralgal) 
-      Gal[i].ICS = Gal[i].MetalsICS = 0.0; 
+    {
+      Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
+      Gal[i].ICS = Gal[i].MetalsICS = 0.0; // satellite ICS goes to central ICS
+      if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[i].ICS_Age[k] = Gal[i].MetalsICS_Age[k] = 0.0;
+    }
+      
   }
 
   // include reionization if necessary 
@@ -79,6 +92,15 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   // the central galaxy keeps all the ICS (mostly for numerical convenience)
   Gal[centralgal].ICS = tot_ICS;
   Gal[centralgal].MetalsICS = tot_ICSMetals;
+    
+  if(AgeStructOut>0)
+  {
+    for(k=0; k<N_AGE_BINS; k++)
+    {
+      Gal[centralgal].ICS_Age[k] = tot_ICS_Age[k];
+      Gal[centralgal].MetalsICS_Age[k] = tot_ICSMetals_Age[k];
+    }
+  }
 
   // take care of any potential numerical issues regarding intracluster stars
   if(Gal[centralgal].MetalsICS > Gal[centralgal].ICS)

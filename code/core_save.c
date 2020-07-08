@@ -340,11 +340,12 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   {
     o->ClassicalBulgeMass[k] = g->ClassicalBulgeMassAge[k];
     o->SecularBulgeMass[k] = g->SecularBulgeMassAge[k];
+    o->ICS[k] = g->ICS_Age[k];
   }
   o->HotGas = g->HotGas;
   o->EjectedMass = g->EjectedMass;
   o->BlackHoleMass = g->BlackHoleMass;
-  o->ICS = g->ICS;
+  
 
   o->MetalsColdGas = g->MetalsColdGas;
   o->MetalsStellarMass = g->MetalsStellarMass;
@@ -352,10 +353,10 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   {
     o->ClassicalMetalsBulgeMass[k] = g->ClassicalMetalsBulgeMassAge[k];
     o->SecularMetalsBulgeMass[k] = g->SecularMetalsBulgeMassAge[k];
+    o->MetalsICS[k] = g->MetalsICS_Age[k];
   }
   o->MetalsHotGas = g->MetalsHotGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
-  o->MetalsICS = g->MetalsICS;
     
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;

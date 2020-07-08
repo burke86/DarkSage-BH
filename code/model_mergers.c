@@ -78,7 +78,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 	printf("Had to correct mass_ratio < 0.0");
   }
 
-  add_galaxies_together(merger_centralgal, p, mass_ratio, k_now, disc_mass_ratio, PostRetroGas);
+  add_galaxies_together(merger_centralgal, p, mass_ratio, disc_mass_ratio, PostRetroGas);
   
   for(i=0; i<N_BINS; i++) assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
 
@@ -314,9 +314,9 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 
 
 
-void add_galaxies_together(int t, int p, double mass_ratio, int k_now, double *disc_mass_ratio, double *PostRetroGas)
+void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
 {
-  int step, i, s;
+  int step, i, s, k;
   double DiscGasSum, CentralGasOrig, ExpFac;
     ExpFac = AA[Gal[t].SnapNum]; // Expansion factor needed for determining physical distances for calculating j
     
@@ -554,21 +554,37 @@ void add_galaxies_together(int t, int p, double mass_ratio, int k_now, double *d
   Gal[t].MetalsStellarMass += Gal[p].MetalsStellarMass;
   Gal[t].ClassicalBulgeMass += Gal[p].StellarMass;
   Gal[t].ClassicalMetalsBulgeMass += Gal[p].MetalsStellarMass;
-  Gal[t].ClassicalBulgeMassAge[k_now] += Gal[p].StellarMass;
-  Gal[t].ClassicalMetalsBulgeMassAge[k_now] += Gal[p].MetalsStellarMass;
-
     
+  Gal[t].ICS += Gal[p].ICS;
+  Gal[t].MetalsICS += Gal[p].MetalsICS;
+
+  // If accounting for age, need to deposit all the smaller galaxies' stars into the right age bins for the classical bulge  
+  if(AgeStructOut>0)
+  {
+      for(k=0; k<N_AGE_BINS; k++)
+      {
+          Gal[t].ClassicalBulgeMassAge[k] += (Gal[p].ClassicalBulgeMassAge[k] + Gal[p].SecularBulgeMassAge[k]);
+          Gal[t].ClassicalMetalsBulgeMassAge[k] += (Gal[p].ClassicalMetalsBulgeMassAge[k] + Gal[p].SecularMetalsBulgeMassAge[k]);
+          
+          for(i=0; i<N_BINS; i++)
+          {
+              Gal[t].ClassicalBulgeMassAge[k] += Gal[p].DiscStarsAge[i][k];
+              Gal[t].ClassicalMetalsBulgeMassAge[k] += Gal[p].DiscStarsMetalsAge[i][k];
+          }
+          
+          // It's possible this will be redundant from the infall recipe
+          Gal[t].ICS_Age[k] += Gal[p].ICS_Age[k];
+          Gal[t].MetalsICS_Age[k] += Gal[p].MetalsICS_Age[k];
+      }
+  }
+
   check_channel_stars(t);
 
-    
   Gal[t].HotGas += Gal[p].HotGas;
   Gal[t].MetalsHotGas += Gal[p].MetalsHotGas;
   
   Gal[t].EjectedMass += Gal[p].EjectedMass;
   Gal[t].MetalsEjectedMass += Gal[p].MetalsEjectedMass;
-  
-  Gal[t].ICS += Gal[p].ICS;
-  Gal[t].MetalsICS += Gal[p].MetalsICS;
 
   Gal[t].BlackHoleMass += Gal[p].BlackHoleMass;
   assert(Gal[t].BlackHoleMass>=0.0);
@@ -653,6 +669,7 @@ void stars_to_bulge(int t)
 
 void disrupt_satellite_to_ICS(int centralgal, int gal)
 {  
+  int i, k;
   Gal[centralgal].HotGas += Gal[gal].ColdGas + Gal[gal].HotGas;
   Gal[centralgal].MetalsHotGas += Gal[gal].MetalsColdGas + Gal[gal].MetalsHotGas;
   
@@ -664,6 +681,21 @@ void disrupt_satellite_to_ICS(int centralgal, int gal)
 
   Gal[centralgal].ICS += Gal[gal].StellarMass;
   Gal[centralgal].MetalsICS += Gal[gal].MetalsStellarMass;
+    
+  if(AgeStructOut>0)
+  {
+    for(k=0; k<N_AGE_BINS; k++)
+    {
+        Gal[centralgal].ICS_Age[k] += (Gal[gal].ClassicalBulgeMassAge[k] + Gal[gal].SecularBulgeMassAge[k] + Gal[gal].ICS_Age[k]);
+        Gal[centralgal].MetalsICS_Age[k] += (Gal[gal].ClassicalMetalsBulgeMassAge[k] + Gal[gal].SecularMetalsBulgeMassAge[k] + Gal[gal].MetalsICS_Age[k]);
+        
+        for(i=0; i<N_BINS; i++)
+        {
+            Gal[centralgal].ICS_Age[k] += Gal[gal].DiscStarsAge[i][k];
+            Gal[centralgal].MetalsICS_Age[k] += Gal[gal].DiscStarsMetalsAge[i][k];
+        }
+    }
+  }
   
   // what should we do with the disrupted satellite BH?
   Gal[gal].mergeType = 4;  // mark as disruption to the ICS
@@ -678,8 +710,8 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
  int k, s;
 
  // This is the major and minor merger starburst recipe of Somerville et al. 2001. 
- // The coefficients in eburst are taken from TJ Cox's PhD thesis and should be more 
- // accurate then previous. The recipe has been modified to function for each annulus.
+ // The coefficients in eburst are taken from TJ Cox's PhD thesis. 
+ // The recipe has been modified from Croton et al. 2016 to function for each annulus.
     
  double ejected_sum = 0.0;
  double metals_stars_sum = 0.0;

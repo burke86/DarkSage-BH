@@ -152,6 +152,8 @@ void init_galaxy(int p, int halonr)
         Gal[p].SecularBulgeMassAge[k] = 0.0;
         Gal[p].ClassicalMetalsBulgeMassAge[k] = 0.0;
         Gal[p].SecularMetalsBulgeMassAge[k] = 0.0;
+        Gal[p].ICS_Age[k] = 0.0;
+        Gal[p].MetalsICS_Age[k] = 0.0;
         
         for(j=0; j<N_BINS; j++)
         {

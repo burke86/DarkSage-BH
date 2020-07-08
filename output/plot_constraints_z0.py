@@ -65,7 +65,7 @@ print('Time taken to read = {0} s'.format(round(time.time()-start, 2)))
 
 ##### SET PLOTTING DEFAULTS #####
 fsize = 26
-matplotlib.rcParams.update({'font.size': fsize, 'xtick.major.size': 10, 'ytick.major.size': 10, 'xtick.major.width': 1, 'ytick.major.width': 1, 'ytick.minor.size': 5, 'xtick.minor.size': 5, 'xtick.direction': 'in', 'ytick.direction': 'in', 'axes.linewidth': 1, 'text.usetex': True, 'font.family': 'serif', 'font.serif': 'Times New Roman', 'legend.numpoints': 1, 'legend.columnspacing': 1, 'legend.fontsize': fsize-4, 'xtick.top': True, 'ytick.right': True})
+matplotlib.rcParams.update({'font.size': fsize, 'xtick.major.size': 10, 'ytick.major.size': 10, 'xtick.major.width': 1, 'ytick.major.width': 1, 'ytick.minor.size': 5, 'xtick.minor.size': 5, 'xtick.direction': 'in', 'ytick.direction': 'in', 'axes.linewidth': 1, 'text.usetex': True, 'font.family': 'serif', 'font.serif': 'Times New Roman', 'legend.numpoints': 1, 'legend.columnspacing': 1, 'legend.fontsize': fsize-6, 'xtick.top': True, 'ytick.right': True})
 
 NpartMed = 100 # minimum number of particles for finding relevant medians for minima on plots
 
@@ -82,6 +82,7 @@ try:
     # Stellar mass function
     fig, ax = plt.subplots(1, 3, sharey=True)
     SM = np.array(G['StellarMass']*1e10/h, dtype=np.float32)
+    ICS = G['IntraClusterStars']*1e10/h if Nage<=1 else np.sum(G['IntraClusterStars'], axis=1)*1e10/h
     BTT = (G['InstabilityBulgeMass'] + G['MergerBulgeMass']) / G['StellarMass'] if Nage<=1 else np.sum(G['InstabilityBulgeMass'] + G['MergerBulgeMass'], axis=1) / G['StellarMass']
     f_SM = (G['LenMax']==NpartMed)*(SM>0)*np.isfinite(SM)
     SM_med = round(np.median(np.log10(SM[f_SM])), 3) if len(f_SM[f_SM])>0 else 8.9
@@ -91,6 +92,7 @@ try:
 
     r.massfunction(SM, Lbox, range=[SM_med-0.1, 12.1], ls='--', ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p}\!\geq\!20$')
     r.massfunction(SM[G['LenMax']>=100], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!100$')
+    r.massfunction((SM+ICS)[G['LenMax']>=100], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage} + ICS', c='grey', zo=0)
     r.massfunction(SM[(BTT<=0.5)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ax=ax[0])
     r.massfunction(SM[BTT<=0.5], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ls='--', ax=ax[0])
     r.massfunction(SM[(BTT>0.5)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='r', lw=1, ax=ax[0])
@@ -100,7 +102,7 @@ try:
     SMF_dd, logM_dd = r.schechter(0.855e-3*(h/0.7)**3, 10**(10.70)/(h/0.7)**2, -1.39, logM=np.arange(SM_med-0.1, 12.1,0.1))
     ax[0].plot(logM_dd, SMF_dd, 'b-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) disc-dominated', zorder=0)
     ax[0].plot(logM_bd, SMF_bd, 'r-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) bulge-dominated', zorder=0)
-    ax[0].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.025, -0.03))
+    ax[0].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.01, -0.01))
     ax[0].set_xlim(SM_med, 12)
     ax[0].set_xlabel(r'$\log_{10}(m_*~[{\rm M}_{\odot}])$')
     ax[0].set_ylabel(r'$\Phi~[{\rm Mpc}^{-3}~{\rm dex}^{-1}]$')
@@ -116,7 +118,7 @@ try:
     r.HIH2_massfunction_obsdata(h=h, HI=True, H2=False, Z=True, M=True, ax=ax[1])
     HIMF_J18, logM_J18 = r.schechter(4.5e-3*(h/0.7)**3, (10**9.94)*(0.7/h)**2, -1.25, logM=np.arange(HIM_med-0.1, 11.5,0.1))
     ax[1].plot(logM_J18, HIMF_J18, '-', color='chocolate', lw=6, alpha=0.4, label=r'Jones et al.~(2018)')
-    ax[1].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.025, -0.03))
+    ax[1].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.01, -0.01))
     r.massfunction(HIM, Lbox, range=[HIM_med-0.1, 11.5], ls='--', ax=ax[1])
     r.massfunction(HIM[G['LenMax']>=100], Lbox, range=[HIM_med-0.1, 11.5], ax=ax[1])
     ax[1].set_xlabel(r'$\log_{10}(m_{\rm H\,{\LARGE {\textsc i}}}~[{\rm M}_{\odot}])$')
@@ -131,7 +133,7 @@ try:
     H2M_med = round(np.median(np.log10(H2M[f_H2M])), 3) if len(f_H2M[f_H2M])>0 else 8.5
 
     r.HIH2_massfunction_obsdata(h=h, HI=False, H2=True, K=True, OR=False, B=True, ax=ax[2])
-    ax[2].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.025, -0.03))
+    ax[2].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.01, -0.01))
     r.massfunction(H2M, Lbox, range=[H2M_med-0.1, 11.5], ls='--', ax=ax[2])
     r.massfunction(H2M[G['LenMax']>=100], Lbox, range=[H2M_med-0.1, 11.5], ax=ax[2])
     ax[2].set_xlabel(r'$\log_{10}(m_{\rm H_2}~[{\rm M}_{\odot}])$')
@@ -188,7 +190,7 @@ try:
     ax[1].set_xlabel(r'$\log_{10}(m_*~[{\rm M}_{\odot}])$')
     ax[1].set_ylabel(r'$12 + \log_{10}({\rm O/H})$')
     ax[1].set_yticks(np.arange(8.25,9.5,0.25))
-    ax[1].legend(loc='lower right', frameon=False, ncol=1, bbox_to_anchor=(1.02,0))
+    ax[1].legend(loc='lower right', frameon=False, ncol=1, bbox_to_anchor=(1.01,0))
 
     fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
     r.savepng(outdir+'2-HIfrac_MassMet', xsize=768, ysize=700)

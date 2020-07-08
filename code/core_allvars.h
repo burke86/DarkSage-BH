@@ -36,7 +36,7 @@ do {                                                                \
 #define N_BINS 30
 #define MIN_STARS_FOR_SN 1e-8
 #define MIN_STARFORMATION 1e-10
-#define N_AGE_BINS 1 // REDUCE THIS VALUE TO ZERO SAVE RAM WHEN FLAG IS OFF IN PARAMETER FILE
+#define N_AGE_BINS 20 // REDUCE THIS VALUE TO ZERO SAVE RAM WHEN FLAG IS OFF IN PARAMETER FILE
 
 struct GALAXY_OUTPUT  
 {
@@ -187,7 +187,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float HotGas;
   float EjectedMass;
   float BlackHoleMass;
-  float ICS;
+  float ICS[N_AGE_BINS];
   float DiscGas[N_BINS];
   float DiscStars[N_BINS][N_AGE_BINS];
   float SpinStars[3];
@@ -224,7 +224,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float SecularMetalsBulgeMass[N_AGE_BINS];
   float MetalsHotGas;
   float MetalsEjectedMass;
-  float MetalsICS;
+  float MetalsICS[N_AGE_BINS];
   float DiscGasMetals[N_BINS];
   float DiscStarsMetals[N_BINS][N_AGE_BINS];
 
@@ -376,6 +376,8 @@ struct GALAXY
     double SecularMetalsBulgeMassAge[N_AGE_BINS];
     double DiscStarsAge[N_BINS][N_AGE_BINS];
     double DiscStarsMetalsAge[N_BINS][N_AGE_BINS];
+    double ICS_Age[N_AGE_BINS];
+    double MetalsICS_Age[N_AGE_BINS];
     
 }
 *Gal, *HaloGal;

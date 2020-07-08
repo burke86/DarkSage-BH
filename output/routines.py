@@ -46,7 +46,7 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('HotGas'                       , floattype),
                     ('EjectedMass'                  , floattype),
                     ('BlackHoleMass'                , floattype),
-                    ('IntraClusterStars'            , floattype),
+                    ('IntraClusterStars'            , bulge_arr_type),
                     ('DiscGas'                      , (floattype, Nannuli)),
                     ('DiscStars'                    , (floattype, disc_arr_dim)),
                     ('SpinStars'                    , (floattype, 3)),
@@ -64,7 +64,7 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('MetalsInstabilityBulgeMass'   , bulge_arr_type),
                     ('MetalsHotGas'                 , floattype),
                     ('MetalsEjectedMass'            , floattype),
-                    ('MetalsIntraClusterStars'      , floattype),
+                    ('MetalsIntraClusterStars'      , bulge_arr_type),
                     ('DiscGasMetals'                , (floattype, Nannuli)),
                     ('DiscStarsMetals'              , (floattype, disc_arr_dim)),
                     ('SfrFromH2'                    , floattype),
@@ -154,9 +154,9 @@ def massfunction(mass, Lbox, range=[8,12.5], c='k', lw=2, ls='-', label='', ax=N
     if ax is None: ax = plt.gca()
     
     if len(label)>0:
-        ax.plot(x, y, c+ls, linewidth=lw, label=label, zorder=zo)
+        ax.plot(x, y, ls, linewidth=lw, label=label, zorder=zo, color=c)
     else:
-        ax.plot(x, y, c+ls, linewidth=lw, zorder=zo)
+        ax.plot(x, y, ls, linewidth=lw, zorder=zo, color=c)
 
 
 def schechter(phistar, Mstar, alpha, Mlog=False, range=[7,12], Npoints=2000, logM=None):
