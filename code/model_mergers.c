@@ -47,7 +47,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
   // Determine which age bin new stars should be put into
   for(k_now=0; k_now<N_AGE_BINS; k_now++)
   {
-    if(AgeBinEdge[k_now+1]<=time)
+    if(time<=AgeBinEdge[k_now+1])
         break;
   }
     

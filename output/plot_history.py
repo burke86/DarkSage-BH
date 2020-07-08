@@ -11,11 +11,13 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-indir = 'results/millennium/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/571g/' # directory where the Dark Sage data are
 sim = 0 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
+Nage = 20 # number of age bins used for stars -- not advised to use a run with this for calibration
+RecycleFraction = 0.43 # Only needed for comparing stellar-age based SFR with raw SFR
 ###### ============================== ######
 
 
@@ -58,6 +60,7 @@ redshifts = redshifts[args]
 if sim==0:
     h = 0.73
     vol = (62.5/h)**3 * len(filenumbers)/8. # comoving volume of the (part of the) simulation
+    Omega_M, Omega_L = 0.25, 0.75
 elif sim==1:
     h = 0.73
     vol = (500.0/h)**3 * len(filenumbers)/512.
@@ -78,7 +81,8 @@ SFRD = np.zeros(Nsnap)
 SFRD_resolved = np.zeros(Nsnap)
 
 for i in range(Nsnap):
-    G = r.darksage_snap(indir+fpre+redshiftstr[i], filenumbers, Nannuli=Nannuli)
+    G = r.darksage_snap(indir+fpre+redshiftstr[i], filenumbers, Nannuli=Nannuli, Nage=Nage)
+    if i==0 and Nage>1: G0 = G # save the lowest-z snap to compare history reconstruction from age bins
     SFRD[i] = np.sum(G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst']) / vol
     SFRD_resolved[i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[G['LenMax']>=100]) / vol
 ##### ============================================= #####
@@ -91,6 +95,26 @@ try:
     fig, ax  = plt.subplots(1, 1)
     plt.plot(1+redshifts, np.log10(SFRD), 'k--', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p}\!\geq\!20$')
     plt.plot(1+redshifts, np.log10(SFRD_resolved), 'k.-', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!100$')
+    
+    if Nage>1: # check consistency from stellar-age bins
+        print 'All Close', np.allclose(np.sum(G0['DiscStars'],axis=(1,2)) + np.sum(G0['InstabilityBulgeMass'],axis=1) + np.sum(G0['MergerBulgeMass'],axis=1), G0['StellarMass'])
+    
+        RedshiftBinEdge = np.append(np.append(0, [0.007*1.47**i for i in range(Nage-1)]), 1000.) # defined within Dark Sage hard code
+        TimeBinEdge = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in RedshiftBinEdge]) # cosmic time [Gyr]
+        dT = np.diff(TimeBinEdge)*1e9 # time step for each bin [yr]
+        
+        # sum mass from age bins of all components
+        StarsByAge = np.zeros(Nage)
+        for k in range(Nage):
+            StarsByAge[k] += np.sum(G0['DiscStars'][:,:,k])
+            StarsByAge[k] += np.sum(G0['MergerBulgeMass'][:,k])
+            StarsByAge[k] += np.sum(G0['InstabilityBulgeMass'][:,k])
+            StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k])
+        SFRbyAge = StarsByAge*1e10/h/dT/(1.-RecycleFraction)
+        SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)
+        plt.step(1+RedshiftBinEdge, SFRD_Age, color='silver', label=r'{\sc Dark Sage} age recon.')
+
+    
     r.SFRD_obs(h, plus=1)
     plt.xlabel(r'Redshift')
     plt.ylabel(r'$\log_{10}\left( \bar{\rho}_{\rm SFR}~[{\rm M}_{\odot}\, {\rm yr}^{-1}\, {\rm cMpc}^{-3}] \right)$')

@@ -117,10 +117,12 @@ int main(int argc, char **argv)
     }
     
     // Define age bins (in terms of look-back time) for stellar content
-    AgeBinEdge[0] = time_to_present(1000.);
+    AgeBinEdge[N_AGE_BINS] = time_to_present(1000.);
     for(i=1; i<N_AGE_BINS; i++)
         AgeBinEdge[i] = time_to_present(0.007*pow(1.47,i-1));
-    AgeBinEdge[N_AGE_BINS] = 0.0;
+    AgeBinEdge[0] = 0.0;
+    printf("\nHubble_h = %e\n", Hubble_h);
+    for(i=0; i<N_AGE_BINS+1; i++) printf("AgeBinEdge[%i] = %e\n", i, AgeBinEdge[i]*1e3/Hubble_h);
     
     // Set counts for prograde and retrograde satellite collisions
     RetroCount = 0;

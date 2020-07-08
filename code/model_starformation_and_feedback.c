@@ -412,15 +412,11 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
     // Determine which age bin new stars should be put into
     for(k_now=0; k_now<N_AGE_BINS; k_now++)
     {
-        if(AgeBinEdge[k_now+1]<=time)
+        if(time<=AgeBinEdge[k_now+1])
             break;
     }
     
-    //printf("disc stars from combine discs 1\n");
-//    for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
     DiscStarSum = get_disc_stars(p);
-//    for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
-
     
 	for(i=0; i<N_BINS; i++)
     {
@@ -558,7 +554,6 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 		}
 	}
 	
-    //printf("disc stars from combine discs 2\n");
     DiscStarSum = get_disc_stars(p);
     
 	// Readjust disc to deal with any retrograde stars
@@ -603,7 +598,6 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 		Gal[p].SpinStars[i] = SDiscNewSpin[i];
 		assert(Gal[p].SpinStars[i]==Gal[p].SpinStars[i]);}
     
-    //printf("disc stars from combine discs 3\n");
     DiscStarSum = get_disc_stars(p);
     if(DiscStarSum > 1.01*(Gal[p].StellarMass-Gal[p].SecularBulgeMass-Gal[p].ClassicalBulgeMass) || DiscStarSum < (Gal[p].StellarMass-Gal[p].SecularBulgeMass-Gal[p].ClassicalBulgeMass)/1.01)
         printf("Stellar Disc, bulge, total = %e, %e, %e\n", DiscStarSum, Gal[p].SecularBulgeMass+Gal[p].ClassicalBulgeMass, Gal[p].StellarMass);

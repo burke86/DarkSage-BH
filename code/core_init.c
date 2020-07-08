@@ -105,14 +105,12 @@ double time_to_present(double z)
   gsl_function F;
   gsl_integration_workspace *workspace;
   double time, result, abserr;
+    size_t neval;
 
   workspace = gsl_integration_workspace_alloc(WORKSIZE);
-  F.function = &integrand_time_to_present;
-
-  gsl_integration_qag(&F, 1.0 / (z + 1), 1.0, 1.0 / Hubble,
-    1.0e-8, WORKSIZE, GSL_INTEG_GAUSS21, workspace, &result, &abserr);
-
-  time = 1 / Hubble * result;
+  F.function = &integrand_time_to_present;    
+  gsl_integration_qag(&F, 1.0/(1.0+z), 1.0, 1.0 / Hubble, 1.0e-8, WORKSIZE, GSL_INTEG_GAUSS21, workspace, &result, &abserr);
+  time = result / Hubble;
 
   gsl_integration_workspace_free(workspace);
 

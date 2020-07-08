@@ -22,9 +22,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
     int first, first_gas, first_star;
 	
     double star_init = Gal[p].StellarMass;
-    
-//    if(AgeStructOut>0)
-        double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
+    double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
     
     DiscStarSum = get_disc_stars(p);
     DiscGasSum = get_disc_gas(p);

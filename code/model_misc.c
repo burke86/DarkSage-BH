@@ -389,9 +389,10 @@ double get_disc_stars(int p)
         {
             AgeSum = 0.0;
             for(k=0; k<N_AGE_BINS; k++) AgeSum += Gal[p].DiscStarsAge[l][k];
-            if(AgeSum>=1.01*Gal[p].DiscStars[l] || AgeSum<=0.99*Gal[p].DiscStars[l])
+            if(AgeSum>1.001*Gal[p].DiscStars[l] || AgeSum<0.999*Gal[p].DiscStars[l])
             {
                 printf("get_disc_stars age report: l, AgeSum, Gal[p].DiscStars[l]: %i, %e, %e\n", l, AgeSum, Gal[p].DiscStars[l]);
+                assert(AgeSum<=1.01*Gal[p].DiscStars[l] && AgeSum>=0.99*Gal[p].DiscStars[l]);
                 Gal[p].DiscStars[l] = 1.0*AgeSum;
             }
         }
@@ -400,7 +401,7 @@ double get_disc_stars(int p)
     
     DiscAndBulge = DiscStarSum + Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass;
     
-    if(DiscAndBulge>1.001*Gal[p].StellarMass || DiscAndBulge<Gal[p].StellarMass/1.001)
+    if(DiscAndBulge>1.001*Gal[p].StellarMass || DiscAndBulge<0.999*Gal[p].StellarMass)
     {
 //        printf("get_disc_stars report: DiscAndBulge, StellarMass, dumped_mass = %e, %e, %e\n", DiscAndBulge, Gal[p].StellarMass, dumped_mass);
         Gal[p].StellarMass = DiscAndBulge; // Prevent small errors from blowing up
@@ -774,35 +775,3 @@ void update_gasdisc_scaleradius(int p)
         Gal[p].GasDiscScaleRadius = 1.0 * Gal[p].DiskScaleRadius; // Some functions still need a number for the scale radius even if there isn't any gas actually in the disc.
     }
 }
-
-
-//double get_annulus_stars(int p, int i)
-//{
-//    double stars_annulus = 0.0;
-//    if(AgeStructOut>0)
-//    {
-//        int k;
-//        for(k=0; k<N_AGE_BINS; k++) stars_annulus += Gal[p].DiscStarsAge[i][k];
-//    }
-//    else
-//    {
-//        stars_annulus = 1.0*Gal[p].DiscStars[i];
-//    }
-//    return stars_annulus;
-//}
-//
-//
-//double get_annulus_stars_metals(int p, int i)
-//{
-//    double stars_annulus = 0.0;
-//    if(AgeStructOut>0)
-//    {
-//        int k;
-//        for(k=0; k<N_AGE_BINS; k++) stars_annulus += Gal[p].DiscStarsMetalsAge[i][k];
-//    }
-//    else
-//    {
-//        stars_annulus = 1.0*Gal[p].DiscStarsMetals[i];
-//    }
-//    return stars_annulus;
-//}

@@ -808,3 +808,25 @@ def SFRD_obs(h, alpha=0.3, ax=None, plus=0):
     ax.errorbar(ObsRedshift+plus, ObsSFR, yerr=[yErrLo, yErrHi], xerr=[xErrLo, xErrHi], color='purple', lw=2.0, alpha=alpha, ls='none', label=r'Somerville et al.~(2001)', ms=0)
     ax.errorbar(z+plus, SFRD, yerr=[SFRD_err_high, SFRD_err_low], xerr=z_err, color='cyan', lw=2.0, alpha=alpha, ls='none', label=r'Madau \& Dickinson (2014)', ms=0)
     ax.errorbar((D18[:,1]+D18[:,2])/2.+plus, D18[:,3]+np.log10(h/0.7), yerr=np.sum(D18[:,5:],axis=1), xerr=(D18[:,1]-D18[:,2])/2., color='goldenrod', lw=2.0, alpha=alpha, ls='none', label=r'Driver et al.~(2018)', ms=0)
+
+
+def z2tL(z, h=0.6774, Omega_M=0.3089, Omega_Lambda=0.6911, Omega_R=0, nele=100000):
+    # Convert redshift z to look-backtime time tL.
+    # nele is the number if elements used in the numerical integration
+    
+    if z<=0: return 0. # not designed for blueshifts!
+    
+    H_0 = 100*h
+    Omega_k = 1 - Omega_R - Omega_M - Omega_Lambda # Curvature density as found from the radiation, matter and dark energy energy densities.
+    Mpc_km = 3.08567758e19 # Number of km in 1 Mpc
+    yr_s = 60*60*24*365.24 # Number of seconds in a year
+
+    # Create the z-array that is to be integrated over and matching integrand
+    zprime = np.linspace(0, z, nele)
+    integrand = 1./((1+zprime)*np.sqrt(Omega_R*(1+zprime)**4 + Omega_M*(1+zprime)**3 + Omega_k*(1+zprime)**2 + Omega_Lambda))
+
+    # Numerically integrate trapezoidally
+    integrated = 0.5 * np.sum(np.diff(zprime)*(integrand[:-1] + integrand[1:]))
+    tL = np.divide(integrated*Mpc_km, H_0*yr_s*1e9)
+
+    return tL # Gives look-back time in Gyr
