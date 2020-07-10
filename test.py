@@ -34,6 +34,7 @@ def galdtype():
         ('HaloIndex'                    , np.int32),
         ('SimulationHaloIndex'          , np.int32),
         ('TreeIndex'                    , np.int32),
+        ('RootGalaxyIndex'              , np.int64),
         ('SnapNum'                      , np.int32),
         ('CentralGalaxyIndex'           , np.int64),
         ('CentralMvir'                  , floattype),
