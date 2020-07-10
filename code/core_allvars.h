@@ -194,7 +194,6 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float DiscStars[N_BINS][N_AGE_BINS];
   float SpinStars[3];
   float SpinGas[3];
-//  float SpinSecularBulge[3];
   float SpinClassicalBulge[3];
   float StarsFromH2;
   float StarsInstability;
@@ -202,22 +201,6 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float DiscHI[N_BINS];
   float DiscH2[N_BINS];
   float DiscSFR[N_BINS];
-    
-    // inflow/outflow tracking
-//    float AccretedGasMass;
-//    float EjectedSNGasMass;
-//    float EjectedQuasarGasMass;
-    
-    // Instability tracking
-//  int TotInstabEvents;
-//  int TotInstabEventsGas;
-//  int TotInstabEventsStar;
-//  int TotInstabAnnuliGas;
-//  int TotInstabAnnuliStar;
-//  float FirstUnstableAvGas;
-//  float FirstUnstableAvStar;
-//  float TotSinkGas[N_BINS];
-//  float TotSinkStar[N_BINS];
     
   // metals
   float MetalsColdGas;
@@ -236,15 +219,11 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float SfrMerge;
   float SfrDiskZ;
   float SfrBulgeZ;
-//  float SfZ_H2;
-//  float SfZ_Instab;
-//  float SfZ_Merge;
   
   // misc 
   float DiskScaleRadius;
   float CoolScaleRadius;
   float StellarDiscScaleRadius;
-//  float GasDiscScaleRadius;
   float Cooling;
   float Heating;
   float LastMajorMerger;
