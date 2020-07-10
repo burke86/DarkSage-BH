@@ -121,8 +121,7 @@ int main(int argc, char **argv)
     for(i=1; i<N_AGE_BINS; i++)
         AgeBinEdge[i] = time_to_present(0.007*pow(1.47,i-1));
     AgeBinEdge[0] = 0.0;
-    printf("\nHubble_h = %e\n", Hubble_h);
-    for(i=0; i<N_AGE_BINS+1; i++) printf("AgeBinEdge[%i] = %e\n", i, AgeBinEdge[i]*1e3/Hubble_h);
+//    for(i=0; i<N_AGE_BINS+1; i++) printf("AgeBinEdge[%i] = %e\n", i, AgeBinEdge[i]*UnitTime_in_s/SEC_PER_MEGAYEAR*1e-3/Hubble_h);
     
     // Set counts for prograde and retrograde satellite collisions
     RetroCount = 0;

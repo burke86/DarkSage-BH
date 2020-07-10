@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-indir = '/Users/adam/DarkSage_runs/571g/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/571j/' # directory where the Dark Sage data are
 sim = 0 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL
 
@@ -97,10 +97,10 @@ try:
     plt.plot(1+redshifts, np.log10(SFRD_resolved), 'k.-', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!100$')
     
     if Nage>1: # check consistency from stellar-age bins
-        print 'All Close', np.allclose(np.sum(G0['DiscStars'],axis=(1,2)) + np.sum(G0['InstabilityBulgeMass'],axis=1) + np.sum(G0['MergerBulgeMass'],axis=1), G0['StellarMass'])
+#        print 'All Close', np.allclose(np.sum(G0['DiscStars'],axis=(1,2)) + np.sum(G0['InstabilityBulgeMass'],axis=1) + np.sum(G0['MergerBulgeMass'],axis=1), G0['StellarMass'])
     
         RedshiftBinEdge = np.append(np.append(0, [0.007*1.47**i for i in range(Nage-1)]), 1000.) # defined within Dark Sage hard code
-        TimeBinEdge = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in RedshiftBinEdge]) # cosmic time [Gyr]
+        TimeBinEdge = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in RedshiftBinEdge]) # look-back time [Gyr]
         dT = np.diff(TimeBinEdge)*1e9 # time step for each bin [yr]
         
         # sum mass from age bins of all components
@@ -127,6 +127,58 @@ try:
     r.savepng(outdir+'H1-SFRDH', xsize=768, ysize=400)
 except Exception as excptn:
     print('Unexpected issue with plot H1: {0}'.format(excptn))
-
 ##### =========================================================================== #####
 
+
+
+##### PLOT 2: SFRDH and SMH BREAKDOWN BY z=0 GALAXY MASS #####
+if Nage>1: # currently just built for stellar-age bins -- can definitely be extended to use other snapshots (and should be as a consistency check!)
+    Mstar_bins = 10**np.array([8.5, 9.5, 10.5]) * h * 1e-10
+    c = ['y', 'g', 'c', 'b']
+    Nbins = len(Mstar_bins)+1
+    
+    SFRDH = SFRbyAge/vol
+    SMDH = np.cumsum(StarsByAge[::-1])[::-1]*1e10/h / vol
+    TimeBinCentre = 0.5*(TimeBinEdge[1:] + TimeBinEdge[:-1])
+    
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, sharey=False)
+
+    ax1.plot(TimeBinCentre, SFRDH, '-', color='grey', lw=3)
+    ax2.plot(TimeBinEdge, np.append(SMDH,0), '-', color='grey', lw=3)
+    
+    t_LB = np.array([r.z2tL(z) for z in redshifts])
+    ax1.plot(t_LB, SFRD, '.-', color='k', lw=2)
+
+    
+    for i in xrange(Nbins):
+        if i==0:
+            f = (G0['StellarMass']<Mstar_bins[0])
+        elif i==Nbins-1:
+            f = (G0['StellarMass']>=Mstar_bins[-1])
+        else:
+            f = (G0['StellarMass']>=Mstar_bins[i-1]) * (G0['StellarMass']<Mstar_bins[i])
+            
+        StarsByAge = np.zeros(Nage)
+        for k in range(Nage):
+            StarsByAge[k] += np.sum(G0['DiscStars'][:,:,k][f])
+            StarsByAge[k] += np.sum(G0['MergerBulgeMass'][:,k][f])
+            StarsByAge[k] += np.sum(G0['InstabilityBulgeMass'][:,k][f])
+            StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k][f])
+        SFRDH = StarsByAge*1e10/h/dT/(1.-RecycleFraction) / vol
+        SMDH = np.cumsum(StarsByAge[::-1])[::-1]*1e10/h / vol
+        
+        ax1.plot(TimeBinCentre, SFRDH, '-', color=c[i], lw=2)
+        ax2.plot(TimeBinEdge, np.append(SMDH,0), '-', color=c[i], lw=2)
+
+    ax1.set_yscale('log')
+    ax2.set_yscale('log')
+    ax1.axis([0,14,2e-4,1e-1])
+    ax2.set_ylim(5e4,5e8)
+    
+    ax1.set_ylabel(r'SFRD [M$_\odot$\,yr$^{-1}$\,cMpc$^{-3}$]')
+    ax2.set_ylabel(r'SMD [M$_\odot$\,cMpc$^{-3}$]')
+    ax2.set_xlabel(r'Lookback time [Gyr]')
+    
+    fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
+    r.savepng(outdir+'H2-SFRDH+SMDH', xsize=768, ysize=800)
+##### ================================================== #####

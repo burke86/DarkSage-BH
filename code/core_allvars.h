@@ -30,8 +30,8 @@ do {                                                                \
 #define  PROTONMASS  1.6726e-24
 #define  HUBBLE      3.2407789e-18   /* in h/sec */
 
-#define  SEC_PER_MEGAYEAR   3.155e13
-#define  SEC_PER_YEAR       3.155e7
+#define  SEC_PER_MEGAYEAR   3.1556736e13
+#define  SEC_PER_YEAR       3.1556736e7
 
 #define N_BINS 30
 #define MIN_STARS_FOR_SN 1e-8
@@ -45,7 +45,8 @@ struct GALAXY_OUTPUT
   int   HaloIndex;
   int SimulationHaloIndex;
   int   TreeIndex;
-    
+  long long   RootID;
+
   int   SnapNum;
   long long CentralGalaxyIndex;
   float CentralMvir;
@@ -154,6 +155,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   int   HaloIndex;
   int SimulationHaloIndex;
   int   TreeIndex;
+  long long RootID;
     
   int   SnapNum;
   long long CentralGalaxyIndex;

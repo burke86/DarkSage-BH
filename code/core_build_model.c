@@ -126,7 +126,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
       // they are copied to the end of the list of permanent galaxies HaloGal[xxx] 
 
       Gal[ngal] = HaloGal[HaloAux[prog].FirstGalaxy + i];
-      Gal[ngal].HaloNr = halonr;      
+      Gal[ngal].HaloNr = halonr;
       Gal[ngal].dT = -1.0;
 
       // this deals with the central galaxies of (sub)halos 
