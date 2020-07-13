@@ -24,7 +24,8 @@ RecycleFraction = 0.43 # Only needed for comparing stellar-age based SFR with ra
 
 ##### SET PLOTTING DEFAULTS #####
 fsize = 26
-matplotlib.rcParams.update({'font.size': fsize, 'xtick.major.size': 10, 'ytick.major.size': 10, 'xtick.major.width': 1, 'ytick.major.width': 1, 'ytick.minor.size': 5, 'xtick.minor.size': 5, 'xtick.direction': 'in', 'ytick.direction': 'in', 'axes.linewidth': 1, 'text.usetex': True, 'font.family': 'serif', 'font.serif': 'Times New Roman', 'legend.numpoints': 1, 'legend.columnspacing': 1, 'legend.fontsize': fsize-4, 'xtick.top': True, 'ytick.right': True})
+fsize_legend = fsize-4
+matplotlib.rcParams.update({'font.size': fsize, 'xtick.major.size': 10, 'ytick.major.size': 10, 'xtick.major.width': 1, 'ytick.major.width': 1, 'ytick.minor.size': 5, 'xtick.minor.size': 5, 'xtick.direction': 'in', 'ytick.direction': 'in', 'axes.linewidth': 1, 'text.usetex': True, 'font.family': 'serif', 'font.serif': 'Times New Roman', 'legend.numpoints': 1, 'legend.columnspacing': 1, 'legend.fontsize': fsize_legend, 'xtick.top': True, 'ytick.right': True})
 
 NpartMed = 100 # minimum number of particles for finding relevant medians for minima on plots
 
@@ -80,17 +81,56 @@ Nsnap = len(redshifts)
 SFRD = np.zeros(Nsnap)
 SFRD_resolved = np.zeros(Nsnap)
 
+SMD = np.zeros(Nsnap)
+SMD_resolved = np.zeros(Nsnap)
+
+Mstar_bins = 10**np.array([8.5, 9.5, 10.5]) * h * 1e-10
+c = ['y', 'g', 'c', 'b']
+Nbins = len(Mstar_bins)+1
+SFRDbyMass = np.zeros((Nbins,Nsnap))
+SMDbyMass = np.zeros((Nbins,Nsnap))
+RootID_lists = []
+labels = []
+f_bins = []
+
 for i in range(Nsnap):
     G = r.darksage_snap(indir+fpre+redshiftstr[i], filenumbers, Nannuli=Nannuli, Nage=Nage)
-    if i==0 and Nage>1: G0 = G # save the lowest-z snap to compare history reconstruction from age bins
+    res = (G['LenMax']>=100)
     SFRD[i] = np.sum(G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst']) / vol
-    SFRD_resolved[i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[G['LenMax']>=100]) / vol
+    SFRD_resolved[i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[res]) / vol
+    SMD[i] = (np.sum(G['StellarMass']) + np.sum(G['IntraClusterStars'])) / vol
+    SMD_resolved[i] = (np.sum(G['StellarMass'][res]) + np.sum(G['IntraClusterStars'][res])) / vol
+    
+    if i==0:
+        G0 = G # save the lowest-z snap to compare history reconstruction from age bins
+        SM0 = G0['StellarMass'] + G0['IntraClusterStars'] if Nage<=1 else G0['StellarMass'] + np.sum(G0['IntraClusterStars'],axis=1)
+        for j in range(Nbins):
+            if j==0:
+                f = (SM0<Mstar_bins[0])
+                labels += [r'$\mathcal{M}_* \! < \! ' + str(round(np.log10(Mstar_bins[0]/h)+10,1)) + r'$']
+            elif j==Nbins-1:
+                f = (SM0>=Mstar_bins[-1])
+                labels += [r'$\mathcal{M}_* \! \geq \! ' + str(round(np.log10(Mstar_bins[-1]/h)+10,1)) + r'$']
+            else:
+                f = (SM0>=Mstar_bins[j-1]) * (SM0<Mstar_bins[j])
+                labels += [r'$\mathcal{M}_* \! \in \! [' + str(round(np.log10(Mstar_bins[j-1]/h)+10,1)) + r',' + str(round(np.log10(Mstar_bins[j]/h)+10,1)) + r')$']
+            f *= (G0['LenMax']>=100)
+            f_bins += [f]
+            RootID_lists += [G0['RootGalaxyIndex'][f]]
+
+    for j in range(Nbins):
+        f = np.in1d(G['RootGalaxyIndex'], RootID_lists[j]) * (G['RootSnapNum']==63)
+        SFRDbyMass[j,i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[f])
+        SMDbyMass[j,i] = np.sum((G['StellarMass']+G['IntraClusterStars'])[f]) if Nage<=1 else np.sum((G['StellarMass']+np.sum(G['IntraClusterStars'],axis=1))[f])
+
+SFRDbyMass /= vol
+SMDbyMass *= (1e10/h / vol)
 ##### ============================================= #####
 
 
 
 
-##### PLOT 1: MADAU-LILLY DIAGRAM (UNIVERSAL STAR FORMATION RATE DENSITY HISTORY) #####
+##### PLOT 1: MADAU--LILLY DIAGRAM (UNIVERSAL STAR FORMATION RATE DENSITY HISTORY) #####
 try:
     fig, ax  = plt.subplots(1, 1)
     plt.plot(1+redshifts, np.log10(SFRD), 'k--', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p}\!\geq\!20$')
@@ -112,7 +152,7 @@ try:
             StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k])
         SFRbyAge = StarsByAge*1e10/h/dT/(1.-RecycleFraction)
         SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)
-        plt.step(1+RedshiftBinEdge, SFRD_Age, color='silver', label=r'{\sc Dark Sage} age recon.')
+        plt.step(1+RedshiftBinEdge, SFRD_Age, color='grey', label=r'{\sc Dark Sage} age recon.')
 
     
     r.SFRD_obs(h, plus=1)
@@ -127,36 +167,34 @@ try:
     r.savepng(outdir+'H1-SFRDH', xsize=768, ysize=400)
 except Exception as excptn:
     print('Unexpected issue with plot H1: {0}'.format(excptn))
-##### =========================================================================== #####
+##### ============================================================================ #####
 
 
 
 ##### PLOT 2: SFRDH and SMH BREAKDOWN BY z=0 GALAXY MASS #####
-if Nage>1: # currently just built for stellar-age bins -- can definitely be extended to use other snapshots (and should be as a consistency check!)
-    Mstar_bins = 10**np.array([8.5, 9.5, 10.5]) * h * 1e-10
-    c = ['y', 'g', 'c', 'b']
-    Nbins = len(Mstar_bins)+1
-    
+
+fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, sharey=False)
+
+if Nsnap>1:
+    t_LB = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in redshifts])
+    ax1.plot(t_LB, SFRD, 'ks:', lw=2, label=r'Tot.\,(snaps)') # These are genuine totals, so slightly larger than the sum of the mass-bin values, but negligibly so.
+    ax2.plot(t_LB, SMD, 'ks:', lw=2)
+
+    for i in range(Nbins):
+        ax1.plot(t_LB, SFRDbyMass[i,:], 's:', color=c[i], lw=2) if Nage>1 else ax1.plot(t_LB, SFRDbyMass[i,:], 's:', color=c[i], lw=2, label=labels[i])
+        ax2.plot(t_LB, SMDbyMass[i,:], 's:', color=c[i], lw=2)
+
+
+
+if Nage>1:
+    TimeBinCentre = 0.5*(TimeBinEdge[1:] + TimeBinEdge[:-1])
     SFRDH = SFRbyAge/vol
     SMDH = np.cumsum(StarsByAge[::-1])[::-1]*1e10/h / vol
-    TimeBinCentre = 0.5*(TimeBinEdge[1:] + TimeBinEdge[:-1])
+    ax1.plot(TimeBinCentre, SFRDH, 'ko-', lw=3, label=r'Tot.\,(age\,recon.)')
+    ax2.plot(TimeBinEdge[:-1], SMDH, 'ko-', lw=3)
     
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, sharey=False)
-
-    ax1.plot(TimeBinCentre, SFRDH, '-', color='grey', lw=3)
-    ax2.plot(TimeBinEdge, np.append(SMDH,0), '-', color='grey', lw=3)
-    
-    t_LB = np.array([r.z2tL(z) for z in redshifts])
-    ax1.plot(t_LB, SFRD, '.-', color='k', lw=2)
-
-    
-    for i in xrange(Nbins):
-        if i==0:
-            f = (G0['StellarMass']<Mstar_bins[0])
-        elif i==Nbins-1:
-            f = (G0['StellarMass']>=Mstar_bins[-1])
-        else:
-            f = (G0['StellarMass']>=Mstar_bins[i-1]) * (G0['StellarMass']<Mstar_bins[i])
+    for i in range(Nbins):
+        f = f_bins[i]
             
         StarsByAge = np.zeros(Nage)
         for k in range(Nage):
@@ -167,18 +205,20 @@ if Nage>1: # currently just built for stellar-age bins -- can definitely be exte
         SFRDH = StarsByAge*1e10/h/dT/(1.-RecycleFraction) / vol
         SMDH = np.cumsum(StarsByAge[::-1])[::-1]*1e10/h / vol
         
-        ax1.plot(TimeBinCentre, SFRDH, '-', color=c[i], lw=2)
-        ax2.plot(TimeBinEdge, np.append(SMDH,0), '-', color=c[i], lw=2)
+        ax1.plot(TimeBinCentre, SFRDH, 'o-', color=c[i], lw=2, label=labels[i])
+        ax2.plot(TimeBinEdge[:-1], SMDH, 'o-', color=c[i], lw=2)
 
-    ax1.set_yscale('log')
-    ax2.set_yscale('log')
-    ax1.axis([0,14,2e-4,1e-1])
-    ax2.set_ylim(5e4,5e8)
-    
-    ax1.set_ylabel(r'SFRD [M$_\odot$\,yr$^{-1}$\,cMpc$^{-3}$]')
-    ax2.set_ylabel(r'SMD [M$_\odot$\,cMpc$^{-3}$]')
-    ax2.set_xlabel(r'Lookback time [Gyr]')
-    
-    fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
-    r.savepng(outdir+'H2-SFRDH+SMDH', xsize=768, ysize=800)
+ax1.set_yscale('log')
+ax2.set_yscale('log')
+ax1.axis([0,14,8e-7,2e-1])
+ax2.set_ylim(2e2,5e8)
+
+ax1.legend(loc='lower right', bbox_to_anchor=(1.02,0.95), frameon=False, ncol=3)
+
+ax1.set_ylabel(r'$\bar{\rho}_{\rm SFR}$ [M$_\odot$\,yr$^{-1}$\,cMpc$^{-3}$]')
+ax2.set_ylabel(r'$\bar{\rho}_*$ [M$_\odot$\,cMpc$^{-3}$]')
+ax2.set_xlabel(r'Lookback time [Gyr]')
+
+fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
+r.savepng(outdir+'H2-SFRDH+SMDH', xsize=768, ysize=800)
 ##### ================================================== #####

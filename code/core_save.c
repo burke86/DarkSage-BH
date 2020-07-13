@@ -184,10 +184,15 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
     }
     
     if(mergeSum==0)
+    {
         o->RootID = HaloGal[HaloAux[RootHaloID].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+        o->RootSnapNum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].SnapNum;
+    }
     else // if there was a merger flag, the assumption is it merged with the central at the root
+    {
         o->RootID = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-
+        o->RootSnapNum = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].SnapNum;
+    }
 
   o->mergeType = g->mergeType;
   o->mergeIntoID = g->mergeIntoID;
@@ -324,8 +329,9 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->TreeIndex = tree;
     o->SimulationHaloIndex = Halo[g->HaloNr].SubhaloIndex;
 
-    // Run down the merger tree until hitting the final snapshot at which this galaxy exists
-    HaloID = g->HaloNr + 0;
+    // Run down the merger tree until hitting the final snapshot at which this galaxy exists.
+    // Note: there is definitely a bug or flaw in logic when it comes to unresolved systems (<=100 particles).  I have been unable to track this down, but I safely say it should affect science, as those galaxies shouldn't be used anyway.
+    HaloID = g->HaloNr;
     mergeSum = 0;
     while(HaloID != -1) 
     {
@@ -335,9 +341,15 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     }
     
     if(mergeSum==0)
+    {
         o->RootID = HaloGal[HaloAux[RootHaloID].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+        o->RootSnapNum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].SnapNum;
+    }
     else // if there was a merger flag, the assumption is it merged with the central at the root
+    {
         o->RootID = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+        o->RootSnapNum = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].SnapNum;
+    }
 
 
   o->mergeType = g->mergeType;

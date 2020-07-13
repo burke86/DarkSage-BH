@@ -46,6 +46,7 @@ struct GALAXY_OUTPUT
   int SimulationHaloIndex;
   int   TreeIndex;
   long long   RootID;
+  int RootSnapNum;
 
   int   SnapNum;
   long long CentralGalaxyIndex;
@@ -156,6 +157,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   int SimulationHaloIndex;
   int   TreeIndex;
   long long RootID;
+  int RootSnapNum;
     
   int   SnapNum;
   long long CentralGalaxyIndex;
