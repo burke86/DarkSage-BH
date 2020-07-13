@@ -11,12 +11,12 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-indir = '/Users/adam/DarkSage_runs/571j/' # directory where the Dark Sage data are
+indir = '/path/to/DarkSage/output/' # directory where the Dark Sage data are
 sim = 0 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
-Nage = 20 # number of age bins used for stars -- not advised to use a run with this for calibration
+Nage = 0 # number of age bins used for stars -- not advised to use a run with this for calibration
 RecycleFraction = 0.43 # Only needed for comparing stellar-age based SFR with raw SFR
 ###### ============================== ######
 
