@@ -84,15 +84,19 @@ SFRD_resolved = np.zeros(Nsnap)
 SMD = np.zeros(Nsnap)
 SMD_resolved = np.zeros(Nsnap)
 
-SFZD = np.zeros(Nsnap)
-SFZD_resolved = np.zeros(Nsnap)
+ZMD = np.zeros(Nsnap)
+ZMD_resolved = np.zeros(Nsnap)
+
+#SFZD = np.zeros(Nsnap)
+#SFZD_resolved = np.zeros(Nsnap)
 
 Mstar_bins = 10**np.array([8.5, 9.5, 10.5]) * h * 1e-10
 c = ['y', 'g', 'c', 'b']
 Nbins = len(Mstar_bins)+1
 SFRDbyMass = np.zeros((Nbins,Nsnap))
 SMDbyMass = np.zeros((Nbins,Nsnap))
-SFZDbyMass = np.zeros((Nbins,Nsnap))
+ZMDbyMass = np.zeros((Nbins,Nsnap))
+#SFZDbyMass = np.zeros((Nbins,Nsnap))
 RootID_lists = []
 labels = []
 f_bins = []
@@ -107,11 +111,14 @@ for i in range(Nsnap):
     SMD[i] = (np.sum(G['StellarMass']) + np.sum(G['IntraClusterStars'])) * 1e10/h / vol
     SMD_resolved[i] = (np.sum(G['StellarMass'][res]) + np.sum(G['IntraClusterStars'][res])) * 1e10/h / vol
     
-    # Weighting metallicity from each annulus by its SFR -- this won't be precise, as metallicity will have evolved in sub-time-steps in the model
-    DiscMetallicity = G['DiscGasMetals'] / G['DiscGas']
-    DiscMetallicity[~np.isfinite(DiscMetallicity)] = 0.0
-    SFZD[i] = np.sum(np.sum(DiscMetallicity * G['DiscSFR'], axis=1) * G['dT']) * 1e6/h / vol
-    SFZD_resolved[i] = np.sum(np.sum(DiscMetallicity * G['DiscSFR'], axis=1)[res] * G['dT'][res]) * 1e6/h / vol
+    ZMD[i] = (np.sum(G['MetalsStellarMass']) + np.sum(G['MetalsIntraClusterStars'])) * 1e10/h / vol
+    ZMD_resolved[i] = (np.sum(G['MetalsStellarMass'][res]) + np.sum(G['MetalsIntraClusterStars'][res])) * 1e10/h / vol
+
+#    # Weighting metallicity from each annulus by its SFR -- this won't be precise, as metallicity will have evolved in sub-time-steps in the model
+#    DiscMetallicity = G['DiscGasMetals'] / G['DiscGas']
+#    DiscMetallicity[~np.isfinite(DiscMetallicity)] = 0.0
+#    SFZD[i] = np.sum(np.sum(DiscMetallicity * G['DiscSFR'], axis=1) * G['dT']) * 1e6/h / vol
+#    SFZD_resolved[i] = np.sum(np.sum(DiscMetallicity * G['DiscSFR'], axis=1)[res] * G['dT'][res]) * 1e6/h / vol
     
     if i==0:
         G0 = G # save the lowest-z snap to compare history reconstruction from age bins
@@ -134,11 +141,13 @@ for i in range(Nsnap):
         f = np.in1d(G['RootGalaxyIndex'], RootID_lists[j]) * (G['RootSnapNum']==63)
         SFRDbyMass[j,i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[f])
         SMDbyMass[j,i] = np.sum((G['StellarMass']+G['IntraClusterStars'])[f]) if Nage<=1 else np.sum((G['StellarMass']+np.sum(G['IntraClusterStars'],axis=1))[f])
-        SFZDbyMass[j,i] = np.sum(np.sum(DiscMetallicity * G['DiscSFR'], axis=1)[f] * G['dT'][f])
+        ZMDbyMass[j,i] = np.sum((G['MetalsStellarMass']+G['MetalsIntraClusterStars'])[f]) if Nage<=1 else np.sum((G['MetalsStellarMass']+np.sum(G['MetalsIntraClusterStars'],axis=1))[f])
+#        SFZDbyMass[j,i] = np.sum(np.sum(DiscMetallicity * G['DiscSFR'], axis=1)[f] * G['dT'][f])
 
 SFRDbyMass /= vol
 SMDbyMass *= (1e10/h / vol)
-SFZDbyMass *= (1e6/h / vol)
+ZMDbyMass *= (1e10/h / vol)
+#SFZDbyMass *= (1e6/h / vol)
 ##### ============================================= #####
 
 
@@ -194,12 +203,14 @@ if Nsnap>1:
     t_LB = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in redshifts])
     ax1.plot(t_LB, SFRD, 'ks:', lw=2, label=r'Tot.\,(snaps)') # These are genuine totals, so slightly larger than the sum of the mass-bin values, but negligibly so.
     ax2.plot(t_LB, SMD, 'ks:', lw=2)
-    ax3.plot(t_LB, SFZD, 'ks:', lw=2)
+    ax3.plot(t_LB, ZMD/SMD, 'ks:', lw=2)
+#    ax3.plot(t_LB, SFZD, 'ks:', lw=2)
 
     for i in range(Nbins):
         ax1.plot(t_LB, SFRDbyMass[i,:], 's:', color=c[i], lw=2) if Nage>1 else ax1.plot(t_LB, SFRDbyMass[i,:], 's:', color=c[i], lw=2, label=labels[i])
         ax2.plot(t_LB, SMDbyMass[i,:], 's:', color=c[i], lw=2)
-        ax3.plot(t_LB, SFZDbyMass[i,:], 's:', color=c[i], lw=2)
+        ax3.plot(t_LB, ZMDbyMass[i,:]/SMDbyMass[i,:], 's:', color=c[i], lw=2)
+#        ax3.plot(t_LB, SFZDbyMass[i,:], 's:', color=c[i], lw=2)
 
 
 
@@ -215,10 +226,13 @@ if Nage>1:
         MetalsByAge[k] += np.sum(G0['MetalsInstabilityBulgeMass'][:,k])
         MetalsByAge[k] += np.sum(G0['MetalsIntraClusterStars'][:,k])
 
-    SFZDH = MetalsByAge*1e10/h / vol
+    ZMDH = np.cumsum(MetalsByAge[::-1])[::-1]*1e10/h / vol
+#    SFZDH = MetalsByAge*1e10/h / vol
+
     ax1.plot(TimeBinCentre, SFRDH, 'ko-', lw=3, label=r'Tot.\,(age\,recon.)')
     ax2.plot(TimeBinEdge[:-1], SMDH, 'ko-', lw=3)
-    ax3.plot(TimeBinCentre, SFZDH, 'ko-', lw=3)
+    ax3.plot(TimeBinEdge[:-1], ZMDH/SMDH, 'ko-', lw=3)
+#    ax3.plot(TimeBinCentre, SFZDH, 'ko-', lw=3)
     
     for i in range(Nbins):
         f = f_bins[i]
@@ -238,11 +252,13 @@ if Nage>1:
 
         SFRDH = StarsByAge*1e10/h/dT/(1.-RecycleFraction) / vol
         SMDH = np.cumsum(StarsByAge[::-1])[::-1]*1e10/h / vol
-        SFZDH = MetalsByAge*1e10/h / vol /(1.-RecycleFraction)
+        ZMDH = np.cumsum(MetalsByAge[::-1])[::-1]*1e10/h / vol
+#        SFZDH = MetalsByAge*1e10/h / vol /(1.-RecycleFraction)
         
         ax1.plot(TimeBinCentre, SFRDH, 'o-', color=c[i], lw=2, label=labels[i])
         ax2.plot(TimeBinEdge[:-1], SMDH, 'o-', color=c[i], lw=2)
-        ax3.plot(TimeBinCentre, SFZDH, 'o-', color=c[i], lw=2)
+        ax3.plot(TimeBinEdge[:-1], ZMDH/SMDH, 'o-', color=c[i], lw=2)
+#        ax3.plot(TimeBinCentre, SFZDH, 'o-', color=c[i], lw=2)
         
 
 ax1.set_yscale('log')
@@ -250,13 +266,13 @@ ax2.set_yscale('log')
 ax3.set_yscale('log')
 ax1.axis([0,14,8e-7,2e-1])
 ax2.set_ylim(2e2,5e8)
-ax3.set_ylim(1e-1,8e6)
+#ax3.set_ylim(1e-1,8e6)
 
 ax1.legend(loc='lower right', bbox_to_anchor=(1.02,0.95), frameon=False, ncol=3)
 
 ax1.set_ylabel(r'$\bar{\rho}_{\rm SFR}$ [M$_\odot$\,yr$^{-1}$\,cMpc$^{-3}$]')
 ax2.set_ylabel(r'$\bar{\rho}_*$ [M$_\odot$\,cMpc$^{-3}$]')
-ax3.set_ylabel(r'$\bar{\rho}_{Z,\,\rm SF}$ [M$_\odot$\,cMpc$^{-3}$]')
+ax3.set_ylabel(r'$\bar{Z}_* \equiv \bar{\rho}_{Z,*} / \bar{\rho}_*$ ')
 ax3.set_xlabel(r'Lookback time [Gyr]')
 
 fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
