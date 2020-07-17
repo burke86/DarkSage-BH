@@ -36,7 +36,7 @@ do {                                                                \
 #define N_BINS 30
 #define MIN_STARS_FOR_SN 1e-8
 #define MIN_STARFORMATION 1e-10
-#define N_AGE_BINS 1 // REDUCE THIS VALUE TO 1 SAVE RAM WHEN FLAG IS OFF IN PARAMETER FILE
+#define N_AGE_BINS 131 // REDUCE THIS VALUE TO 1 SAVE RAM WHEN FLAG IS OFF IN PARAMETER FILE
 
 struct GALAXY_OUTPUT  
 {

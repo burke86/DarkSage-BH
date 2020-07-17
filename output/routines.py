@@ -22,7 +22,6 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('SimulationHaloIndex'          , np.int32),
                     ('TreeIndex'                    , np.int32),
                     ('RootGalaxyIndex'              , np.int64),
-#                    ('RootSnapNum'                  , np.int32),
                     ('SnapNum'                      , np.int32),
                     ('CentralGalaxyIndex'           , np.int64),
                     ('CentralMvir'                  , floattype),

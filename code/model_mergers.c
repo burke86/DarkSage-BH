@@ -78,7 +78,8 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 	printf("Had to correct mass_ratio < 0.0");
   }
 
-  add_galaxies_together(merger_centralgal, p, mass_ratio, disc_mass_ratio, PostRetroGas);
+  add_galaxies_together(merger_centralgal, p, centralgal, mass_ratio, disc_mass_ratio, PostRetroGas);
+    
   
   for(i=0; i<N_BINS; i++) assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
 
@@ -316,7 +317,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 
 
 
-void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
+void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
 {
   int step, i, s, k;
   double DiscGasSum, CentralGasOrig, ExpFac;
@@ -528,6 +529,7 @@ void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ra
         vCOM[i] = (Gal[t].Vel[i]*m_t + Gal[p].Vel[i]*m_p)/(m_t+m_p);
       }
 
+      // Velocity here only considers peculiar component but not Hubble -- should it?
       j_p[0] = (Gal[p].Pos[1]-COM[1])*(Gal[p].Vel[2]-vCOM[2])*ExpFac - (Gal[p].Pos[2]-COM[2])*(Gal[p].Vel[1]-vCOM[1])*ExpFac;
       j_p[1] = (Gal[p].Pos[2]-COM[2])*(Gal[p].Vel[0]-vCOM[0])*ExpFac - (Gal[p].Pos[0]-COM[0])*(Gal[p].Vel[2]-vCOM[2])*ExpFac;
       j_p[2] = (Gal[p].Pos[0]-COM[0])*(Gal[p].Vel[1]-vCOM[1])*ExpFac - (Gal[p].Pos[1]-COM[1])*(Gal[p].Vel[0]-vCOM[0])*ExpFac;
@@ -549,16 +551,16 @@ void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ra
   Gal[t].StarsMergeBurst += Gal[p].StarsMergeBurst;
     
   Gal[t].AccretedGasMass += Gal[p].AccretedGasMass;
-  Gal[t].EjectedSNGasMass += Gal[p].EjectedSNGasMass;
-  Gal[t].EjectedQuasarGasMass += Gal[p].EjectedQuasarGasMass;
+  Gal[centralgal].EjectedSNGasMass += Gal[p].EjectedSNGasMass;
+  Gal[centralgal].EjectedQuasarGasMass += Gal[p].EjectedQuasarGasMass;
 
   Gal[t].StellarMass += Gal[p].StellarMass;
   Gal[t].MetalsStellarMass += Gal[p].MetalsStellarMass;
   Gal[t].ClassicalBulgeMass += Gal[p].StellarMass;
   Gal[t].ClassicalMetalsBulgeMass += Gal[p].MetalsStellarMass;
     
-  Gal[t].ICS += Gal[p].ICS;
-  Gal[t].MetalsICS += Gal[p].MetalsICS;
+  Gal[centralgal].ICS += Gal[p].ICS;
+  Gal[centralgal].MetalsICS += Gal[p].MetalsICS;
 
   // If accounting for age, need to deposit all the smaller galaxies' stars into the right age bins for the classical bulge  
   if(AgeStructOut>0)
@@ -575,8 +577,8 @@ void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ra
           }
           
           // It's possible this will be redundant from the infall recipe
-          Gal[t].ICS_Age[k] += Gal[p].ICS_Age[k];
-          Gal[t].MetalsICS_Age[k] += Gal[p].MetalsICS_Age[k];
+          Gal[centralgal].ICS_Age[k] += Gal[p].ICS_Age[k];
+          Gal[centralgal].MetalsICS_Age[k] += Gal[p].MetalsICS_Age[k];
       }
   }
 
@@ -585,8 +587,8 @@ void add_galaxies_together(int t, int p, double mass_ratio, double *disc_mass_ra
   Gal[t].HotGas += Gal[p].HotGas;
   Gal[t].MetalsHotGas += Gal[p].MetalsHotGas;
   
-  Gal[t].EjectedMass += Gal[p].EjectedMass;
-  Gal[t].MetalsEjectedMass += Gal[p].MetalsEjectedMass;
+  Gal[centralgal].EjectedMass += Gal[p].EjectedMass;
+  Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsEjectedMass;
 
   Gal[t].BlackHoleMass += Gal[p].BlackHoleMass;
   assert(Gal[t].BlackHoleMass>=0.0);

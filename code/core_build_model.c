@@ -68,88 +68,9 @@ void construct_galaxies(int halonr, int tree)
       fofhalo = Halo[fofhalo].NextHaloInFOFgroup;
     }
 
-    evolve_galaxies(Halo[halonr].FirstHaloInFOFgroup, ngal, tree);
-//      assign_root_index();
+    evolve_galaxies(Halo[halonr].FirstHaloInFOFgroup, ngal);
   }
 
-    
-}
-
-
-void assign_root_index(int halonr)
-{
-    // It's useful to have a "RootID" that allows one to easily capture all
-    // progenitors of a galaxy from the final snapshot.  Walk back through
-    // the trees to assign these.
-
-    int p, RootID;
-    
-    int p0 = HaloAux[halonr].FirstGalaxy;
-    int ngal = HaloAux[halonr].NGalaxies;
-    
-    // Loop over galaxies
-    for(p=p0; p<p0+ngal; p++)
-    {
-        assert(HaloGal[p].SnapNum==Snaplistlen-1); // should only have entered this function under this condition
-        
-        // Walk back through HaloGal to find all progenitors -- this function is where the actual assignment takes place
-        RootID = HaloGal[p].GalaxyNr;
-        walk_back(p, halonr, RootID);
-    }
-    
-//    // Old code
-//    int prog;
-//    HaloAux[halonr].RootFound = 1;
-//
-//    HaloAux[halonr].RootIndex = root_halonr;
-//    prog = Halo[halonr].FirstProgenitor;
-//    while(prog >= 0)
-//    {
-//        if(HaloAux[prog].RootFound == 0)
-//            assign_root_index(prog, root_halonr);
-//        prog = Halo[prog].NextProgenitor;
-//    }
-}
-
-
-void walk_back(int p, int halonr, int RootID)
-{
-    int prog, g, q;
-    
-    int g0 = HaloAux[halonr].FirstGalaxy;
-    int ngal = HaloAux[halonr].NGalaxies;
-    
-    // This loop catches the primary progenitors of input p
-    for(g=g0; g<g0+ngal; g++)
-    {
-        if(HaloGal[g].GalaxyNr == HaloGal[p].GalaxyNr)
-        {
-            HaloGal[g].RootID = RootID;
-            break; // there should only be 1 primary progenitor
-        }
-    }
-    
-    
-    prog = Halo[halonr].FirstProgenitor;
-    while(prog >= 0)
-    {
-        walk_back(g, prog, RootID);
-        prog = Halo[prog].NextProgenitor;
-    }
-
-    
-    // This loop catches the "merge into" progenitors of input p
-    for(g=g0; g<g0+ngal; g++)
-    {
-        if(HaloGal[g].mergeType>0)
-        {
-            q = HaloGal[g].mergeIntoID;
-            if(HaloGal[q].RootID == RootID)
-                HaloGal[g].RootID = RootID;
-        }
-    }
-
-    
 }
 
 
@@ -358,10 +279,10 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 
 
 
-void evolve_galaxies(int halonr, int ngal, int tree)	// note: halonr is here the FOF-background subhalo (i.e. main halo)
+void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-background subhalo (i.e. main halo)
 {
   int p, i, step, centralgal, merger_centralgal, currenthalo, offset, k;
-  double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt;
+  double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt, tot_ICS, tot_ICSMetals, tot_ejected, tot_ejectedMetals, tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS];
 
   centralgal = Gal[0].CentralGal;
   if(Gal[centralgal].Type != 0 || Gal[centralgal].HaloNr != halonr)
@@ -482,7 +403,7 @@ void evolve_galaxies(int halonr, int ngal, int tree)	// note: halonr is here the
           Gal[p].mergeIntoID = NumGals + merger_centralgal;  // position in output 
 
           if(Gal[p].MergTime > 0.0)  // disruption has occured!
-            disrupt_satellite_to_ICS(merger_centralgal, p);
+            disrupt_satellite_to_ICS(centralgal, p);
           else
           {
             time = Age[Gal[p].SnapNum] - (step + 0.5) * dt;
@@ -511,6 +432,50 @@ void evolve_galaxies(int halonr, int ngal, int tree)	// note: halonr is here the
         update_HI_H2(p);
     }
   }
+    
+    
+  //=== move any ICS and Ejected Gas to the central -- this should already be the case, but somehow there were occasional satellites with non-zero ICS masses in the outputs ===//
+  tot_ICS = tot_ejected = tot_ejectedMetals = tot_ICSMetals = 0.0;
+  for(k=0; k<N_AGE_BINS; k++) tot_ICS_Age[k] = tot_ICSMetals_Age[k] = 0.0;
+  for(p = 0; p < ngal; p++)
+  {
+    tot_ejected += Gal[p].EjectedMass;
+    tot_ejectedMetals += Gal[p].MetalsEjectedMass;
+    tot_ICS += Gal[p].ICS;
+    tot_ICSMetals += Gal[p].MetalsICS;
+      
+    // Age structure of ICS
+    if(AgeStructOut>0)
+    {
+      for(k=0; k<N_AGE_BINS; k++)
+      {
+          tot_ICS_Age[k] += Gal[p].ICS_Age[k];
+          tot_ICSMetals_Age[k] += Gal[p].MetalsICS_Age[k];
+      }
+    }
+
+    if(p != centralgal)
+    {
+      Gal[p].EjectedMass = Gal[p].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
+      Gal[p].ICS = Gal[p].MetalsICS = 0.0; // satellite ICS goes to central ICS
+      if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[p].ICS_Age[k] = Gal[p].MetalsICS_Age[k] = 0.0;
+    }
+  }
+  Gal[centralgal].EjectedMass = tot_ejected;
+  Gal[centralgal].MetalsEjectedMass = tot_ejectedMetals;
+  Gal[centralgal].ICS = tot_ICS;
+  Gal[centralgal].MetalsICS = tot_ICSMetals;
+      
+  if(AgeStructOut>0)
+  {
+    for(k=0; k<N_AGE_BINS; k++)
+    {
+    Gal[centralgal].ICS_Age[k] = tot_ICS_Age[k];
+    Gal[centralgal].MetalsICS_Age[k] = tot_ICSMetals_Age[k];
+    }
+  }
+  // === === === === === === === === === === === === === === === === === === === === === === === === === === ===//
+
 
 
   // attach final galaxy list to halo 
