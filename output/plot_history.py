@@ -11,12 +11,15 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-indir = '/path/to/DarkSage/output/' # directory where the Dark Sage data are
-sim = 0 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
-#   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL
+#indir = '/Users/adam/DarkSage_runs/571r/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/20g/'
+sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
+#   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
 Nage = 0 # number of age bins used for stars -- not advised to use a run with this for calibration
+#age_alist_file = '/Users/adam/millennium_mini/millennium.a_list' # File with expansion factors used for age bins
+age_alist_file = '/Users/adam/Genesis_calibration_trees/L75n324/alist.txt'
 RecycleFraction = 0.43 # Only needed for comparing stellar-age based SFR with raw SFR
 ###### ============================== ######
 
@@ -49,6 +52,9 @@ for f in filenames:
     if zstr not in redshiftstr: redshiftstr = np.append(redshiftstr, zstr)
     if fno not in filenumbers: filenumbers = np.append(filenumbers, fno)
     if fpre is None: fpre = f[:w1+2]
+if len(redshiftstr)==0:
+    print('Please specify a valid directory with files to read.')
+    quit()
 redshifts = redshiftstr.astype(np.float32)
 args = np.argsort(redshifts) # want redshifts to be listed in order
 redshiftstr = redshiftstr[args]
@@ -59,16 +65,24 @@ redshifts = redshifts[args]
 
 ##### SIMULATION DEFAULTS #####
 if sim==0:
-    h = 0.73
+    h, Omega_M, Omega_L = 0.73, 0.25, 0.75
     vol = (62.5/h)**3 * len(filenumbers)/8. # comoving volume of the (part of the) simulation
-    Omega_M, Omega_L = 0.25, 0.75
 elif sim==1:
-    h = 0.73
+    h, Omega_M, Omega_L = 0.73, 0.25, 0.75
     vol = (500.0/h)**3 * len(filenumbers)/512.
 elif sim==2:
     h = 0.6777
     vol = (400.0/h)**3 * len(filenumbers)/1000.
-# add here 'elif sim==3:' etc for a new simulation
+elif sim==3:
+    h = 0.6751
+    vol = (500.0/h)**3 * len(filenumbers)/128.
+elif sim==4:
+    h, Omega_M, Omega_L = 0.6751, 0.3121, 0.6879
+    vol = (75.0/h)**3 * len(filenumbers)/8.
+elif sim==5:
+    h = 0.6777
+    vol = (1000.0/h)**3 * len(filenumbers)/1000.
+# add here 'elif sim==6:' etc for a new simulation
 else:
     print('Please specify a valid simulation.  You may need to add its defaults to this code.')
     quit()
@@ -90,6 +104,8 @@ ZMD_resolved = np.zeros(Nsnap)
 #SFZD = np.zeros(Nsnap)
 #SFZD_resolved = np.zeros(Nsnap)
 
+dT_snap = np.zeros(Nsnap)
+
 Mstar_bins = 10**np.array([8.5, 9.5, 10.5]) * h * 1e-10
 c = ['y', 'g', 'c', 'b']
 Nbins = len(Mstar_bins)+1
@@ -103,6 +119,7 @@ f_bins = []
 
 for i in range(Nsnap):
     G = r.darksage_snap(indir+fpre+redshiftstr[i], filenumbers, Nannuli=Nannuli, Nage=Nage)
+    if len(G)==0: continue
     res = (G['LenMax']>=100)
     
     SFRD[i] = np.sum(G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst']) / vol
@@ -114,6 +131,17 @@ for i in range(Nsnap):
     ZMD[i] = (np.sum(G['MetalsStellarMass']) + np.sum(G['MetalsIntraClusterStars'])) * 1e10/h / vol
     ZMD_resolved[i] = (np.sum(G['MetalsStellarMass'][res]) + np.sum(G['MetalsIntraClusterStars'][res])) * 1e10/h / vol
 
+    dT_snap[i] = G['dT'][0] * 1e-3 / h
+
+    f = (G['RootGalaxyIndex']==-1)
+    print len(G['RootGalaxyIndex']), len(G['RootGalaxyIndex'][f])
+    
+    assert len(G['GalaxyIndex']) == len(np.unique(G['GalaxyIndex']))
+    
+#    w1 = np.where(G['mergeType']>0)[0]
+    
+
+
 #    # Weighting metallicity from each annulus by its SFR -- this won't be precise, as metallicity will have evolved in sub-time-steps in the model
 #    DiscMetallicity = G['DiscGasMetals'] / G['DiscGas']
 #    DiscMetallicity[~np.isfinite(DiscMetallicity)] = 0.0
@@ -123,6 +151,23 @@ for i in range(Nsnap):
     if i==0:
         G0 = G # save the lowest-z snap to compare history reconstruction from age bins
         SM0 = G0['StellarMass'] + G0['IntraClusterStars'] if Nage<=1 else G0['StellarMass'] + np.sum(G0['IntraClusterStars'],axis=1)
+        print G0['RootGalaxyIndex'][G0['RootGalaxyIndex'] != G0['GalaxyIndex']]
+        f = (G0['RootGalaxyIndex']!=-1)
+        print np.all(G0['Type'][~f]==0)
+        print np.all(G0['Type']==0)
+        assert(len(G0['GalaxyIndex']) == len(np.unique(G0['GalaxyIndex'])))
+        assert np.all(G0['RootGalaxyIndex'][f] == G0['GalaxyIndex'][f])
+        
+#        HaloID = G0['SimulationHaloIndex']
+#        HaloID_unique, counts = np.unique(G0['SimulationHaloIndex'], return_counts=True)
+#        print HaloID_unique[counts>1]
+#        f = np.in1d(HaloID, HaloID_unique[counts>1])
+##        print G0['GalaxyIndex'][f]
+##        print G0['Type'][f]
+##        print G0['LenMax'][f]
+#        print len(HaloID), len(np.unique(HaloID)), len(np.unique(G['CentralGalaxyIndex']))
+#        assert (len(HaloID) == len(np.unique(HaloID)))
+
         for j in range(Nbins):
             if j==0:
                 f = (SM0<Mstar_bins[0])
@@ -133,12 +178,15 @@ for i in range(Nsnap):
             else:
                 f = (SM0>=Mstar_bins[j-1]) * (SM0<Mstar_bins[j])
                 labels += [r'$\mathcal{M}_* \! \in \! [' + str(round(np.log10(Mstar_bins[j-1]/h)+10,1)) + r',' + str(round(np.log10(Mstar_bins[j]/h)+10,1)) + r')$']
-            f *= (G0['LenMax']>=100)
+#            f *= (G0['LenMax']>=100)
+#            f *= (G0['RootGalaxyIndex']==-1)
             f_bins += [f]
-            RootID_lists += [G0['RootGalaxyIndex'][f]]
+            RootID_lists += [G0['GalaxyIndex'][f]]
 
     for j in range(Nbins):
-        f = np.in1d(G['RootGalaxyIndex'], RootID_lists[j]) * (G['RootSnapNum']==63)
+        f = np.in1d(G['RootGalaxyIndex'], RootID_lists[j])
+#        f = np.in1d(G['GalaxyIndex'], RootID_lists[j]) #* (G['RootSnapNum']==63)
+#        f += (~f * np.in1d(G['RootGalaxyIndex'], RootID_lists[j]))
         SFRDbyMass[j,i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[f])
         SMDbyMass[j,i] = np.sum((G['StellarMass']+G['IntraClusterStars'])[f]) if Nage<=1 else np.sum((G['StellarMass']+np.sum(G['IntraClusterStars'],axis=1))[f])
         ZMDbyMass[j,i] = np.sum((G['MetalsStellarMass']+G['MetalsIntraClusterStars'])[f]) if Nage<=1 else np.sum((G['MetalsStellarMass']+np.sum(G['MetalsIntraClusterStars'],axis=1))[f])
@@ -162,7 +210,8 @@ try:
     if Nage>1: # check consistency from stellar-age bins
 #        print 'All Close', np.allclose(np.sum(G0['DiscStars'],axis=(1,2)) + np.sum(G0['InstabilityBulgeMass'],axis=1) + np.sum(G0['MergerBulgeMass'],axis=1), G0['StellarMass'])
     
-        RedshiftBinEdge = np.append(np.append(0, [0.007*1.47**i for i in range(Nage-1)]), 1000.) # defined within Dark Sage hard code
+#        RedshiftBinEdge = np.append(np.append(0, [0.007*1.47**i for i in range(Nage-1)]), 1000.) # defined within Dark Sage hard code
+        RedshiftBinEdge = 1./ np.loadtxt(age_alist_file)[::-1] - 1.
         TimeBinEdge = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in RedshiftBinEdge]) # look-back time [Gyr]
         dT = np.diff(TimeBinEdge)*1e9 # time step for each bin [yr]
         
@@ -201,13 +250,13 @@ fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, sharey=False)
 
 if Nsnap>1:
     t_LB = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in redshifts])
-    ax1.plot(t_LB, SFRD, 'ks:', lw=2, label=r'Tot.\,(snaps)') # These are genuine totals, so slightly larger than the sum of the mass-bin values, but negligibly so.
+    ax1.plot(t_LB + 0.5*dT_snap, SFRD, 'ks:', lw=2, label=r'Tot.\,(snaps)') # These are genuine totals, so slightly larger than the sum of the mass-bin values, but negligibly so.
     ax2.plot(t_LB, SMD, 'ks:', lw=2)
     ax3.plot(t_LB, ZMD/SMD, 'ks:', lw=2)
 #    ax3.plot(t_LB, SFZD, 'ks:', lw=2)
 
     for i in range(Nbins):
-        ax1.plot(t_LB, SFRDbyMass[i,:], 's:', color=c[i], lw=2) if Nage>1 else ax1.plot(t_LB, SFRDbyMass[i,:], 's:', color=c[i], lw=2, label=labels[i])
+        ax1.plot(t_LB + 0.5*dT_snap, SFRDbyMass[i,:], 's:', color=c[i], lw=2) if Nage>1 else ax1.plot(t_LB + 0.5*dT_snap, SFRDbyMass[i,:], 's:', color=c[i], lw=2, label=labels[i])
         ax2.plot(t_LB, SMDbyMass[i,:], 's:', color=c[i], lw=2)
         ax3.plot(t_LB, ZMDbyMass[i,:]/SMDbyMass[i,:], 's:', color=c[i], lw=2)
 #        ax3.plot(t_LB, SFZDbyMass[i,:], 's:', color=c[i], lw=2)
@@ -266,9 +315,9 @@ ax2.set_yscale('log')
 ax3.set_yscale('log')
 ax1.axis([0,14,8e-7,2e-1])
 ax2.set_ylim(2e2,5e8)
-#ax3.set_ylim(1e-1,8e6)
+ax3.set_ylim(2e-3,4e-2)
 
-ax1.legend(loc='lower right', bbox_to_anchor=(1.02,0.95), frameon=False, ncol=3)
+ax1.legend(loc='lower right', bbox_to_anchor=(1.02,0.95), frameon=False, ncol=3, title=r'{\sc Dark Sage}')#, $N_{\rm p,max}\!\geq\!100$')
 
 ax1.set_ylabel(r'$\bar{\rho}_{\rm SFR}$ [M$_\odot$\,yr$^{-1}$\,cMpc$^{-3}$]')
 ax2.set_ylabel(r'$\bar{\rho}_*$ [M$_\odot$\,cMpc$^{-3}$]')

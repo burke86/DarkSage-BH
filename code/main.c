@@ -117,10 +117,11 @@ int main(int argc, char **argv)
     }
     
     // Define age bins (in terms of look-back time) for stellar content
-    AgeBinEdge[N_AGE_BINS] = time_to_present(1000.);
-    for(i=1; i<N_AGE_BINS; i++)
-        AgeBinEdge[i] = time_to_present(0.007*pow(1.47,i-1));
-    AgeBinEdge[0] = 0.0;
+//    AgeBinEdge[N_AGE_BINS] = time_to_present(2000.);
+    for(i=0; i<N_AGE_BINS+1; i++)
+//        AgeBinEdge[i] = time_to_present(0.007*pow(1.47,i-1));
+        AgeBinEdge[i] = time_to_present(ZZ[Snaplistlen-i-1]);
+//    AgeBinEdge[0] = 0.0;
 //    for(i=0; i<N_AGE_BINS+1; i++) printf("AgeBinEdge[%i] = %e\n", i, AgeBinEdge[i]*UnitTime_in_s/SEC_PER_MEGAYEAR*1e-3/Hubble_h);
     
     // Set counts for prograde and retrograde satellite collisions
@@ -191,8 +192,13 @@ int main(int argc, char **argv)
             NumGals = 0;
             GalaxyCounter = 0;
             for(halonr = 0; halonr < TreeNHalos[tree]; halonr++)
-            if(HaloAux[halonr].DoneFlag == 0)
-            construct_galaxies(halonr, tree);
+            {
+                if(HaloAux[halonr].DoneFlag == 0)
+                    construct_galaxies(halonr, tree);
+//                if(Halo[halonr].SnapNum == Snaplistlen-1)
+//                    assign_root_index(halonr);
+            }
+            
             
             save_galaxies(filenr, tree);
             free_galaxies_and_tree();

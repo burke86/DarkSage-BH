@@ -22,12 +22,12 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('SimulationHaloIndex'          , np.int32),
                     ('TreeIndex'                    , np.int32),
                     ('RootGalaxyIndex'              , np.int64),
-                    ('RootSnapNum'                  , np.int32),
+#                    ('RootSnapNum'                  , np.int32),
                     ('SnapNum'                      , np.int32),
                     ('CentralGalaxyIndex'           , np.int64),
                     ('CentralMvir'                  , floattype),
                     ('mergeType'                    , np.int32),
-                    ('mergeIntoID'                  , np.int32),
+                    ('mergeIntoID'                  , np.int64),
                     ('mergeIntoSnapNum'             , np.int32),
                     ('dT'                           , floattype),
                     ('Pos'                          , (floattype, 3)),
@@ -133,7 +133,7 @@ def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
 
     # Loop through files to fill in galaxy array
     for i in filelist:
-        print('reading file {0}'.format(i))
+#        print('reading file {0}'.format(i))
         fin = open(fpre+'_'+str(i), 'rb')
         Ntrees = np.fromfile(fin,np.dtype(np.int32),1)  # Read number of trees in file
         NtotGals = np.fromfile(fin,np.dtype(np.int32),1)[0]  # Read number of gals in file.

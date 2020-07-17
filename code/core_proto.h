@@ -77,6 +77,9 @@ void update_stellardisc_scaleradius(int p);
 void update_gasdisc_scaleradius(int p);
 //double get_annulus_stars(int p, int i);
 //
+void assign_root_index(int halonr);
+void walk_back(int p, int halonr, int RootID);
+void walk_down(int i);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas);
 void disrupt_satellite_to_ICS(int centralgal, int gal);

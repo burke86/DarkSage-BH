@@ -68,9 +68,88 @@ void construct_galaxies(int halonr, int tree)
       fofhalo = Halo[fofhalo].NextHaloInFOFgroup;
     }
 
-    evolve_galaxies(Halo[halonr].FirstHaloInFOFgroup, ngal);
+    evolve_galaxies(Halo[halonr].FirstHaloInFOFgroup, ngal, tree);
+//      assign_root_index();
   }
 
+    
+}
+
+
+void assign_root_index(int halonr)
+{
+    // It's useful to have a "RootID" that allows one to easily capture all
+    // progenitors of a galaxy from the final snapshot.  Walk back through
+    // the trees to assign these.
+
+    int p, RootID;
+    
+    int p0 = HaloAux[halonr].FirstGalaxy;
+    int ngal = HaloAux[halonr].NGalaxies;
+    
+    // Loop over galaxies
+    for(p=p0; p<p0+ngal; p++)
+    {
+        assert(HaloGal[p].SnapNum==Snaplistlen-1); // should only have entered this function under this condition
+        
+        // Walk back through HaloGal to find all progenitors -- this function is where the actual assignment takes place
+        RootID = HaloGal[p].GalaxyNr;
+        walk_back(p, halonr, RootID);
+    }
+    
+//    // Old code
+//    int prog;
+//    HaloAux[halonr].RootFound = 1;
+//
+//    HaloAux[halonr].RootIndex = root_halonr;
+//    prog = Halo[halonr].FirstProgenitor;
+//    while(prog >= 0)
+//    {
+//        if(HaloAux[prog].RootFound == 0)
+//            assign_root_index(prog, root_halonr);
+//        prog = Halo[prog].NextProgenitor;
+//    }
+}
+
+
+void walk_back(int p, int halonr, int RootID)
+{
+    int prog, g, q;
+    
+    int g0 = HaloAux[halonr].FirstGalaxy;
+    int ngal = HaloAux[halonr].NGalaxies;
+    
+    // This loop catches the primary progenitors of input p
+    for(g=g0; g<g0+ngal; g++)
+    {
+        if(HaloGal[g].GalaxyNr == HaloGal[p].GalaxyNr)
+        {
+            HaloGal[g].RootID = RootID;
+            break; // there should only be 1 primary progenitor
+        }
+    }
+    
+    
+    prog = Halo[halonr].FirstProgenitor;
+    while(prog >= 0)
+    {
+        walk_back(g, prog, RootID);
+        prog = Halo[prog].NextProgenitor;
+    }
+
+    
+    // This loop catches the "merge into" progenitors of input p
+    for(g=g0; g<g0+ngal; g++)
+    {
+        if(HaloGal[g].mergeType>0)
+        {
+            q = HaloGal[g].mergeIntoID;
+            if(HaloGal[q].RootID == RootID)
+                HaloGal[g].RootID = RootID;
+        }
+    }
+
+    
 }
 
 
@@ -279,7 +358,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 
 
 
-void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-background subhalo (i.e. main halo)
+void evolve_galaxies(int halonr, int ngal, int tree)	// note: halonr is here the FOF-background subhalo (i.e. main halo)
 {
   int p, i, step, centralgal, merger_centralgal, currenthalo, offset, k;
   double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt;
@@ -443,6 +522,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     {
       currenthalo = Gal[p].HaloNr;
       HaloAux[currenthalo].FirstGalaxy = NumGals;
+      assert(NumGals>=0);
       HaloAux[currenthalo].NGalaxies = 0;
     }
       
@@ -461,7 +541,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     i = -1;
     if(Gal[p].mergeType > 0)
     {
-      i = HaloAux[currenthalo].FirstGalaxy - 1;
+      i = NumGals;
       while(i >= 0)
       {
         if(HaloGal[i].GalaxyNr == Gal[p].GalaxyNr)
@@ -478,6 +558,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       
       HaloGal[i].mergeType = Gal[p].mergeType;
       HaloGal[i].mergeIntoID = Gal[p].mergeIntoID - offset;
+      HaloGal[i].mergeIntoGalaxyNr = Gal[p].mergeIntoGalaxyNr;
       HaloGal[i].mergeIntoSnapNum = Halo[currenthalo].SnapNum;
     }
     

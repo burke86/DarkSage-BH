@@ -11,6 +11,7 @@
 
 #define TREE_MUL_FAC        (1000000000LL)
 #define FILENR_MUL_FAC      (10000000000000000LL)
+#define SUBHALO
 
 // keep a static file handle to remove the need to do constant seeking.
 FILE* save_fd[ABSOLUTEMAXSNAPS] = { 0 };
@@ -49,8 +50,10 @@ void save_galaxies(int filenr, int tree)
     }
     
     for(i = 0; i < NumGals; i++)
-    if(HaloGal[i].mergeIntoID > -1)
-    HaloGal[i].mergeIntoID = OutputGalOrder[HaloGal[i].mergeIntoID];
+        if(HaloGal[i].mergeIntoID > -1)
+            HaloGal[i].mergeIntoID = OutputGalOrder[HaloGal[i].mergeIntoID];
+    
+    
     
     if(AgeStructOut==0)
     {
@@ -86,6 +89,7 @@ void save_galaxies(int filenr, int tree)
             {
                 if(HaloGal[i].SnapNum == ListOutputSnaps[n])
                 {
+                    walk_down(i); // Get RootID
                     prepare_galaxy_for_output(filenr, tree, &HaloGal[i], &galaxy_output);
                     myfwrite(&galaxy_output, sizeof(struct GALAXY_OUTPUT), 1, save_fd[n]);
 
@@ -130,6 +134,7 @@ void save_galaxies(int filenr, int tree)
             {
                 if(HaloGal[i].SnapNum == ListOutputSnaps[n])
                 {
+                    walk_down(i); // Get RootID
                     prepare_galaxy_for_output_large(filenr, tree, &HaloGal[i], &galaxy_output);
                     myfwrite(&galaxy_output, sizeof(struct GALAXY_OUTPUT_LARGE), 1, save_fd[n]);
 
@@ -148,6 +153,25 @@ void save_galaxies(int filenr, int tree)
     
 }
 
+
+void walk_down(int i)
+{
+    int GalaxyNr, p;
+    GalaxyNr = HaloGal[i].GalaxyNr;
+    
+    for(p=i; p<NumGals; p++)
+    {
+        if(HaloGal[p].mergeIntoGalaxyNr>-1)
+            GalaxyNr = HaloGal[p].mergeIntoGalaxyNr;
+        
+        if(HaloGal[p].SnapNum == Snaplistlen-1 && HaloGal[p].GalaxyNr==GalaxyNr)
+        {
+            HaloGal[i].RootID = GalaxyNr;
+            break;
+        }
+        
+    }
+}
 
 
 void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GALAXY_OUTPUT *o)
@@ -173,29 +197,71 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
     o->TreeIndex = tree;
     o->SimulationHaloIndex = Halo[g->HaloNr].SubhaloIndex;
     
-    // Run down the merger tree until hitting the final snapshot at which this galaxy exists
-    HaloID = g->HaloNr + 0;
-    mergeSum = 0;
-    while(HaloID != -1) 
-    {
-        RootHaloID = HaloID;
-        if(mergeSum==0) mergeSum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].mergeType; // Without the "if" statement, this can cause a segmentation fault, as it can attempt to point to a galaxy that doesn't exist (an empty subhalo)
-        HaloID = Halo[RootHaloID].Descendant;
-    }
-    
-    if(mergeSum==0)
-    {
-        o->RootID = HaloGal[HaloAux[RootHaloID].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-        o->RootSnapNum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].SnapNum;
-    }
-    else // if there was a merger flag, the assumption is it merged with the central at the root
-    {
-        o->RootID = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-        o->RootSnapNum = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].SnapNum;
-    }
+//    printf("(-1)\n");
+//    // Run down the merger tree until hitting the final snapshot at which this galaxy exists
+//    HaloID = g->HaloNr;
+//    mergeSum = g->mergeType;
+//    j = 0;
+//    printf("(0), %i, %i, %i, %i", mergeSum, HaloID, g->Len, g->SnapNum);
+//    while(HaloID != -1) 
+//    {
+//        printf("\t%i.0", j);
+//        RootHaloID = HaloID;
+//        printf("\t%i.1", j);
+//        if(mergeSum==0)
+//            mergeSum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].mergeType; // Without the "if" statement, this can cause a segmentation fault, as it can attempt to point to a galaxy that doesn't exist (an empty subhalo)
+//        printf("\t%i.2", j);
+//        HaloID = Halo[RootHaloID].Descendant;
+//        printf("\t%i.3", j);
+//        if(HaloID==RootHaloID)
+//        {
+//            printf("\tbreaking");
+//            break;
+//        }
+//        j++;
+//    }
+//    printf("\n(1), %i\n", mergeSum);
+//    
+//    if(mergeSum==0)
+//    {
+//        o->RootID = HaloGal[HaloAux[RootHaloID].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+//        o->RootSnapNum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].SnapNum;
+//    }
+//    else // if there was a merger flag, the assumption is it merged with the central at the root
+//    {
+//        o->RootID = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+//        o->RootSnapNum = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].SnapNum;
+//    }
+//    printf("(2), %i\n", mergeSum);
 
+    
+//  if(HaloAux[g->HaloNr].RootIndex >= 0)
+//  {
+////      printf("g->HaloNr = %i\n", g->HaloNr);
+////    printf("HaloAux[g->HaloNr].RootIndex = %i\n", HaloAux[g->HaloNr].RootIndex);
+////      printf("HaloAux[HaloAux[g->HaloNr].RootIndex].FirstGalaxy = %i\n", HaloAux[HaloAux[g->HaloNr].RootIndex].FirstGalaxy);
+////      printf("HaloGal[HaloAux[HaloAux[g->HaloNr].RootIndex].FirstGalaxy].GalaxyNr = %i\n", HaloGal[HaloAux[HaloAux[g->HaloNr].RootIndex].FirstGalaxy].GalaxyNr);
+//    if(HaloAux[HaloAux[g->HaloNr].RootIndex].FirstGalaxy > 0)
+//        o->RootID = HaloGal[HaloAux[HaloAux[g->HaloNr].RootIndex].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+//      else
+//          o->RootID = -1;
+//  }
+//  else
+//    o->RootID = -1;
+        
+//    o->RootID = HaloAux[g->HaloNr].RootIndex;
+    
+    o->RootID = g->RootID + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+
+    
+    
+    
   o->mergeType = g->mergeType;
-  o->mergeIntoID = g->mergeIntoID;
+    o->mergeIntoID = g->mergeIntoGalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+//  if(g->mergeType > 0)
+//      o->mergeIntoID = HaloGal[g->mergeIntoID].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+//  else
+//      o->mergeIntoID = -1;
   o->mergeIntoSnapNum = g->mergeIntoSnapNum;
   o->dT = g->dT * UnitTime_in_s / SEC_PER_MEGAYEAR;
 
@@ -304,7 +370,7 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
     o->infallVvir = 0.0;
     o->infallVmax = 0.0;
   }
-    
+//    printf("exiting\n");
 }
 
 
@@ -329,31 +395,43 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->TreeIndex = tree;
     o->SimulationHaloIndex = Halo[g->HaloNr].SubhaloIndex;
 
-    // Run down the merger tree until hitting the final snapshot at which this galaxy exists.
-    // Note: there is definitely a bug or flaw in logic when it comes to unresolved systems (<=100 particles).  I have been unable to track this down, but I safely say it should affect science, as those galaxies shouldn't be used anyway.
-    HaloID = g->HaloNr;
-    mergeSum = 0;
-    while(HaloID != -1) 
-    {
-        RootHaloID = HaloID;
-        if(mergeSum==0) mergeSum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].mergeType; // Without the "if" statement, this can cause a segmentation fault, as it can attempt to point to a galaxy that doesn't exist (an empty subhalo)
-        HaloID = Halo[RootHaloID].Descendant;
-    }
-    
-    if(mergeSum==0)
-    {
-        o->RootID = HaloGal[HaloAux[RootHaloID].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-        o->RootSnapNum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].SnapNum;
-    }
-    else // if there was a merger flag, the assumption is it merged with the central at the root
-    {
-        o->RootID = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-        o->RootSnapNum = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].SnapNum;
-    }
+//    // Run down the merger tree until hitting the final snapshot at which this galaxy exists.
+//    // Note: there is definitely a bug or flaw in logic when it comes to unresolved systems (<=100 particles).  I have been unable to track this down, but I safely say it should affect science, as those galaxies shouldn't be used anyway.
+//    HaloID = g->HaloNr;
+//    mergeSum = 0;
+//    printf("\n(0), %i\n", mergeSum);
+//    while(HaloID != -1) 
+//    {
+//        RootHaloID = HaloID;
+//        if(mergeSum==0) mergeSum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].mergeType; // Without the "if" statement, this can cause a segmentation fault, as it can attempt to point to a galaxy that doesn't exist (an empty subhalo)
+//        HaloID = Halo[RootHaloID].Descendant;
+//        if(HaloID==RootHaloID) break;
+//    }
+//    printf("(1), %i\n", mergeSum);
+//
+//    if(mergeSum==0)
+//    {
+//        o->RootID = HaloGal[HaloAux[RootHaloID].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+//        o->RootSnapNum = HaloGal[HaloAux[RootHaloID].FirstGalaxy].SnapNum;
+//    }
+//    else // if there was a merger flag, the assumption is it merged with the central at the root
+//    {
+//        o->RootID = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+//        o->RootSnapNum = HaloGal[HaloAux[Halo[RootHaloID].FirstHaloInFOFgroup].FirstGalaxy].SnapNum;
+//    }
+//    printf("(2), %i\n", mergeSum);
 
+//    o->RootID = HaloGal[HaloAux[HaloAux[g->HaloNr].RootIndex].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+
+    o->RootID = g->RootID + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
 
   o->mergeType = g->mergeType;
-  o->mergeIntoID = g->mergeIntoID;
+    o->mergeIntoID = g->mergeIntoGalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+
+//  if(g->mergeType > 0)
+//      o->mergeIntoID = HaloGal[g->mergeIntoID].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+//  else
+//      o->mergeIntoID = -1;
   o->mergeIntoSnapNum = g->mergeIntoSnapNum;
   o->dT = g->dT * UnitTime_in_s / SEC_PER_MEGAYEAR;
 

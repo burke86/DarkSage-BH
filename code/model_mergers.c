@@ -137,6 +137,8 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
     Gal[merger_centralgal].LastMinorMerger = time;
     Gal[p].mergeType = 1;  // Mark as minor merger
   }
+    
+  Gal[p].mergeIntoGalaxyNr = Gal[merger_centralgal].GalaxyNr;
 
 
   if(DiskInstabilityOn>0)
@@ -698,6 +700,7 @@ void disrupt_satellite_to_ICS(int centralgal, int gal)
   }
   
   // what should we do with the disrupted satellite BH?
+    Gal[gal].mergeIntoGalaxyNr = Gal[centralgal].GalaxyNr;
   Gal[gal].mergeType = 4;  // mark as disruption to the ICS
 }
 

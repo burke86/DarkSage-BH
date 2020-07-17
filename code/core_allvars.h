@@ -36,7 +36,7 @@ do {                                                                \
 #define N_BINS 30
 #define MIN_STARS_FOR_SN 1e-8
 #define MIN_STARFORMATION 1e-10
-#define N_AGE_BINS 20 // REDUCE THIS VALUE TO ZERO SAVE RAM WHEN FLAG IS OFF IN PARAMETER FILE
+#define N_AGE_BINS 1 // REDUCE THIS VALUE TO 1 SAVE RAM WHEN FLAG IS OFF IN PARAMETER FILE
 
 struct GALAXY_OUTPUT  
 {
@@ -46,14 +46,14 @@ struct GALAXY_OUTPUT
   int SimulationHaloIndex;
   int   TreeIndex;
   long long   RootID;
-  int RootSnapNum;
+//  int RootSnapNum;
 
   int   SnapNum;
   long long CentralGalaxyIndex;
   float CentralMvir;
 
   int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=disk instability; 4=disrupt to ICS
-  int   mergeIntoID;
+  long long   mergeIntoID;
   int   mergeIntoSnapNum;
   float   dT;
 
@@ -157,14 +157,14 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   int SimulationHaloIndex;
   int   TreeIndex;
   long long RootID;
-  int RootSnapNum;
+//  int RootSnapNum;
     
   int   SnapNum;
   long long CentralGalaxyIndex;
   float CentralMvir;
 
-  int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=disk instability; 4=disrupt to ICS
-  int   mergeIntoID;
+  int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=no longer used; 4=disrupt to ICS
+  long long   mergeIntoID;
   int   mergeIntoSnapNum;
   float   dT;
 
@@ -251,6 +251,8 @@ struct GALAXY
   int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=disk instability; 4=disrupt to ICS
   int   mergeIntoID;
   int   mergeIntoSnapNum;
+  int mergeIntoGalaxyNr;
+  int RootID;
   double   dT;
 
   // properties of subhalo at the last time this galaxy was a central galaxy 
@@ -372,6 +374,8 @@ struct halo_aux_data   // auxiliary halo data
   int HaloFlag;
   int NGalaxies;
   int FirstGalaxy;
+  int RootIndex;
+  int RootFound;
 }
 *HaloAux;
 
