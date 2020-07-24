@@ -156,6 +156,8 @@ void save_galaxies(int filenr, int tree)
 
 void walk_down(int i)
 {
+    if(HaloGal[i].RootID >= 0) return; // No need to do anything if the RootID has already been found for this galaxy
+    
     double StellarMass, ICS;
     int GalaxyNr, p, SnapNum, mergeType, g;
     GalaxyNr = HaloGal[i].GalaxyNr;
@@ -180,6 +182,12 @@ void walk_down(int i)
                 printf("GalaxyNr, SnapNum, Type, mergeType = %i, %i, %i, %i\n", GalaxyNr, SnapNum, HaloGal[p].Type, mergeType);
                 printf("StellarMass, ICS, sum = %e, %e, %e\n", StellarMass, ICS, StellarMass+ICS);
                 printf("HaloGal[p].StellarMass, HaloGal[p].ICS, sum = %e, %e, %e\n", HaloGal[p].StellarMass, HaloGal[p].ICS, HaloGal[p].StellarMass + HaloGal[p].ICS);
+                return;
+            }
+            
+            if(HaloGal[p].RootID >= 0) // If we arrive at a galaxy that already has a known root, then they must have the same root.
+            {
+                HaloGal[i].RootID = HaloGal[p].RootID;
                 return;
             }
             
