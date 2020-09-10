@@ -20,3 +20,5 @@ e.g.:
 `mpirun -np 8 ./darksage input/millennium.par`
 
 Queries, comments, and concerns can be emailed to Adam Stevens: adam.stevens@uwa.edu.au
+
+DARK SAGE logo designed by A. R. H. Stevens, G. H. Stevens, and S. Bellstedt.
