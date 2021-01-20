@@ -402,7 +402,7 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 
     double ejected_sum = 0.0;
     double j_lose, j_gain, m_up, m_down;
-    double feedback_mass[2];
+    double feedback_mass[3];
   
 	// Let gas sink -- one may well want to change this formula
     gas_sink = GasSinkRate * unstable_gas;
@@ -458,20 +458,12 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 		{
 			area = M_PI * (r_outer*r_outer - r_inner*r_inner);
             
-            if(SupernovaRecipeOn == 1)
-            {
-                Sigma_0gas = FeedbackGasSigma * (SOLAR_MASS / UnitMass_in_g) / sqr(CM_PER_MPC/1e6 / UnitLength_in_cm);
-                reheated_mass = FeedbackReheatingEpsilon * stars * pow(Sigma_0gas / (Gal[p].DiscGas[i]/area), FeedbackExponent);
-                
-                if(reheated_mass < MIN_STARFORMATION)
-                reheated_mass = 0.0;
-            }
-            else if(SupernovaRecipeOn == 2)
-                reheated_mass = FeedbackReheatingEpsilon * stars;
-            else
-                reheated_mass = 0.0;
-            assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
+            calculate_feedback_masses(p, stars, i, centralgal, area, feedback_mass);
+            reheated_mass = feedback_mass[0];
+            ejected_mass = feedback_mass[1];
+            stars = feedback_mass[2];
 
+            // Some repeating of steps in calculate_feedback_masses() here as the true limit on what can be consumed is gas_sf, not the disc gas
 			// Can't use more cold gas than is available, so balance SF and feedback
 		    if((stars + reheated_mass) > gas_sf && (stars + reheated_mass) > 0.0)
 		    {
