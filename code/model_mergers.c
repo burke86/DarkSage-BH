@@ -720,7 +720,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     
  double ejected_sum = 0.0;
  double metals_stars_sum = 0.0;
- double feedback_mass[2];
+ double feedback_mass[3];
 
  stars_sum = 0.0;
  stars_angmom = 0.0;
@@ -751,53 +751,17 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
 
 	if(stars > Gal[merger_centralgal].DiscGas[k])
       stars = Gal[merger_centralgal].DiscGas[k];
-	
-	// this bursting results in SN feedback on the cold/hot gas 
-    if(SupernovaRecipeOn>0 && Gal[merger_centralgal].DiscGas[k] > 0.0 && stars>=MIN_STARS_FOR_SN)
-	{
-        r_inner = Gal[merger_centralgal].DiscRadii[k];
-        r_outer = Gal[merger_centralgal].DiscRadii[k+1];
-          
-        area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-        
-        if(SupernovaRecipeOn == 1)
-        {
-            Sigma_0gas = FeedbackGasSigma * (SOLAR_MASS / UnitMass_in_g) / sqr(CM_PER_MPC/1e6 / UnitLength_in_cm);
-            if(FeedbackExponent!=1.0)
-                reheated_mass = FeedbackReheatingEpsilon * stars * pow(Sigma_0gas / (Gal[merger_centralgal].DiscGas[k]/area), FeedbackExponent);
-            else
-                reheated_mass = FeedbackReheatingEpsilon * stars * Sigma_0gas / (Gal[merger_centralgal].DiscGas[k]/area);
-        }
-        else if(SupernovaRecipeOn == 2)
-            reheated_mass = FeedbackReheatingEpsilon * stars;
-        else
-            reheated_mass = 0.0;
-		
-		// can't use more cold gas than is available! so balance SF and feedback
-	    if((stars + reheated_mass) > Gal[merger_centralgal].DiscGas[k] && (stars + reheated_mass) > 0.0)
-	    {
-	      fac = Gal[merger_centralgal].DiscGas[k] / (stars + reheated_mass);
-	      stars *= fac;
-	      reheated_mass *= fac;
-	    }
-	
-	    if(stars<MIN_STARS_FOR_SN)
-	    {
-		  stars = MIN_STARS_FOR_SN;
-		  reheated_mass = Gal[merger_centralgal].DiscGas[k] - stars; // Used to have (1-RecycleFraction)* in front of stars here, but changed philosophy
-	    }
-	
-        ejected_mass = (FeedbackEjectionEfficiency * (EtaSNcode * EnergySNcode) / (CentralVvir * CentralVvir) - FeedbackReheatingEpsilon) * stars;
-	    if(ejected_mass < 0.0)
-	        ejected_mass = 0.0;
-	}
-    else
-	{
-      reheated_mass = 0.0;
-	  ejected_mass = 0.0;
-	}
       
-      ejected_sum += ejected_mass;
+    // this bursting results in SN feedback on the cold/hot gas
+    r_inner = Gal[merger_centralgal].DiscRadii[k];
+    r_outer = Gal[merger_centralgal].DiscRadii[k+1];
+    area = M_PI * (r_outer*r_outer - r_inner*r_inner);
+    calculate_feedback_masses(merger_centralgal, stars, k, centralgal, area, feedback_mass);
+    reheated_mass = feedback_mass[0];
+    ejected_mass = feedback_mass[1];
+    stars = feedback_mass[2];
+
+    ejected_sum += ejected_mass;
       
 	if(reheated_mass!=reheated_mass || reheated_mass<0.0)
 		printf("reheated_mass, stars, DiscGas -- %e\t%e\t%e\n", reheated_mass, stars, Gal[merger_centralgal].DiscGas[k]);
@@ -829,6 +793,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     {
           printf("metals, gas = %e, %e\n", Gal[merger_centralgal].DiscGasMetals[k], Gal[merger_centralgal].DiscGas[k]);
         printf("stars, reheated_mass, ejected_mass, added metals = %e, %e, %e, %e\n", stars, reheated_mass, ejected_mass, Yield * stars*(1-get_metallicity(stars,metals_stars)));
+
     }
       
 	assert(Gal[merger_centralgal].DiscGasMetals[k]<=Gal[merger_centralgal].DiscGas[k]);

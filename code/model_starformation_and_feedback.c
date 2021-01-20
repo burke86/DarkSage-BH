@@ -19,7 +19,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   double NewStars[N_BINS], NewStarsMetals[N_BINS];
   int i, k;
     
-  double feedback_mass[2];
+  double feedback_mass[3];
 
 //  for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
 
@@ -106,6 +106,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
     calculate_feedback_masses(p, stars, i, centralgal, area, feedback_mass);
     reheated_mass = feedback_mass[0];
     ejected_mass = feedback_mass[1];
+    stars = feedback_mass[2];
 
     Gal[p].DiscSFR[i] += stars / dt;
 	stars_sum += stars;
@@ -218,6 +219,8 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         }
         else if(SupernovaRecipeOn == 2)
             reheated_mass = FeedbackReheatingEpsilon * stars;
+        else
+            reheated_mass = 0.0;
 
         // Can't use more cold gas than is available, so balance SF and feedback 
         if((stars + reheated_mass) > Gal[p].DiscGas[i] && (stars + reheated_mass) > 0.0)
@@ -250,6 +253,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
     
     feedback_mass[0] = reheated_mass;
     feedback_mass[1] = ejected_mass;
+    feedback_mass[2] = stars;
     
 }
 
