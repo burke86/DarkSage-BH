@@ -454,54 +454,11 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 	stars = unstable_gas - gas_sink;
 	if(Gal[p].DiscGas[i] > 0.0 && stars > 0.0) // Quasar feedback could blow out the unstable gas
 	{
-		if(SupernovaRecipeOn>0)
-		{
-			area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-            
-            calculate_feedback_masses(p, stars, i, centralgal, area, feedback_mass);
-            reheated_mass = feedback_mass[0];
-            ejected_mass = feedback_mass[1];
-            stars = feedback_mass[2];
-
-            // Some repeating of steps in calculate_feedback_masses() here as the true limit on what can be consumed is gas_sf, not the disc gas
-			// Can't use more cold gas than is available, so balance SF and feedback
-		    if((stars + reheated_mass) > gas_sf && (stars + reheated_mass) > 0.0)
-		    {
-		    	fac = gas_sf / (stars + reheated_mass);
-		    	stars *= fac;
-		    	reheated_mass *= fac;
-                assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
-
-		    }
-		
-			if(stars<MIN_STARS_FOR_SN)
-		    {
-				if(gas_sf >= MIN_STARS_FOR_SN)
-				{
-		    		stars = MIN_STARS_FOR_SN;
-					reheated_mass = gas_sf - stars; // Previously had (1-RecycleFration)* in front of stars, which would have ensured all the unstable gas was removed in some way, but this would be inconsistent with what's done for the case that stars>MIN_STARS_FOR_SN.
-                    assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
-
-				}
-				else
-				{
-					stars = gas_sf;
-					reheated_mass = 0.0;
-				}
-				ejected_mass = 0.0;
-		    }
-			else
-			{
-                ejected_mass = (FeedbackEjectionEfficiency * (EtaSNcode * EnergySNcode) / (V_rot * V_rot) - FeedbackReheatingEpsilon) * stars;
-			    if(ejected_mass < MIN_STARFORMATION)
-			        ejected_mass = 0.0;
-			}
-		}
-		else
-		{
-			reheated_mass = 0.0;// not a great treatment right now
-			ejected_mass = 0.0;
-		}
+        area = M_PI * (r_outer*r_outer - r_inner*r_inner);
+        calculate_feedback_masses(p, stars, i, centralgal, area, gas_sf, feedback_mass);
+        reheated_mass = feedback_mass[0];
+        ejected_mass = feedback_mass[1];
+        stars = feedback_mass[2];
 				
         ejected_sum += ejected_mass; // this is pointless with the way it's coded right now -- annuli are not being summed over
         

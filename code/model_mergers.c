@@ -756,7 +756,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     r_inner = Gal[merger_centralgal].DiscRadii[k];
     r_outer = Gal[merger_centralgal].DiscRadii[k+1];
     area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-    calculate_feedback_masses(merger_centralgal, stars, k, centralgal, area, feedback_mass);
+    calculate_feedback_masses(merger_centralgal, stars, k, centralgal, area, Gal[merger_centralgal].DiscGas[k], feedback_mass);
     reheated_mass = feedback_mass[0];
     ejected_mass = feedback_mass[1];
     stars = feedback_mass[2];

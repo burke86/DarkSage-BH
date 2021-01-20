@@ -103,7 +103,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
     if(stars > Gal[p].DiscGas[i])
         stars = Gal[p].DiscGas[i];
       
-    calculate_feedback_masses(p, stars, i, centralgal, area, feedback_mass);
+    calculate_feedback_masses(p, stars, i, centralgal, area, Gal[p].DiscGas[i], feedback_mass);
     reheated_mass = feedback_mass[0];
     ejected_mass = feedback_mass[1];
     stars = feedback_mass[2];
@@ -200,7 +200,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
 }
 
 
-void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double *feedback_mass)
+void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double max_consume, double *feedback_mass)
 {
     // Mightn't be necessary to pass 'area' in -- could just calculate it here if it isn't used outside this function.
     
@@ -223,17 +223,27 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             reheated_mass = 0.0;
 
         // Can't use more cold gas than is available, so balance SF and feedback 
-        if((stars + reheated_mass) > Gal[p].DiscGas[i] && (stars + reheated_mass) > 0.0)
+        if((stars + reheated_mass) > max_consume && (stars + reheated_mass) > 0.0)
         {
-          fac = Gal[p].DiscGas[i] / (stars + reheated_mass);
+          fac = max_consume / (stars + reheated_mass);
           stars *= fac;
           reheated_mass *= fac;
         }
 
         if(stars<MIN_STARS_FOR_SN)
         {
-          stars = MIN_STARS_FOR_SN;
-          reheated_mass = Gal[p].DiscGas[i] - stars; // Used to have (1-RecycleFraction)* in front of stars here, but changed philosophy
+          if(max_consume >= MIN_STARS_FOR_SN)
+          {
+              stars = MIN_STARS_FOR_SN;
+              reheated_mass = max_consume - stars; // Used to have (1-RecycleFraction)* in front of stars here, but changed philosophy
+              assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
+          }
+          else
+          {
+              stars = max_consume;
+              reheated_mass = 0.0;
+          }
+          ejected_mass = 0.0;
         }
         
         if(reheated_mass < MIN_STARFORMATION)
@@ -243,7 +253,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         if(ejected_mass < MIN_STARFORMATION)
             ejected_mass = 0.0;
     
-        assert(stars+reheated_mass < 1.01*Gal[p].DiscGas[i]);
+        assert(stars+reheated_mass < 1.01*max_consume);
     }
     else // I haven't actually dealt with the situation of Supernovae being turned off here.  But do I even want to turn SN off?
     {
