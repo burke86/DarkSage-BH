@@ -23,7 +23,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 	
     double star_init = Gal[p].StellarMass;
     double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
-    
+
     DiscStarSum = get_disc_stars(p);
     DiscGasSum = get_disc_gas(p);
     check_channel_stars(p);
@@ -402,7 +402,8 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 
     double ejected_sum = 0.0;
     double j_lose, j_gain, m_up, m_down;
-        
+    double feedback_mass[2];
+  
 	// Let gas sink -- one may well want to change this formula
     gas_sink = GasSinkRate * unstable_gas;
     

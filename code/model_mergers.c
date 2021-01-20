@@ -720,6 +720,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     
  double ejected_sum = 0.0;
  double metals_stars_sum = 0.0;
+ double feedback_mass[2];
 
  stars_sum = 0.0;
  stars_angmom = 0.0;
@@ -735,8 +736,8 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
 
   for(k=0; k<N_BINS; k++)
   {
-      if(disc_mass_ratio[k] > 1.0 || disc_mass_ratio[k]!=disc_mass_ratio[k]) printf("i, disc_mass_ratio[i] = %d, %e\n", k, disc_mass_ratio[k]);
-      assert(disc_mass_ratio[k] <= 1.0);
+    if(disc_mass_ratio[k] > 1.0 || disc_mass_ratio[k]!=disc_mass_ratio[k]) printf("i, disc_mass_ratio[i] = %d, %e\n", k, disc_mass_ratio[k]);
+    assert(disc_mass_ratio[k] <= 1.0);
       
 	// the bursting fraction 
     if(mode == 1)
@@ -825,7 +826,10 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
 	}
       
     if(!(Gal[merger_centralgal].DiscGasMetals[k]<=Gal[merger_centralgal].DiscGas[k]))
+    {
           printf("metals, gas = %e, %e\n", Gal[merger_centralgal].DiscGasMetals[k], Gal[merger_centralgal].DiscGas[k]);
+        printf("stars, reheated_mass, ejected_mass, added metals = %e, %e, %e, %e\n", stars, reheated_mass, ejected_mass, Yield * stars*(1-get_metallicity(stars,metals_stars)));
+    }
       
 	assert(Gal[merger_centralgal].DiscGasMetals[k]<=Gal[merger_centralgal].DiscGas[k]);
 	assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
@@ -873,8 +877,8 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
   Gal[merger_centralgal].StarsMergeBurst += stars_sum;
      
   check_channel_stars(merger_centralgal);
+  
  }
 }
-
 
 

@@ -18,6 +18,8 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
 
   double NewStars[N_BINS], NewStarsMetals[N_BINS];
   int i, k;
+    
+  double feedback_mass[2];
 
 //  for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
 
@@ -70,79 +72,40 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
     r_outer = Gal[p].DiscRadii[i+1];
       
     area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-		
-	if(Gal[p].Vvir>0)
-	{
-        if(SFprescription==1 && Gal[p].DiscH2[i]<0.5*Gal[p].DiscHI[i])
-        {
-            double bb = sqrt(Gal[p].DiscStars[i]*Gal[p].DiscStars[0])/area; // quadratic b term
-            double cc = -pow(0.5/f_H2_const, 1.0/0.92);
-            double Sig_gas_half = 0.5*(-bb + sqrt(bb*bb-4.0*cc));
-            double SFE_gas = SFE_H2 * 0.75 * 1.0/(1.0/0.5 + 1) * (1 - Gal[p].DiscGasMetals[i]/Gal[p].DiscGas[i])/1.3 / Sig_gas_half;
-            strdot = SfrEfficiency * SFE_gas * sqr(Gal[p].DiscGas[i]) / area;
-        }
-        else if(SFprescription==2)
-        {
-            if(Gal[p].ColdGas>0.0)
-                strdot = strdotfull * Gal[p].DiscGas[i] / Gal[p].ColdGas;// * Gal[p].DiscH2[i] / H2sum;
-            else
-                strdot = 0.0;
-        }
-        else
-            strdot = SfrEfficiency * SFE_H2 * Gal[p].DiscH2[i];
+    if(Gal[p].Vvir>0)
+    {
+      if(SFprescription==1 && Gal[p].DiscH2[i]<0.5*Gal[p].DiscHI[i])
+      {
+          double bb = sqrt(Gal[p].DiscStars[i]*Gal[p].DiscStars[0])/area; // quadratic b term
+          double cc = -pow(0.5/f_H2_const, 1.0/0.92);
+          double Sig_gas_half = 0.5*(-bb + sqrt(bb*bb-4.0*cc));
+          double SFE_gas = SFE_H2 * 0.75 * 1.0/(1.0/0.5 + 1) * (1 - Gal[p].DiscGasMetals[i]/Gal[p].DiscGas[i])/1.3 / Sig_gas_half;
+          strdot = SfrEfficiency * SFE_gas * sqr(Gal[p].DiscGas[i]) / area;
+      }
+      else if(SFprescription==2)
+      {
+          if(Gal[p].ColdGas>0.0)
+              strdot = strdotfull * Gal[p].DiscGas[i] / Gal[p].ColdGas;// * Gal[p].DiscH2[i] / H2sum;
+          else
+              strdot = 0.0;
+      }
+      else
+          strdot = SfrEfficiency * SFE_H2 * Gal[p].DiscH2[i];
     }
     else // These galaxies (which aren't useful for science) won't have H2 to form stars
-        strdot = 0.0;
+      strdot = 0.0;
 
     stars = strdot * dt;
-	
-	if(stars < MIN_STARFORMATION)
-	  stars = 0.0;
+
+    if(stars < MIN_STARFORMATION)
+        stars = 0.0;
 
     if(stars > Gal[p].DiscGas[i])
-      stars = Gal[p].DiscGas[i];
-
-    if(SupernovaRecipeOn > 0 && Gal[p].DiscGas[i] > 0.0 && stars>MIN_STARS_FOR_SN)
-	{
-        if(SupernovaRecipeOn == 1)
-        {
-            Sigma_0gas = FeedbackGasSigma * (SOLAR_MASS / UnitMass_in_g) / sqr(CM_PER_MPC/1e6 / UnitLength_in_cm);            
-            if(FeedbackExponent!=1.0)
-                reheated_mass = FeedbackReheatingEpsilon * stars * pow(Sigma_0gas / (Gal[p].DiscGas[i]/area), FeedbackExponent);
-            else
-                reheated_mass = FeedbackReheatingEpsilon * stars * Sigma_0gas / (Gal[p].DiscGas[i]/area);
-        }
-        else if(SupernovaRecipeOn == 2)
-            reheated_mass = FeedbackReheatingEpsilon * stars;
-
-		// Can't use more cold gas than is available, so balance SF and feedback 
-	    if((stars + reheated_mass) > Gal[p].DiscGas[i] && (stars + reheated_mass) > 0.0)
-	    {
-	      fac = Gal[p].DiscGas[i] / (stars + reheated_mass);
-	      stars *= fac;
-	      reheated_mass *= fac;
-	    }
-
-	    if(stars<MIN_STARS_FOR_SN)
-	    {
-	      stars = MIN_STARS_FOR_SN;
-		  reheated_mass = Gal[p].DiscGas[i] - stars; // Used to have (1-RecycleFraction)* in front of stars here, but changed philosophy
-	    }
-        
-        if(reheated_mass < MIN_STARFORMATION)
-            reheated_mass = 0.0; // Limit doesn't have to be the same as MIN_STARFORMATION, but needs to be something reasonable
-	
-	    ejected_mass = (FeedbackEjectionEfficiency * (EtaSNcode * EnergySNcode) / (Gal[centralgal].Vvir * Gal[centralgal].Vvir) - FeedbackReheatingEpsilon) * stars;
-	    if(ejected_mass < MIN_STARFORMATION)
-	        ejected_mass = 0.0;
-	
-		assert(stars+reheated_mass < 1.01*Gal[p].DiscGas[i]);
-	}  
-    else // I haven't actually dealt with the situation of Supernovae being turned off here.  But do I even want to turn SN off?
-	{
-      reheated_mass = 0.0;
-	  ejected_mass = 0.0;
-	}
+        stars = Gal[p].DiscGas[i];
+      
+    calculate_feedback_masses(p, stars, i, centralgal, area, feedback_mass);
+    reheated_mass = feedback_mass[0];
+    ejected_mass = feedback_mass[1];
 
     Gal[p].DiscSFR[i] += stars / dt;
 	stars_sum += stars;
@@ -235,6 +198,60 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
 
 }
 
+
+void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double *feedback_mass)
+{
+    // Mightn't be necessary to pass 'area' in -- could just calculate it here if it isn't used outside this function.
+    
+    double reheated_mass, ejected_mass, strdot, fac, Sigma_0gas;
+    
+
+    if(SupernovaRecipeOn > 0 && Gal[p].DiscGas[i] > 0.0 && stars>=MIN_STARS_FOR_SN)
+    {
+        if(SupernovaRecipeOn == 1)
+        {
+            Sigma_0gas = FeedbackGasSigma * (SOLAR_MASS / UnitMass_in_g) / sqr(CM_PER_MPC/1e6 / UnitLength_in_cm);            
+            if(FeedbackExponent!=1.0)
+                reheated_mass = FeedbackReheatingEpsilon * stars * pow(Sigma_0gas / (Gal[p].DiscGas[i]/area), FeedbackExponent);
+            else
+                reheated_mass = FeedbackReheatingEpsilon * stars * Sigma_0gas / (Gal[p].DiscGas[i]/area);
+        }
+        else if(SupernovaRecipeOn == 2)
+            reheated_mass = FeedbackReheatingEpsilon * stars;
+
+        // Can't use more cold gas than is available, so balance SF and feedback 
+        if((stars + reheated_mass) > Gal[p].DiscGas[i] && (stars + reheated_mass) > 0.0)
+        {
+          fac = Gal[p].DiscGas[i] / (stars + reheated_mass);
+          stars *= fac;
+          reheated_mass *= fac;
+        }
+
+        if(stars<MIN_STARS_FOR_SN)
+        {
+          stars = MIN_STARS_FOR_SN;
+          reheated_mass = Gal[p].DiscGas[i] - stars; // Used to have (1-RecycleFraction)* in front of stars here, but changed philosophy
+        }
+        
+        if(reheated_mass < MIN_STARFORMATION)
+            reheated_mass = 0.0; // Limit doesn't have to be the same as MIN_STARFORMATION, but needs to be something reasonable
+    
+        ejected_mass = (FeedbackEjectionEfficiency * (EtaSNcode * EnergySNcode) / (Gal[centralgal].Vvir * Gal[centralgal].Vvir) - FeedbackReheatingEpsilon) * stars;
+        if(ejected_mass < MIN_STARFORMATION)
+            ejected_mass = 0.0;
+    
+        assert(stars+reheated_mass < 1.01*Gal[p].DiscGas[i]);
+    }
+    else // I haven't actually dealt with the situation of Supernovae being turned off here.  But do I even want to turn SN off?
+    {
+      reheated_mass = 0.0;
+      ejected_mass = 0.0;
+    }
+    
+    feedback_mass[0] = reheated_mass;
+    feedback_mass[1] = ejected_mass;
+    
+}
 
 
 void update_from_star_formation(int p, double stars, double metallicity, int i)

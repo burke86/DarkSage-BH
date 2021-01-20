@@ -76,6 +76,7 @@ double exp_f(double x);
 void update_stellardisc_scaleradius(int p);
 void update_gasdisc_scaleradius(int p);
 void walk_down(int i);
+void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double *feedback_mass);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas);
 void disrupt_satellite_to_ICS(int centralgal, int gal);
