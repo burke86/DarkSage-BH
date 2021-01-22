@@ -247,6 +247,7 @@ struct GALAXY
   int   SnapNum;
   int   CentralGal;
   double CentralMvir;
+  double HaloScaleRadius;
 
   int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=disk instability; 4=disrupt to ICS
   int   mergeIntoID;

@@ -20,6 +20,10 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   int i, k;
     
   double feedback_mass[3];
+    
+  // these 2 terms only used when SupernovaRecipeOn>=3
+  double hot_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * Gal[p].Vvir * Gal[p].Vvir;
+  double ejected_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * Gal[p].Vvir * Gal[p].Vvir;
 
 //  for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
 
@@ -103,7 +107,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
     if(stars > Gal[p].DiscGas[i])
         stars = Gal[p].DiscGas[i];
       
-    calculate_feedback_masses(p, stars, i, centralgal, area, Gal[p].DiscGas[i], feedback_mass);
+    calculate_feedback_masses(p, stars, i, centralgal, area, Gal[p].DiscGas[i], hot_specific_energy, ejected_specific_energy, feedback_mass);
     reheated_mass = feedback_mass[0];
     ejected_mass = feedback_mass[1];
     stars = feedback_mass[2];
@@ -200,7 +204,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
 }
 
 
-void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double max_consume, double *feedback_mass)
+void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double max_consume, double hot_specific_energy, double ejected_specific_energy, double *feedback_mass)
 {
     // Mightn't be necessary to pass 'area' in -- could just calculate it here if it isn't used outside this function.
     
@@ -219,6 +223,14 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         }
         else if(SupernovaRecipeOn == 2)
             reheated_mass = FeedbackReheatingEpsilon * stars;
+        else if(SupernovaRecipeOn == 3 || SupernovaRecipeOn == 4)
+        {
+            double energy_feedback = FeedbackReheatingEpsilon * stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // 630 km/s for kinetic velocity kick from supernovae assumed -- 198450.0 = 0.5*630*630, where the 0.5 is to account for the 1/2 in formula for kinetic energy
+            double annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
+            double annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
+            double cold_specific_energy = 0.5 * sqr(annulus_velocity) + 
+            
+        }
         else
             reheated_mass = 0.0;
 

@@ -402,7 +402,12 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 
     double ejected_sum = 0.0;
     double j_lose, j_gain, m_up, m_down;
-    double feedback_mass[3];
+    double feedback_mass[3]; 
+    
+    // these 2 terms only used when SupernovaRecipeOn>=3
+    double hot_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * Gal[p].Vvir * Gal[p].Vvir;
+    double ejected_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * Gal[p].Vvir * Gal[p].Vvir;
+
   
 	// Let gas sink -- one may well want to change this formula
     gas_sink = GasSinkRate * unstable_gas;
@@ -455,7 +460,7 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 	if(Gal[p].DiscGas[i] > 0.0 && stars > 0.0) // Quasar feedback could blow out the unstable gas
 	{
         area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-        calculate_feedback_masses(p, stars, i, centralgal, area, gas_sf, feedback_mass);
+        calculate_feedback_masses(p, stars, i, centralgal, area, gas_sf, hot_specific_energy, ejected_specific_energy, feedback_mass);
         reheated_mass = feedback_mass[0];
         ejected_mass = feedback_mass[1];
         stars = feedback_mass[2];

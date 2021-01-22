@@ -721,6 +721,11 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
  double ejected_sum = 0.0;
  double metals_stars_sum = 0.0;
  double feedback_mass[3];
+    
+ // these 2 terms only used when SupernovaRecipeOn>=3
+ double hot_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * Gal[p].Vvir * Gal[p].Vvir;
+ double ejected_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * Gal[p].Vvir * Gal[p].Vvir;
+
 
  stars_sum = 0.0;
  stars_angmom = 0.0;
@@ -756,7 +761,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     r_inner = Gal[merger_centralgal].DiscRadii[k];
     r_outer = Gal[merger_centralgal].DiscRadii[k+1];
     area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-    calculate_feedback_masses(merger_centralgal, stars, k, centralgal, area, Gal[merger_centralgal].DiscGas[k], feedback_mass);
+    calculate_feedback_masses(merger_centralgal, stars, k, centralgal, area, Gal[merger_centralgal].DiscGas[k], hot_specific_energy, ejected_specific_energy, feedback_mass);
     reheated_mass = feedback_mass[0];
     ejected_mass = feedback_mass[1];
     stars = feedback_mass[2];

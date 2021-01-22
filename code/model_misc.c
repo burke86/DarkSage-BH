@@ -164,6 +164,7 @@ void init_galaxy(int p, int halonr)
         }
     }
 
+    Gal[p].HaloScaleRadius = pow(10.0, 0.52 + (-0.101 + 0.026*ZZ[Gal[p].SnapNum])*log10(Gal[p].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12)) ); // Initialisation based on Dutton and Maccio (2014). Gets updated as part of update_disc_radii()
     
 }
 
@@ -541,6 +542,7 @@ void update_disc_radii(int p)
     else
         c = 1.0*c_DM; // Should only happen for satellite-satellite mergers, where X cannot be trusted
     r_2 = Gal[p].Rvir / c; // Di Cintio et al 2014b
+    Gal[p].HaloScaleRadius = r_2; // NEW ADDITION IN 2021
     rho_const = M_DM_tot / (log((Gal[p].Rvir+r_2)/r_2) - Gal[p].Rvir/(Gal[p].Rvir+r_2));
     assert(rho_const>=0.0);
     // ===========================================================
@@ -776,4 +778,11 @@ void update_gasdisc_scaleradius(int p)
 //        printf("BUG: GasDiscScaleRadius reassigned from %e to DiskScale Radius\n", Gal[p].GasDiscScaleRadius);
         Gal[p].GasDiscScaleRadius = 1.0 * Gal[p].DiskScaleRadius; // Some functions still need a number for the scale radius even if there isn't any gas actually in the disc.
     }
+}
+
+
+double NFW_potential(int p, double r)
+{
+    double radius_sum = Gal[p].Rvir + Gal[p].HaloScaleRadius;
+    return -Gal[p].Mvir * log(1.0 + r/Gal[p].HaloScaleRadius) / (r * (log(radius_sum/Gal[p].HaloScaleRadius) - Gal[p].Rvir/radius_sum) );
 }
