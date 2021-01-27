@@ -405,8 +405,17 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
     double feedback_mass[3]; 
     
     // these 2 terms only used when SupernovaRecipeOn>=3
-    double hot_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * Gal[p].Vvir * Gal[p].Vvir;
-    double ejected_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * Gal[p].Vvir * Gal[p].Vvir;
+    double hot_specific_energy, ejected_specific_energy;
+    if(HeatedToCentral>0)
+    {
+        hot_specific_energy = NFW_potential(centralgal, 0.5*Gal[centralgal].Rvir) + 0.5 * sqr(Gal[centralgal].Vvir);
+        ejected_specific_energy = NFW_potential(centralgal, Gal[centralgal].Rvir) + 0.5 * sqr(Gal[centralgal].Vvir);
+    }
+    else
+    {
+        hot_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * sqr(Gal[p].Vvir);
+        ejected_specific_energy = NFW_potential(p, Gal[p].Rvir) + 0.5 * sqr(Gal[p].Vvir);
+    }
 
   
 	// Let gas sink -- one may well want to change this formula
