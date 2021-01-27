@@ -43,6 +43,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
 
   double ejected_sum = 0.0;
   reheated_mass = 0.0; // initialise
+    double reheated_sum = 0.0;
     
   // Checks that the deconstructed disc is being treated properly and not generating NaNs
   DiscGasSum = get_disc_gas(p);
@@ -125,6 +126,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
     Gal[p].DiscSFR[i] += stars / dt;
 	stars_sum += stars;
     ejected_sum += ejected_mass;
+    reheated_sum += reheated_mass;
 
 	DiscPre = Gal[p].DiscGas[i];
 	ColdPre = Gal[p].ColdGas;
@@ -210,6 +212,11 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   DiscGasSum = get_disc_gas(p);
   assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
+    
+//    if(HaloGal[p].GalaxyNr==0)
+//    {
+//        printf("\nMass-loading factor, Ejected/reheated = %e, %e\n", reheated_sum/stars_sum, ejected_sum/reheated_sum);
+//    }
 
 }
 
@@ -242,6 +249,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             cold_specific_energy = 0.5 * sqr(annulus_velocity) + NFW_potential(p, annulus_radius);
             reheat_specific_energy = hot_specific_energy - cold_specific_energy;
             reheated_mass = FeedbackReheatingEpsilon * energy_feedback / reheat_specific_energy; // still controlled by a coupling efficiency
+
             
         }
         else
@@ -282,7 +290,17 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         {
             energy_feedback = stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // recalculate as rescaling may have occurred to stay in mass limitations
             excess_energy = energy_feedback - reheat_specific_energy * reheated_mass;
-            ejected_mass = FeedbackEjectionEfficiency * excess_energy / ejected_specific_energy;
+            ejected_mass = FeedbackEjectionEfficiency * excess_energy / (ejected_specific_energy - hot_specific_energy);
+            
+            
+//            if(HaloGal[p].GalaxyNr==0)
+//            {
+//                printf("\ni = %i\n", i);
+//                printf("stars, reheated_mass, ejected_mass = %e, %e, %e\n", stars, reheated_mass, ejected_mass);
+//                printf("energy_feedback, excess_energy = %e, %e\n", energy_feedback, excess_energy);
+//                printf("cold rot energy, cold pot energy = %e, %e\n", 0.5 * sqr(annulus_velocity), NFW_potential(p, annulus_radius));
+//                printf("cold_specific_energy, hot_specific_energy, ejected_specific_energy = %e, %e, %e\n", cold_specific_energy, hot_specific_energy, ejected_specific_energy);
+//            }
         }
         
         
