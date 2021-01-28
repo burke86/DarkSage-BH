@@ -408,13 +408,13 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
     double hot_specific_energy, ejected_specific_energy;
     if(HeatedToCentral>0)
     {
-        hot_specific_energy = NFW_potential(centralgal, 0.5*Gal[centralgal].Rvir) + 0.5 * sqr(Gal[centralgal].Vvir);
-        ejected_specific_energy = NFW_potential(centralgal, Gal[centralgal].Rvir) + 0.5 * sqr(Gal[centralgal].Vvir);
+        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * sqr(Gal[centralgal].Vvir);
+        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * sqr(Gal[centralgal].Vvir);
     }
     else
     {
-        hot_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * sqr(Gal[p].Vvir);
-        ejected_specific_energy = NFW_potential(p, Gal[p].Rvir) + 0.5 * sqr(Gal[p].Vvir);
+        hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir);
+        ejected_specific_energy = Gal[p].EjectedPotential + 0.5 * sqr(Gal[p].Vvir);
     }
 
   

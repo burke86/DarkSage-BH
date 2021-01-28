@@ -724,16 +724,16 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     
  // these 2 terms only used when SupernovaRecipeOn>=3
  double hot_specific_energy, ejected_specific_energy;
- if(HeatedToCentral>0)
- {
-    hot_specific_energy = NFW_potential(centralgal, 0.5*Gal[centralgal].Rvir) + 0.5 * sqr(Gal[centralgal].Vvir);
-    ejected_specific_energy = NFW_potential(centralgal, Gal[centralgal].Rvir) + 0.5 * sqr(Gal[centralgal].Vvir);
- }
- else
- {
-    hot_specific_energy = NFW_potential(merger_centralgal, 0.5*Gal[merger_centralgal].Rvir) + 0.5 * sqr(Gal[merger_centralgal].Vvir);
-    ejected_specific_energy = NFW_potential(merger_centralgal, Gal[merger_centralgal].Rvir) + 0.5 * sqr(Gal[merger_centralgal].Vvir);
- }
+    if(HeatedToCentral>0)
+    {
+        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * sqr(Gal[centralgal].Vvir);
+        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * sqr(Gal[centralgal].Vvir);
+    }
+    else
+    {
+        hot_specific_energy = Gal[merger_centralgal].HotGasPotential + 0.5 * sqr(Gal[merger_centralgal].Vvir);
+        ejected_specific_energy = Gal[merger_centralgal].EjectedPotential + 0.5 * sqr(Gal[merger_centralgal].Vvir);
+    }
 
 
  stars_sum = 0.0;

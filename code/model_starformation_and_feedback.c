@@ -25,13 +25,13 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   double hot_specific_energy, ejected_specific_energy;
   if(HeatedToCentral>0)
   {
-      hot_specific_energy = NFW_potential(centralgal, 0.5*Gal[centralgal].Rvir) + 0.5 * sqr(Gal[centralgal].Vvir);
-      ejected_specific_energy = NFW_potential(centralgal, Gal[centralgal].Rvir) + 0.5 * sqr(Gal[centralgal].Vvir);
+      hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * sqr(Gal[centralgal].Vvir);
+      ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * sqr(Gal[centralgal].Vvir);
   }
   else
   {
-      hot_specific_energy = NFW_potential(p, 0.5*Gal[p].Rvir) + 0.5 * sqr(Gal[p].Vvir);
-      ejected_specific_energy = NFW_potential(p, Gal[p].Rvir) + 0.5 * sqr(Gal[p].Vvir);
+      hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir);
+      ejected_specific_energy = Gal[p].EjectedPotential + 0.5 * sqr(Gal[p].Vvir);
   }
     
 
@@ -298,7 +298,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
 //                printf("\ni = %i\n", i);
 //                printf("stars, reheated_mass, ejected_mass = %e, %e, %e\n", stars, reheated_mass, ejected_mass);
 //                printf("energy_feedback, excess_energy = %e, %e\n", energy_feedback, excess_energy);
-//                printf("cold rot energy, cold pot energy = %e, %e\n", 0.5 * sqr(annulus_velocity), NFW_potential(p, annulus_radius));
+//                printf("cold rot energy, cold NFW pot energy, cold proper pot energy = %e, %e, %e\n", 0.5 * sqr(annulus_velocity), NFW_potential(p, annulus_radius), 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]));
 //                printf("cold_specific_energy, hot_specific_energy, ejected_specific_energy = %e, %e, %e\n", cold_specific_energy, hot_specific_energy, ejected_specific_energy);
 //            }
         }

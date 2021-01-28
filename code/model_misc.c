@@ -591,8 +591,9 @@ void update_disc_radii(int p)
         double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS], analytic_fsupport[NUM_R_BINS], analytic_potential[NUM_R_BINS];
         analytic_j[0] = 0.0;
         analytic_r[0] = 0.0;
-        analytic_potential[NUM_R_BINS-1] = 0.0;
+        analytic_potential[NUM_R_BINS-1] = 0.0; // consider making this -G*Gal[p].Mvir/Gal[p].Rvir, which would aassume that analytic_r was always <Rvir.  This assumption likely wouldn't be strictly true.  In a way, it doesn't matter, provided potentials are always used for taking differences (what else would they be useful for?)
         double r_jmax = 10.0*DiscBinEdge[N_BINS]/Gal[p].Vvir;
+        if(r_jmax<Gal[p].Rvir) r_jmax = 1.0*Gal[p].Rvir;
 //        if(baryon_fraction>1.0) r_jmax *= (100*baryon_fraction);
         double r = r_jmax;
         const double inv_ExponentBin = 1.0/ExponentBin;
@@ -652,6 +653,8 @@ void update_disc_radii(int p)
    
         }
         analytic_potential[i] = analytic_potential[i+1]; // assumes the potential flattens at the centre, as internal mass goes to zero as radius goes to zero
+
+
         
         gsl_interp_accel *acc = gsl_interp_accel_alloc();
 //        printf("i=%i\,", i);
@@ -678,6 +681,8 @@ void update_disc_radii(int p)
                 assert(DiscBinEdge[k] <= analytic_j_reduced[NUM_R_BINS_REDUCED-1]);
                 Gal[p].DiscRadii[k] = gsl_spline_eval(spline, DiscBinEdge[k], acc);
                 Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
+                Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
+                Gal[p].EjectedPotential = gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc);
             }
             
             gsl_spline_free (spline);
@@ -699,6 +704,8 @@ void update_disc_radii(int p)
                 assert(DiscBinEdge[k] <= analytic_j[NUM_R_BINS-1]);
                 Gal[p].DiscRadii[k] = gsl_spline_eval(spline, DiscBinEdge[k], acc);
                 Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
+                Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
+                Gal[p].EjectedPotential = gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc);
             }
             
             gsl_spline_free (spline);
