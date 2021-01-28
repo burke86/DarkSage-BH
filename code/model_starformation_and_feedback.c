@@ -290,7 +290,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         {
             energy_feedback = FeedbackReheatCoupling * stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // recalculate as rescaling may have occurred to stay in mass limitations
             excess_energy = energy_feedback - reheat_specific_energy * reheated_mass;
-            ejected_mass = FeedbackEjectionEfficiency * excess_energy / (ejected_specific_energy - hot_specific_energy);
+            ejected_mass = FeedbackEjectCoupling * excess_energy / (ejected_specific_energy - hot_specific_energy);
             
             
 //            if(HaloGal[p].GalaxyNr==0)
