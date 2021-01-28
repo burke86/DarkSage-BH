@@ -213,6 +213,14 @@ void read_parameter_file(char *fname)
   addr[nt] = &FeedbackEjectionEfficiency;
   id[nt++] = DOUBLE;
 
+    strcpy(tag[nt], "FeedbackReheatCoupling");
+    addr[nt] = &FeedbackReheatCoupling;
+    id[nt++] = DOUBLE;
+
+    strcpy(tag[nt], "FeedbackEjectCoupling");
+    addr[nt] = &FeedbackEjectCoupling;
+    id[nt++] = DOUBLE;
+    
   strcpy(tag[nt], "BlackHoleGrowthRate");
   addr[nt] = &BlackHoleGrowthRate;
   id[nt++] = DOUBLE;

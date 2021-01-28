@@ -85,6 +85,8 @@ double FeedbackReheatingEpsilon;
 double FeedbackGasSigma;
 double FeedbackExponent;
 double FeedbackEjectionEfficiency;
+double FeedbackReheatCoupling;
+double FeedbackEjectCoupling;
 double RadioModeEfficiency;
 double QuasarModeEfficiency;
 double BlackHoleGrowthRate;

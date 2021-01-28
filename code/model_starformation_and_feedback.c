@@ -243,12 +243,12 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             reheated_mass = FeedbackReheatingEpsilon * stars;
         else if(SupernovaRecipeOn == 3 || SupernovaRecipeOn == 4)
         {
-            energy_feedback = stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // 630 km/s for kinetic velocity kick from supernovae assumed -- 198450.0 = 0.5*630*630, where the 0.5 is to account for the 1/2 in formula for kinetic energy
+            energy_feedback = FeedbackReheatCoupling * stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // 630 km/s for kinetic velocity kick from supernovae assumed -- 198450.0 = 0.5*630*630, where the 0.5 is to account for the 1/2 in formula for kinetic energy
             annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
             annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
             cold_specific_energy = 0.5 * sqr(annulus_velocity) + NFW_potential(p, annulus_radius);
             reheat_specific_energy = hot_specific_energy - cold_specific_energy;
-            reheated_mass = FeedbackReheatingEpsilon * energy_feedback / reheat_specific_energy; // still controlled by a coupling efficiency
+            reheated_mass = energy_feedback / reheat_specific_energy; // still controlled by a coupling efficiency
 
             
         }
@@ -288,7 +288,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         }
         else
         {
-            energy_feedback = stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // recalculate as rescaling may have occurred to stay in mass limitations
+            energy_feedback = FeedbackReheatCoupling * stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // recalculate as rescaling may have occurred to stay in mass limitations
             excess_energy = energy_feedback - reheat_specific_energy * reheated_mass;
             ejected_mass = FeedbackEjectionEfficiency * excess_energy / (ejected_specific_energy - hot_specific_energy);
             

@@ -454,6 +454,8 @@ extern double FeedbackReheatingEpsilon;
 extern double FeedbackGasSigma;
 extern double FeedbackExponent;
 extern double FeedbackEjectionEfficiency;
+extern double FeedbackReheatCoupling;
+extern double FeedbackEjectCoupling;
 extern double RadioModeEfficiency;
 extern double QuasarModeEfficiency;
 extern double BlackHoleGrowthRate;
