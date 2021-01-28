@@ -588,9 +588,10 @@ void update_disc_radii(int p)
         const int NUM_R_BINS=51;
         
         // set up array of radii and j from which to interpolate
-        double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS];
+        double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS], analytic_fsupport[NUM_R_BINS], analytic_potential[NUM_R_BINS];
         analytic_j[0] = 0.0;
         analytic_r[0] = 0.0;
+        analytic_potential[NUM_R_BINS-1] = 0.0;
         double r_jmax = 10.0*DiscBinEdge[N_BINS]/Gal[p].Vvir;
 //        if(baryon_fraction>1.0) r_jmax *= (100*baryon_fraction);
         double r = r_jmax;
@@ -631,10 +632,15 @@ void update_disc_radii(int p)
             
             f_support = 1.0 - exp(exponent_support*r); // Fraction of support in rotation
             if(f_support<1e-5) f_support = 1e-5; // Minimum safety net
+            analytic_fsupport[i] = f_support; // needed later for calculating stored potential
             vrot = sqrt(f_support * (v2_spherical+v2_sdisc+v2_gdisc));
        
             analytic_j[i] = vrot * r;
-            if(i<NUM_R_BINS-1) assert(analytic_j[i]<analytic_j[i+1]);
+            if(i<NUM_R_BINS-1)
+            {
+                assert(analytic_j[i]<analytic_j[i+1]);
+                analytic_potential[i] = analytic_potential[i+1] - (analytic_r[i+1]-analytic_r[i]) * 0.5 * (sqr(analytic_j[i+1])/(analytic_fsupport[i+1]*cube(analytic_r[i+1])) + sqr(vrot)/(f_support*r)); // numerically integrating from "infinity" (the largest analytic_r) down to zero, step by step
+            }
             
             if((i==NUM_R_BINS-1) && analytic_j[i]<DiscBinEdge[N_BINS]) // Need to expand range for interpolation!
             {
@@ -645,20 +651,25 @@ void update_disc_radii(int p)
                 r *= inv_ExponentBin;
    
         }
+        analytic_potential[i] = analytic_potential[i+1]; // assumes the potential flattens at the centre, as internal mass goes to zero as radius goes to zero
         
         gsl_interp_accel *acc = gsl_interp_accel_alloc();
 //        printf("i=%i\,", i);
         if(i>0) // reducing bins to avoid numerical issues with oversampling centre
         {
             const int NUM_R_BINS_REDUCED = NUM_R_BINS - i;
-            double analytic_j_reduced[NUM_R_BINS_REDUCED], analytic_r_reduced[NUM_R_BINS_REDUCED];
+            double analytic_j_reduced[NUM_R_BINS_REDUCED], analytic_r_reduced[NUM_R_BINS_REDUCED], analytic_potential_reduced[NUM_R_BINS_REDUCED];
             for(k=0; k<NUM_R_BINS_REDUCED; k++)
             {
                 analytic_j_reduced[k] = 1.0*analytic_j[k+i];
                 analytic_r_reduced[k] = 1.0*analytic_r[k+i];
+                analytic_potential_reduced[k] = 1.0*analytic_potential[k+1];
             }
             gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS_REDUCED);
             gsl_spline_init(spline, analytic_j_reduced, analytic_r_reduced, NUM_R_BINS_REDUCED);
+
+            gsl_spline *spline2 = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS_REDUCED);
+            gsl_spline_init(spline2, analytic_r_reduced, analytic_potential_reduced, NUM_R_BINS_REDUCED);
             
             for(k=1; k<N_BINS+1; k++)
             {
@@ -666,9 +677,11 @@ void update_disc_radii(int p)
                 assert(DiscBinEdge[k] >= analytic_j_reduced[0]);
                 assert(DiscBinEdge[k] <= analytic_j_reduced[NUM_R_BINS_REDUCED-1]);
                 Gal[p].DiscRadii[k] = gsl_spline_eval(spline, DiscBinEdge[k], acc);
+                Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
             }
-
+            
             gsl_spline_free (spline);
+            gsl_spline_free (spline2);
             gsl_interp_accel_free (acc);
 
         }
@@ -676,22 +689,40 @@ void update_disc_radii(int p)
         {
             gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS);
             gsl_spline_init(spline, analytic_j, analytic_r, NUM_R_BINS);
+
+            gsl_spline *spline2 = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS);
+            gsl_spline_init(spline2, analytic_r, analytic_potential, NUM_R_BINS);
             
             for(k=1; k<N_BINS+1; k++)
             {
                 assert(DiscBinEdge[k] >= analytic_j[0]);
                 assert(DiscBinEdge[k] <= analytic_j[NUM_R_BINS-1]);
                 Gal[p].DiscRadii[k] = gsl_spline_eval(spline, DiscBinEdge[k], acc);
+                Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
             }
-
+            
             gsl_spline_free (spline);
+            gsl_spline_free (spline2);
             gsl_interp_accel_free (acc);
-
         }
+
     }
+    
+    // calculate potential energy as a function of radius (in the disc plane)
+//    double potential_sum = 0.0;
+//    i = NUM_R_BINS-1;
+//    for(k=N_BINS; k>=0; k--)
+//    {
+//        while(analytic_r[i])
+//            potential_sum -= 
+//    }
+    
     
     update_stellardisc_scaleradius(p);
     // if other functionality is added for gas disc scale radius, update it here too
+    
+    
+    
 }
 
 
@@ -784,5 +815,7 @@ void update_gasdisc_scaleradius(int p)
 double NFW_potential(int p, double r)
 {
     double radius_sum = Gal[p].Rvir + Gal[p].HaloScaleRadius;
-    return -Gal[p].Mvir * log(1.0 + r/Gal[p].HaloScaleRadius) / (r * (log(radius_sum/Gal[p].HaloScaleRadius) - Gal[p].Rvir/radius_sum) );
+    double pot_energy = -Gal[p].Mvir * log(1.0 + r/Gal[p].HaloScaleRadius) / (r * (log(radius_sum/Gal[p].HaloScaleRadius) - Gal[p].Rvir/radius_sum) );
+    assert(pot_energy<=0);
+    return pot_energy;
 }

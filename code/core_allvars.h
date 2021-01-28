@@ -267,8 +267,9 @@ struct GALAXY
   double Vvir;
   double Vmax;
     
-  // Radius of each annulus boundary
+  // Radius and potential energy of each annulus boundary
   double DiscRadii[N_BINS+1];
+  double Potential[N_BINS+1];
 
   // baryonic reservoirs 
   double ColdGas;
