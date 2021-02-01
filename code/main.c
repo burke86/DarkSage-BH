@@ -67,7 +67,8 @@ void bye()
 
 int main(int argc, char **argv)
 {
-    int filenr, tree, halonr, i;
+    int filenr, tree, halonr, i, k;
+    double k_float, ExpFac;
     struct sigaction current_XCPU;
     
     struct stat filestatus;
@@ -117,13 +118,27 @@ int main(int argc, char **argv)
     }
     
     // Define age bins (in terms of look-back time) for stellar content
-//    AgeBinEdge[N_AGE_BINS] = time_to_present(2000.);
-    for(i=0; i<N_AGE_BINS+1; i++)
-//        AgeBinEdge[i] = time_to_present(0.007*pow(1.47,i-1));
-        AgeBinEdge[i] = time_to_present(ZZ[Snaplistlen-i-1]);
-//    AgeBinEdge[0] = 0.0;
-//    for(i=0; i<N_AGE_BINS+1; i++) printf("AgeBinEdge[%i] = %e\n", i, AgeBinEdge[i]*UnitTime_in_s/SEC_PER_MEGAYEAR*1e-3/Hubble_h);
-    
+    // Default bin edges match the simulation alist. Otherwise the alist will be interpolated
+    int LastSnap = ListOutputSnaps[NOUT-1];
+    if(N_AGE_BINS==LastSnap)
+    {
+        for(i=0; i<N_AGE_BINS+1; i++)
+            AgeBinEdge[i] = time_to_present(ZZ[LastSnap-i]);
+    }
+    else
+    {
+        double age_snap_ratio = (double)(LastSnap)/(double)N_AGE_BINS;
+        AgeBinEdge[0] = time_to_present(ZZ[LastSnap]);
+        for(i=1; i<N_AGE_BINS; i++)
+        {
+            k_float = (double)LastSnap - (double)i*age_snap_ratio;
+            k = (int)k_float;
+            ExpFac = (k_float - (double)k)*AA[k+1] + (1.0 - k_float + (double)k)*AA[k];
+            AgeBinEdge[i] = time_to_present(1.0 / ExpFac - 1.0);
+        }
+        AgeBinEdge[N_AGE_BINS] = time_to_present(ZZ[0]);
+    }
+        
     // Set counts for prograde and retrograde satellite collisions
     RetroCount = 0;
     ProCount = 0;

@@ -12,12 +12,12 @@ warnings.filterwarnings("ignore")
 
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/571r/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/23c/'
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/23j/'
 sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
-Nage = 0 # number of age bins used for stars -- not advised to use a run with this for calibration
+Nage = 30 # number of age bins used for stars -- not advised to use a run with this for calibration
 #age_alist_file = '/Users/adam/millennium_mini/millennium.a_list' # File with expansion factors used for age bins
 age_alist_file = '/Users/adam/Genesis_calibration_trees/L75n324/alist.txt'
 RecycleFraction = 0.43 # Only needed for comparing stellar-age based SFR with raw SFR
@@ -170,43 +170,55 @@ ZMDbyMass *= (1e10/h / vol)
 
 
 ##### PLOT 1: MADAU--LILLY DIAGRAM (UNIVERSAL STAR FORMATION RATE DENSITY HISTORY) #####
-try:
-    fig, ax  = plt.subplots(1, 1)
-    plt.plot(1+redshifts, np.log10(SFRD), 'k--', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p}\!\geq\!20$')
-    plt.plot(1+redshifts, np.log10(SFRD_resolved), 'k.-', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!100$')
-    
-    if Nage>1: # check consistency from stellar-age bins
-    
+#try:
+fig, ax  = plt.subplots(1, 1)
+plt.plot(1+redshifts, np.log10(SFRD), 'k--', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p}\!\geq\!20$')
+plt.plot(1+redshifts, np.log10(SFRD_resolved), 'k.-', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!100$')
+
+if Nage>1: # check consistency from stellar-age bins
+
 #        RedshiftBinEdge = np.append(np.append(0, [0.007*1.47**i for i in range(Nage-1)]), 1000.) # defined within Dark Sage hard code
-        RedshiftBinEdge = 1./ np.loadtxt(age_alist_file)[::-1] - 1.
-        TimeBinEdge = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in RedshiftBinEdge]) # look-back time [Gyr]
-        dT = np.diff(TimeBinEdge)*1e9 # time step for each bin [yr]
-        
-        # sum mass from age bins of all components
-        StarsByAge = np.zeros(Nage)
-        for k in range(Nage):
-            StarsByAge[k] += np.sum(G0['DiscStars'][:,:,k])
-            StarsByAge[k] += np.sum(G0['MergerBulgeMass'][:,k])
-            StarsByAge[k] += np.sum(G0['InstabilityBulgeMass'][:,k])
-            StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k])
-
-        SFRbyAge = StarsByAge*1e10/h/dT/(1.-RecycleFraction)
-        SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)
-        plt.step(1+RedshiftBinEdge, SFRD_Age, color='grey', label=r'{\sc Dark Sage} age recon.')
-
     
-    r.SFRD_obs(h, plus=1)
-    plt.xlabel(r'Redshift')
-    plt.ylabel(r'$\log_{10}\left( \bar{\rho}_{\rm SFR}~[{\rm M}_{\odot}\, {\rm yr}^{-1}\, {\rm cMpc}^{-3}] \right)$')
-    plt.xscale('log')
-    plt.axis([1,9,-2.8,0.5])
-    plt.minorticks_off()
-    plt.xticks(range(1,10), (str(i) for i in range(9)))
-    plt.legend(loc='best', frameon=False, ncol=2)
-    fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
-    r.savepng(outdir+'H1-SFRDH', xsize=768, ysize=400)
-except Exception as excptn:
-    print('Unexpected issue with plot H1: {0}'.format(excptn))
+    alist = np.loadtxt(age_alist_file)[::-1]
+    if Nage==len(alist)-1:
+        RedshiftBinEdge = 1./ alist - 1.
+    else:
+        indices_float = np.arange(1,Nage) * (len(alist)-1.0) / Nage
+        indices = indices_float.astype(np.int32)
+        indices_residual = indices_float - indices
+        A_BinEdge = np.ones(Nage+1)
+        A_BinEdge[range(1,Nage)] = alist[indices] * (1-indices_residual) + alist[indices+1] * indices_residual
+        A_BinEdge[-1] = alist[-1]
+        RedshiftBinEdge = 1./ A_BinEdge - 1.
+    TimeBinEdge = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in RedshiftBinEdge]) # look-back time [Gyr]
+    print 'TimeBinEdge', TimeBinEdge*h
+    dT = np.diff(TimeBinEdge)*1e9 # time step for each bin [yr]
+    
+    # sum mass from age bins of all components
+    StarsByAge = np.zeros(Nage)
+    for k in range(Nage):
+        StarsByAge[k] += np.sum(G0['DiscStars'][:,:,k])
+        StarsByAge[k] += np.sum(G0['MergerBulgeMass'][:,k])
+        StarsByAge[k] += np.sum(G0['InstabilityBulgeMass'][:,k])
+        StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k])
+
+    SFRbyAge = StarsByAge*1e10/h/dT/(1.-RecycleFraction)
+    SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)
+    plt.step(1+RedshiftBinEdge, SFRD_Age, color='grey', label=r'{\sc Dark Sage} age recon.')
+
+
+r.SFRD_obs(h, plus=1)
+plt.xlabel(r'Redshift')
+plt.ylabel(r'$\log_{10}\left( \bar{\rho}_{\rm SFR}~[{\rm M}_{\odot}\, {\rm yr}^{-1}\, {\rm cMpc}^{-3}] \right)$')
+plt.xscale('log')
+plt.axis([1,9,-2.8,0.5])
+plt.minorticks_off()
+plt.xticks(range(1,10), (str(i) for i in range(9)))
+plt.legend(loc='best', frameon=False, ncol=2)
+fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
+r.savepng(outdir+'H1-SFRDH', xsize=768, ysize=400)
+#except Exception as excptn:
+#    print('Unexpected issue with plot H1: {0}'.format(excptn))
 ##### ============================================================================ #####
 
 

@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/23e/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/23j/
 
 FirstFile                   0
 LastFile                    7
@@ -13,11 +13,14 @@ LastFile                    7
 %----- Snapshot output list ---------------
 %------------------------------------------
 
-NumOutputs        11   ; sets the desired number of galaxy outputs; use -1 for all outputs
+%NumOutputs        12   ; sets the desired number of galaxy outputs; use -1 for all outputs
 
 % List your output snapshots after the arrow, highest to lowest (ignored when NumOutputs=-1).
--> 37 42 47 54 62 72 84 101 109 119 131
+%-> 37 42 47 54 62 72 84 101 109 119 125 131
 
+
+NumOutputs        1
+-> 131
 
 %------------------------------------------
 %----- Simulation information  ------------
@@ -53,12 +56,19 @@ HeatedToCentral             1       ;0: gas heated from feedback goes to hot res
 ReincorpotationModel        0       ;0: based on Vvir (same as SAGE); 1: based on Mvir (Henriques et al 2013)
 CoolingExponentialRadiusOn  0       ;0: cooling gas is exponential with j (original model); 1: exponential with radius instead
 MvirDefinition              2       ;Mass definition in the treefiles used for Mvir (default for Millennium should be 2, i.e. M200c)
-AgeStructOut                0       ;Include age structure in output (0 for no, 1 for yes). WARNING: Slows code and increases size of output significantly!! Recommended for a single snapshot only.
+AgeStructOut                1       ;Include age structure in output (0 for no, 1 for yes). WARNING: Slows code and increases size of output significantly!! Recommended for a single snapshot only.
 
+
+%----------------------------------------------------------
+%-- HARD CODED PARAMETERS, MUST RUN compile.py TO UPDATE --
+%----------------------------------------------------------
+
+N_BINS                  30  ; Number of j bins used in discs (see below for setting structure of bins)
+N_AGE_BINS              30  ; Number of age bins used for stars in output (when AgeStructOut=1) and internally for stellar evolution
 
 
 %------------------------------------------
-%----- Set the binning for discs ----------
+%------ Set the j bins for discs ----------
 %------------------------------------------
 
 FirstBin                    1.0     ; Measured in kpc/h km/s
@@ -81,8 +91,8 @@ FeedbackEjectionEfficiency  0.71841983
 
 
 %%%= For SupernovaRecipeOn=3or4 =%%%
-FeedbackReheatCoupling      0.1
-FeedbackEjectCoupling       0.1
+FeedbackReheatCoupling      3.0     ; very similar to FeedbackReheatingEpsilon but designated a different name for the sake of switching between feedback modes when the best-fit parameters are not identical
+FeedbackEjectCoupling       1.0
 %%%= ========================== =%%%
 
 
