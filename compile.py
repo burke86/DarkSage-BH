@@ -6,6 +6,7 @@ from __future__ import print_function
 import subprocess
 import os
 import multiprocessing
+import numpy as np
 
 # Initialisation
 hard_variable_names = ["N_BINS", "N_AGE_BINS"]
@@ -13,6 +14,8 @@ wd = "code/"
 og_file = wd + "core_allvars.h"
 old_file = og_file
 temp_count = 0
+yes = ['y', 'Y', 'yes', 'Yes', 'YES', 'YEs', 'yES', 'yeS']
+no = ['n', 'N', 'no', 'No', 'NO', 'nO']
 
 # Rename raw_input() / input() to accomodate both Python 2 and Python 3
 try:
@@ -54,7 +57,6 @@ if len(par_file)>0:
     hard_variable_values = []
     lines = f.readlines()
     for name in hard_variable_names:
-        lstr = len(name)
         for line in lines:
             words = line.split()
             try: 
@@ -64,6 +66,36 @@ if len(par_file)>0:
             if first_word==name:
                 hard_variable_values += [words[1]]
                 break
+    
+    # Check if number of age bins exceeds number of snapshots
+    NumOutputs = 0 # initialise
+    for line in lines:
+        words = line.split()
+        
+        try: 
+            first_word = words[0]
+        except IndexError:
+            continue
+        
+        # Assuming the following if statements are triggered in the order they are written, which should be the case given the parameter file structure
+        if first_word=="NumOutputs": 
+            NumOutputs = int(words[1])
+            
+        if first_word=="->" and NumOutputs>0:
+            LastSnap = int(words[NumOutputs])
+            
+        if first_word=="LastSnapShotNr" and NumOutputs==-1:
+            LastSnap = int(words[1])
+            
+    i = np.where(np.array(hard_variable_names)=="N_AGE_BINS")[0][0]
+    if int(hard_variable_values[i])>LastSnap:
+        YorN = cmnd_input("\nN_AGE_BINS ("+str(hard_variable_values[i])+") is currently larger than the latest output snapshot ("+str(LastSnap)+").  This will unnecessarily increase RAM and CPU requirements of Dark Sage by artificially creating more temporal bins than in the input merger trees, according to the parameter file.\n------\nWould you like to reset N_AGE_BINS to "+str(LastSnap)+" [y/n]?")
+        
+        while YorN not in yes+no:
+            YorN = cmnd_input("\nPlease enter y or n for the above request")
+        
+        if YorN in yes:
+            hard_variable_values[i] = str(LastSnap)
     
     # Create temporary files, updating the next hard parameter with each iteration
     for var, name in zip(hard_variable_values, hard_variable_names):
