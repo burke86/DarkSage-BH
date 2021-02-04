@@ -36,7 +36,7 @@ do {                                                                \
 #define N_BINS 30
 #define MIN_STARS_FOR_SN 1e-8
 #define MIN_STARFORMATION 1e-10
-#define N_AGE_BINS 30 // REDUCE THIS VALUE TO 1 SAVE RAM WHEN FLAG IS OFF IN PARAMETER FILE
+#define N_AGE_BINS 30
 
 struct GALAXY_OUTPUT  
 {
@@ -444,6 +444,7 @@ extern int    ReincorpotationModel;
 extern int    CoolingExponentialRadiusOn;
 extern int    MvirDefinition;
 extern int    AgeStructOut;
+extern int    DelayedFeedbackOn;
 
 // recipe parameters 
 extern double RecycleFraction;
@@ -478,6 +479,7 @@ extern double Reionization_zr;
 extern double ThresholdSatDisruption;
 extern double AlphaBurst;
 extern double BetaBurst;
+extern double Ratio_Ia_II;
 
 extern double UnitLength_in_cm,
   UnitTime_in_s,

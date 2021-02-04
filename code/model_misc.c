@@ -827,3 +827,102 @@ double NFW_potential(int p, double r)
     assert(pot_energy<=0);
     return pot_energy;
 }
+
+
+int get_stellar_age_bin_index(double time)
+{
+    int k_now;
+    for(k_now=0; k_now<N_AGE_BINS; k_now++)
+    {
+        if(time<=AgeBinEdge[k_now+1])
+            break; // calculate which time bin 
+    }
+    return k_now;
+}
+
+
+double get_recycle_fraction(double t0, double t1)
+{
+    double m0, m1, piecewise_int;
+    
+    // note the swapping of labels 0 and 1, as min time is max mass and vice versa. Note that mass is in solar masses, not Dark Sage internal units!!  m0 and m1 refer to the range of initial star masses over which the IMF is integrated.
+    
+    assert(t1>t0); // no point running this otherwise
+    
+    m0 = 1.0 / pow(t1 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
+    if(m0<1.0) m0 = 1.0; // built-in assumption that subsolar stars don't cause any outflows of gas
+    
+    if(t0>0)
+    {
+        m1 = 1.0 / pow(t0 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
+        if(m1>50.0) m1 = 50.0; // built-in assumption that stars > 50 solar collapse rapidly to black holes without return gas to the ISM
+    }
+    else
+        m1 = 50.0;
+    
+    assert(m1>m0);
+    
+    piecewise_int = 0.0;
+    if(m0<7.0) piecewise_int += (integrated_mret_IMF(min(7.0,m1)) - integrated_mret_IMF(max(1.0,m0)));
+    if(m1<=7.0) return piecewise_int;
+    if(m0<8.0) piecewise_int += (integrated_mret_IMF(min(8.0,m1)) - integrated_mret_IMF(max(7.0,m0)));
+    if(m1<=8.0) return piecewise_int;
+    piecewise_int += (integrated_mret_IMF(min(50.0,m1)) - integrated_mret_IMF(max(8.0,m0)));
+    return piecewise_int;
+}
+
+
+double integrated_mret_IMF(double m)
+{
+    // analytic indefinite integral of mret*IMF. Assumes both input and output are in solar masses (not Dark Sage internal mass units).
+    if(m<1 || m>50)
+        return 0.0;
+    else if(m>=1 && m<=7)
+        return -0.08141517683076922*pow(m,-1.3) - 0.0667457756*pow(m,-0.3);
+    else if(m<7 && m>8)
+        return -0.07683098894615384*pow(m,-1.3) - 0.08661058976666666*pow(m,-0.3);
+    else
+        return -0.2567145215384615*pow(m,-1.3);
+}
+
+
+double get_numSN_perSF(double t0, double t1)
+{
+    // Intergrate the IMF between mass range corresponding to a stellar lifetime range to calculate the number of supernovae in that time per unit mass of the stellar population from which they originate
+    
+    // starts the same as get_recycle_fraction
+    double m0, m1, piecewise_int;
+    assert(t1>t0); // no point running this otherwise
+    m0 = 1.0 / pow(t1 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
+    if(m0<1.0) m0 = 1.0;
+    if(t0>0)
+    {
+        m1 = 1.0 / pow(t0 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
+        if(m1>100.0) m1 = 50.0;
+    }
+    else
+        m1 = 50.0;
+    assert(m1>m0);
+    
+    piecewise_int = 0.0;
+    if(m0<8.0) piecewise_int += (0.01194933634822933 * Ratio_Ia_II * (pow(max(1.0,m0),-1.3) - pow(min(8.0,m1),-1.3)) ) ;
+    if(m1<=8.0) return piecewise_int;
+    piecewise_int += (0.18336751538461538 * (pow(max(8.0,m0),-1.3) - pow(min(50.0,m1),-1.3)) );
+    return piecewise_int;
+    
+}
+
+
+// Not sure this is acutally useful with my design!
+//double m_returned(double m_initial)
+//{
+//    // calculate the mass returned to the ISM from a star of initial mass m_initial.  Assumes both input and output are in solar masses (not Dark Sage internal mass units).
+//    if(m_initial>=1 && m_initial<=7)
+//        return 0.444 + 0.084 * m_initial;
+//    else if(m_initial>7 && m_initial<8)
+//        return 0.419 + 0.109*m_initial;
+//    else if(m_initial>=8 && m_initial<=50)
+//        return 1.4;
+//    else
+//        return 0.0;
+//}

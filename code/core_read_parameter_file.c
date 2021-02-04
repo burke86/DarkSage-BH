@@ -161,6 +161,10 @@ void read_parameter_file(char *fname)
   addr[nt] = &AgeStructOut;
   id[nt++] = INT;
 
+  strcpy(tag[nt], "DelayedFeedbackOn");
+  addr[nt] = &DelayedFeedbackOn;
+  id[nt++] = INT;
+
   strcpy(tag[nt], "BaryonFrac");
   addr[nt] = &BaryonFrac;
   id[nt++] = DOUBLE;
@@ -219,6 +223,10 @@ void read_parameter_file(char *fname)
 
     strcpy(tag[nt], "FeedbackEjectCoupling");
     addr[nt] = &FeedbackEjectCoupling;
+    id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "Ratio_Ia_II");
+    addr[nt] = &Ratio_Ia_II;
     id[nt++] = DOUBLE;
     
   strcpy(tag[nt], "BlackHoleGrowthRate");

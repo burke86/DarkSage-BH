@@ -143,6 +143,12 @@ int main(int argc, char **argv)
     RetroCount = 0;
     ProCount = 0;
     
+    // Determine the total returned mass fraction from a population of stars
+    if(DelayedFeedbackOn>0)
+        FinalRecycleFraction = get_recycle_fraction(0, 1e20); // arbitrarily large number for upper bound on time
+    else
+        FinalRecycleFraction = 1.0 * RecycleFraction;
+    
 #ifdef MPI
     // A small delay so that processors don't use the same file
     //    printf("Small delay for processors\n");

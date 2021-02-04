@@ -243,12 +243,12 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             reheated_mass = FeedbackReheatingEpsilon * stars;
         else if(SupernovaRecipeOn == 3 || SupernovaRecipeOn == 4)
         {
-            energy_feedback = stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // 630 km/s for kinetic velocity kick from supernovae assumed -- 198450.0 = 0.5*630*630, where the 0.5 is to account for the 1/2 in formula for kinetic energy
+            energy_feedback = FeedbackReheatCoupling * stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // 630 km/s for kinetic velocity kick from supernovae assumed -- 198450.0 = 0.5*630*630, where the 0.5 is to account for the 1/2 in formula for kinetic energy
             annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
             annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
             cold_specific_energy = 0.25 * sqr(annulus_velocity) + (Gal[p].Potential[i] + Gal[p].Potential[i+1]);
             reheat_specific_energy = hot_specific_energy - cold_specific_energy;
-            reheated_mass = FeedbackReheatCoupling * energy_feedback / reheat_specific_energy; // still controlled by a coupling efficiency
+            reheated_mass = energy_feedback / reheat_specific_energy; // still controlled by a coupling efficiency
 
             
         }
@@ -256,12 +256,21 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             reheated_mass = 0.0;
 
         // Can't use more cold gas than is available, so balance SF and feedback 
-        if((stars + reheated_mass) > max_consume && (stars + reheated_mass) > 0.0)
+        if((stars + reheated_mass)>max_consume && (stars + reheated_mass)>0.0)
         {
-          fac = max_consume / (stars + reheated_mass);
-          stars *= fac;
-          reheated_mass *= fac;
+            if(SupernovaRecipeOn<3)
+            {
+                fac = max_consume / (stars + reheated_mass);
+                stars *= fac;
+                reheated_mass *= fac;
+            }
+            else
+            {
+                reheated_mass = max_consume - (1-RecycleFraction)*stars; // Note the important change here that recycled gas can immediately be reheated!
+            }
         }
+        
+        
 
         if(stars<MIN_STARS_FOR_SN)
         {
@@ -288,7 +297,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         }
         else
         {
-            energy_feedback = stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // recalculate as rescaling may have occurred to stay in mass limitations
+//            energy_feedback = stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // recalculate as rescaling may have occurred to stay in mass limitations
             excess_energy = energy_feedback - reheat_specific_energy * reheated_mass;
             ejected_mass = FeedbackEjectCoupling * excess_energy / (ejected_specific_energy - hot_specific_energy);
             
@@ -495,11 +504,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 	int i, k, k_now;
 	
     // Determine which age bin new stars should be put into
-    for(k_now=0; k_now<N_AGE_BINS; k_now++)
-    {
-        if(time<=AgeBinEdge[k_now+1])
-            break;
-    }
+    k_now = get_stellar_age_bin_index(time);
     
     DiscStarSum = get_disc_stars(p);
     
@@ -879,3 +884,7 @@ void update_HI_H2(int p)
 
 
 
+void delayed_feedback(int p)
+{
+    
+}

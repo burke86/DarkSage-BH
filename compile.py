@@ -63,7 +63,7 @@ if len(par_file)>0:
                 first_word = words[0]
             except IndexError:
                 continue
-            if first_word==name:
+            if first_word=="%"+name:
                 hard_variable_values += [words[1]]
                 break
     

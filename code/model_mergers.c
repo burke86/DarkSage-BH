@@ -45,11 +45,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
   int i, k_now;
   
   // Determine which age bin new stars should be put into
-  for(k_now=0; k_now<N_AGE_BINS; k_now++)
-  {
-    if(time<=AgeBinEdge[k_now+1])
-        break;
-  }
+  k_now = get_stellar_age_bin_index(time);
     
   for(i=0; i<N_BINS; i++)
     disc_mass_ratio[i] = 0.0;

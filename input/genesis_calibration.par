@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/23j/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/23m/
 
 FirstFile                   0
 LastFile                    7
@@ -57,14 +57,16 @@ ReincorpotationModel        0       ;0: based on Vvir (same as SAGE); 1: based o
 CoolingExponentialRadiusOn  0       ;0: cooling gas is exponential with j (original model); 1: exponential with radius instead
 MvirDefinition              2       ;Mass definition in the treefiles used for Mvir (default for Millennium should be 2, i.e. M200c)
 AgeStructOut                1       ;Include age structure in output (0 for no, 1 for yes). WARNING: Slows code and increases size of output significantly!! Recommended for a single snapshot only.
+DelayedFeedbackOn           1       ; Abandon the instantaneous recycling approximation and use the age bins to impose a semi-instantaneous, semi-delayed feedback and metal enrichment treatment (requires N_AGE_BINS to be non-zero, ideally >20).  1 for on, 0 for off.
 
 
 %----------------------------------------------------------
 %-- HARD CODED PARAMETERS, MUST RUN compile.py TO UPDATE --
 %----------------------------------------------------------
 
-N_BINS                  30  ; Number of j bins used in discs (see below for setting structure of bins)
-N_AGE_BINS              30  ; Number of age bins used for stars in output (when AgeStructOut=1) and internally for stellar evolution
+% Unlike other parameters in this file, these ones need the '%' at the front
+%N_BINS                  30  ; Number of j bins used in discs (see below for setting structure of bins)
+%N_AGE_BINS              30  ; Number of age bins used for stars in output (when AgeStructOut=1) and internally for stellar evolution
 
 
 %------------------------------------------
@@ -91,8 +93,9 @@ FeedbackEjectionEfficiency  0.71841983
 
 
 %%%= For SupernovaRecipeOn=3or4 =%%%
-FeedbackReheatCoupling      3.0     ; very similar to FeedbackReheatingEpsilon but designated a different name for the sake of switching between feedback modes when the best-fit parameters are not identical
-FeedbackEjectCoupling       1.0
+FeedbackReheatCoupling      4.0     ; very similar to FeedbackReheatingEpsilon but designated a different name for the sake of switching between feedback modes when the best-fit parameters are not identical
+FeedbackEjectCoupling       0.5
+Ratio_Ia_II                 0.2     ; number ratio of Type Ia (binary accretion) to Type II (core collapse) supernovae. Affects the total number of supernovae (and therefore total feedback energy) per unit mass of stars formed.
 %%%= ========================== =%%%
 
 
@@ -138,6 +141,7 @@ FracZleaveDisk                0.0        ;fraction of metals produced directly t
 
 Reionization_z0                8.0        ;these parameter choices give the best fit to Genedin (2000)...
 Reionization_zr                7.0        ;using the analytic fit of Kravtsov et al. 2004 (ReionizationOn=1)
+
 
 EnergySN                    1.0e51    ;energy per supernova
 EtaSN                        5.0e-3    ;supernova efficiency

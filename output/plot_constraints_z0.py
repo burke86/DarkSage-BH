@@ -278,7 +278,7 @@ except Exception as excptn:
 
 
 
-##### PLOT 4: HI and H2 PROFILES #####
+##### PLOT 5: HI and H2 PROFILES #####
 try:
     filt = (Vmax>=175) * (Vmax<=235) * (G['StellarMass']/h > 1.0) * (G['ColdGas']/h > 10**-0.8) * (G['Type']==0) * (BTT<0.5)
     area = np.pi*(G['DiscRadii'][:,1:]**2 - G['DiscRadii'][:,:-1]**2) * 1e12/h**2

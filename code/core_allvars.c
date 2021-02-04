@@ -66,6 +66,7 @@ int ReincorpotationModel;
 int CoolingExponentialRadiusOn;
 int MvirDefinition;
 int AgeStructOut;
+int DelayedFeedbackOn;
 
 // binning information
 double FirstBin;
@@ -104,6 +105,8 @@ double Reionization_zr;
 double ThresholdSatDisruption;
 double AlphaBurst;
 double BetaBurst;
+double FinalRecycleFraction;
+double Ratio_Ia_II;
 
 // more misc 
 double UnitLength_in_cm,

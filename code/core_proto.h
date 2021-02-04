@@ -78,6 +78,9 @@ void update_gasdisc_scaleradius(int p);
 void walk_down(int i);
 void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double max_consume, double hot_specific_energy, double ejected_specific_energy, double *feedback_mass);
 double NFW_potential(int p, double r);
+int get_stellar_age_bin_index(double time);
+double get_recycle_fraction(double t0, double t1);
+double integrated_mret_IMF(double m);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas);
 void disrupt_satellite_to_ICS(int centralgal, int gal);

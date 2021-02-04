@@ -191,7 +191,6 @@ if Nage>1: # check consistency from stellar-age bins
         A_BinEdge[-1] = alist[-1]
         RedshiftBinEdge = 1./ A_BinEdge - 1.
     TimeBinEdge = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in RedshiftBinEdge]) # look-back time [Gyr]
-    print 'TimeBinEdge', TimeBinEdge*h
     dT = np.diff(TimeBinEdge)*1e9 # time step for each bin [yr]
     
     # sum mass from age bins of all components
