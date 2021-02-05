@@ -105,7 +105,6 @@ double Reionization_zr;
 double ThresholdSatDisruption;
 double AlphaBurst;
 double BetaBurst;
-double FinalRecycleFraction;
 double Ratio_Ia_II;
 
 // more misc 

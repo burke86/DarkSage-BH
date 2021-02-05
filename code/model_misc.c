@@ -220,6 +220,14 @@ double get_metallicity(double gas, double metals)
 }
 
 
+double dmin(double x, double y)
+{
+    if(x < y)
+        return x;
+    else
+        return y;
+}
+
 
 double dmax(double x, double y)
 {
@@ -843,40 +851,73 @@ int get_stellar_age_bin_index(double time)
 
 double get_recycle_fraction(double t0, double t1)
 {
-    double m0, m1, piecewise_int;
+    double m0, m1;//, piecewise_int, frac_already_lost, norm_multiplier;
     
     // note the swapping of labels 0 and 1, as min time is max mass and vice versa. Note that mass is in solar masses, not Dark Sage internal units!!  m0 and m1 refer to the range of initial star masses over which the IMF is integrated.
     
     assert(t1>t0); // no point running this otherwise
     
     m0 = 1.0 / pow(t1 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
-    if(m0<1.0) m0 = 1.0; // built-in assumption that subsolar stars don't cause any outflows of gas
+    
+    // built-in assumption that subsolar stars don't cause any outflows of gas or feedback
+    if(m0>50.0) return 0.0;
+    if(m0<1.0) m0 = 1.0; 
     
     if(t0>0)
     {
         m1 = 1.0 / pow(t0 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
-        if(m1>50.0) m1 = 50.0; // built-in assumption that stars > 50 solar collapse rapidly to black holes without return gas to the ISM
+        if(m1>50.0) m1 = 50.0; // built-in assumption that stars > 50 solar collapse rapidly to black holes without returning gas to the ISM or causing feedback
+        if(m1<1.0) return 0.0;
     }
     else
         m1 = 50.0;
     
     assert(m1>m0);
     
-    piecewise_int = 0.0;
-    if(m0<7.0) piecewise_int += (integrated_mret_IMF(min(7.0,m1)) - integrated_mret_IMF(max(1.0,m0)));
-    if(m1<=7.0) return piecewise_int;
-    if(m0<8.0) piecewise_int += (integrated_mret_IMF(min(8.0,m1)) - integrated_mret_IMF(max(7.0,m0)));
-    if(m1<=8.0) return piecewise_int;
-    piecewise_int += (integrated_mret_IMF(min(50.0,m1)) - integrated_mret_IMF(max(8.0,m0)));
-    return piecewise_int;
+    return (integrate_m_IMF(m0,m1) - integrate_mremnant_IMF(m0,m1)) / (integrate_m_IMF(0.1,m0) - integrate_mremnant_IMF(m0,100.0));
+    
+//    if(m1<50.0) // presumably getting the recycle fraction for a population of stars that already exists for a finite time and therefore has already lost some of its mass.  The fraction we want returned is the fraction of REMAINING mass of that population that gets returned to the ISM, which therefore requires renormalising
+//    {
+//        frac_already_lost = integrated_mret_IMF(m1) - integrated_mret_IMF(100.);
+//        norm_multiplier = 1.0 / frac_already_lost
+//    }
+//    else
+//    {
+//        norm_multiplier = 1.0;
+//    }
+//    
+//    
+//    return piecewise_int * norm_multiplier;
 }
 
 
-double integrated_mret_IMF(double m)
+double integrate_m_IMF(double m0, double m1)
 {
-    // analytic indefinite integral of mret*IMF. Assumes both input and output are in solar masses (not Dark Sage internal mass units).
-    if(m<1 || m>50)
-        return 0.0;
+    // Definite integral of m*IMF between m0 and m1. Mass unit is solar (not the Dark Sage internal mass unit).
+    if(m1<1)
+        printf("Have not added functionality for integrate_m_IMF to take m1<1 yet! Either it is time to add this to the code, or there is a bug causing this to happen.");
+    assert(m1>=1);
+    
+    if(m1>100)
+        m1 = 100.0;
+    
+    if(m0<=1)
+    {
+        if(m0>0.01)
+            printf("Have not added functionality for integrate_m_IMF to take 0.01<m0<1 yet!  Resetting to 0.01. Either it is time to add this to the code, or there is a bug causing this to happen.");
+        return 0.405 - 0.7945925666666667 * (pow(m1, -0.3) - 1.0);
+    }
+    else
+        return -0.7945925666666667 * (pow(m1, -0.3) - pow(m0, -0.3));
+}
+
+double indef_integral_mremnant_IMF(double m)
+{
+    // analytic indefinite integral of mremnant*IMF. Mass unit is solar (not the Dark Sage internal mass unit).
+    if(m>50)
+        return -0.7945925666666667 * pow(m, -0.3);
+    else if(m<1)
+        printf("Have not added functionality for indef_integral_mremnant_IMF to take m<1 yet! Either it is time to add this to the code, or there is a bug causing this to happen.");
     else if(m>=1 && m<=7)
         return -0.08141517683076922*pow(m,-1.3) - 0.0667457756*pow(m,-0.3);
     else if(m<7 && m>8)
@@ -885,10 +926,21 @@ double integrated_mret_IMF(double m)
         return -0.2567145215384615*pow(m,-1.3);
 }
 
-
-double get_numSN_perSF(double t0, double t1)
+double integrate_mremnant_IMF(double m0, double m1)
 {
-    // Intergrate the IMF between mass range corresponding to a stellar lifetime range to calculate the number of supernovae in that time per unit mass of the stellar population from which they originate
+    double piecewise_int = 0.0;
+    if(m0<7.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(7.0,m1)) - indef_integral_mremnant_IMF(dmax(1.0,m0)));
+    if(m1<=7.0) return piecewise_int;
+    if(m0<8.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(8.0,m1)) - indef_integral_mremnant_IMF(dmax(7.0,m0)));
+    if(m1<=8.0) return piecewise_int;
+    piecewise_int += (indef_integral_mremnant_IMF(dmin(50.0,m1)) - indef_integral_mremnant_IMF(dmax(8.0,m0)));
+    return piecewise_int;
+}
+
+
+double get_numSN_perMass(double t0, double t1)
+{
+    // Intergrate the IMF between mass range corresponding to a stellar lifetime range to calculate the number of supernovae in that time per unit remaining mass of the stellar population from which they originate
     
     // starts the same as get_recycle_fraction
     double m0, m1, piecewise_int;
@@ -905,9 +957,9 @@ double get_numSN_perSF(double t0, double t1)
     assert(m1>m0);
     
     piecewise_int = 0.0;
-    if(m0<8.0) piecewise_int += (0.01194933634822933 * Ratio_Ia_II * (pow(max(1.0,m0),-1.3) - pow(min(8.0,m1),-1.3)) ) ;
+    if(m0<8.0) piecewise_int += (0.01194933634822933 * Ratio_Ia_II * (pow(dmax(1.0,m0),-1.3) - pow(dmin(8.0,m1),-1.3)) ) ;
     if(m1<=8.0) return piecewise_int;
-    piecewise_int += (0.18336751538461538 * (pow(max(8.0,m0),-1.3) - pow(min(50.0,m1),-1.3)) );
+    piecewise_int += (0.18336751538461538 * (pow(dmax(8.0,m0),-1.3) - pow(dmin(50.0,m1),-1.3)) );
     return piecewise_int;
     
 }

@@ -282,7 +282,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-background subhalo (i.e. main halo)
 {
   int p, i, step, centralgal, merger_centralgal, currenthalo, offset, k, k_now;
-  double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt, tot_ICS, tot_ICSMetals, tot_ejected, tot_ejectedMetals, tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS];
+  double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt, tot_ICS, tot_ICSMetals, tot_ejected, tot_ejectedMetals, tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS], InstantTimeFrame;
 
   centralgal = Gal[0].CentralGal;
   if(Gal[centralgal].Type != 0 || Gal[centralgal].HaloNr != halonr)

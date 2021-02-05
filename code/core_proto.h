@@ -80,7 +80,11 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
 double NFW_potential(int p, double r);
 int get_stellar_age_bin_index(double time);
 double get_recycle_fraction(double t0, double t1);
-double integrated_mret_IMF(double m);
+double integrate_m_IMF(double m0, double m1);
+double indef_integral_mremnant_IMF(double m);
+double integrate_mremnant_IMF(double m0, double m1);
+double get_numSN_perMass(double t0, double t1);
+double dmin(double x, double y);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas);
 void disrupt_satellite_to_ICS(int centralgal, int gal);
