@@ -79,7 +79,7 @@ void walk_down(int i);
 void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double max_consume, double hot_specific_energy, double ejected_specific_energy, double *feedback_mass);
 double NFW_potential(int p, double r);
 int get_stellar_age_bin_index(double time);
-double get_recycle_fraction(double t0, double t1);
+void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_output);
 double integrate_m_IMF(double m0, double m1);
 double indef_integral_mremnant_IMF(double m);
 double integrate_mremnant_IMF(double m0, double m1);

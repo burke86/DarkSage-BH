@@ -144,10 +144,16 @@ int main(int argc, char **argv)
     ProCount = 0;
     
     // Determine the total returned mass fraction from a population of stars
+    double StellarOutput[2];
+    get_RecycleFraction_and_NumSNperMass(0, 1e20, StellarOutput);
+    printf("FinalRecycleFraction, SNperMassFormed = %e, %e\n", StellarOutput[0], StellarOutput[1]);
     if(DelayedFeedbackOn>0)
-        FinalRecycleFraction = get_recycle_fraction(0, 1e20); // arbitrarily large number for upper bound on time
+        FinalRecycleFraction = 1.0*StellarOutput[0]; // arbitrarily large number for upper bound on time
     else
         FinalRecycleFraction = 1.0 * RecycleFraction;
+    
+    // Used for SupernovaRecipeOn>3.  If DelayedFeedbackOn==1, this will be updated in build_disc_model().  The value below assumes the instantaneous recycling (and therefore instantaneous feedback) approximation
+    SNperMassFormed = 1.0*StellarOutput[1];
     
 #ifdef MPI
     // A small delay so that processors don't use the same file

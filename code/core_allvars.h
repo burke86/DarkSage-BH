@@ -514,6 +514,7 @@ double DiscBinEdge[N_BINS+1];
 double AgeBinEdge[N_AGE_BINS+1];
 int RetroCount, ProCount;
 double FinalRecycleFraction;
+double SNperMassFormed;
 
 #ifdef MINIMIZE_IO
 extern char *ptr_treedata, *ptr_galaxydata, *ptr_galsnapdata[ABSOLUTEMAXSNAPS];

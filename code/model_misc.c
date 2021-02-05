@@ -849,7 +849,7 @@ int get_stellar_age_bin_index(double time)
 }
 
 
-double get_recycle_fraction(double t0, double t1)
+void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_output)
 {
     double m0, m1;//, piecewise_int, frac_already_lost, norm_multiplier;
     
@@ -860,34 +860,34 @@ double get_recycle_fraction(double t0, double t1)
     m0 = 1.0 / pow(t1 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
     
     // built-in assumption that subsolar stars don't cause any outflows of gas or feedback
-    if(m0>50.0) return 0.0;
+    if(m0>50.0) 
+    {
+        stellar_output[0] = 0.0;
+        stellar_output[1] = 0.0;
+        return;
+    }
     if(m0<1.0) m0 = 1.0; 
     
     if(t0>0)
     {
         m1 = 1.0 / pow(t0 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
         if(m1>50.0) m1 = 50.0; // built-in assumption that stars > 50 solar collapse rapidly to black holes without returning gas to the ISM or causing feedback
-        if(m1<1.0) return 0.0;
+        if(m1<1.0)
+        {
+            stellar_output[0] = 0.0;
+            stellar_output[1] = 0.0;
+            return;
+        }
     }
     else
         m1 = 50.0;
     
     assert(m1>m0);
     
-    return (integrate_m_IMF(m0,m1) - integrate_mremnant_IMF(m0,m1)) / (integrate_m_IMF(0.1,m0) - integrate_mremnant_IMF(m0,100.0));
-    
-//    if(m1<50.0) // presumably getting the recycle fraction for a population of stars that already exists for a finite time and therefore has already lost some of its mass.  The fraction we want returned is the fraction of REMAINING mass of that population that gets returned to the ISM, which therefore requires renormalising
-//    {
-//        frac_already_lost = integrated_mret_IMF(m1) - integrated_mret_IMF(100.);
-//        norm_multiplier = 1.0 / frac_already_lost
-//    }
-//    else
-//    {
-//        norm_multiplier = 1.0;
-//    }
-//    
-//    
-//    return piecewise_int * norm_multiplier;
+    double denom = (integrate_m_IMF(0.1,m0) + integrate_mremnant_IMF(m0,100.0));
+    stellar_output[0] = (integrate_m_IMF(m0,m1) - integrate_mremnant_IMF(m0,m1)) / denom;
+    stellar_output[1] = get_numSN_perMass(m0,m1) / (denom * SOLAR_MASS * Hubble_h) * UnitMass_in_g; // convert to internal units (inverse mass)
+    return;
 }
 
 
@@ -901,10 +901,10 @@ double integrate_m_IMF(double m0, double m1)
     if(m1>100)
         m1 = 100.0;
     
-    if(m0<=1)
+    if(m0<1)
     {
-        if(m0>0.01)
-            printf("Have not added functionality for integrate_m_IMF to take 0.01<m0<1 yet!  Resetting to 0.01. Either it is time to add this to the code, or there is a bug causing this to happen.");
+        if(m0>0.1)
+            printf("Have not added functionality for integrate_m_IMF to take 0.1<m0<1 yet!  Resetting to 0.1. Either it is time to add this to the code, or there is a bug causing this to happen: m0=%e\n", m0);
         return 0.405 - 0.7945925666666667 * (pow(m1, -0.3) - 1.0);
     }
     else
@@ -938,22 +938,14 @@ double integrate_mremnant_IMF(double m0, double m1)
 }
 
 
-double get_numSN_perMass(double t0, double t1)
+double get_numSN_perMass(double m0, double m1)
 {
-    // Intergrate the IMF between mass range corresponding to a stellar lifetime range to calculate the number of supernovae in that time per unit remaining mass of the stellar population from which they originate
+    // Intergrate the IMF between mass range to calculate the number of supernovae in that time per unit remaining mass of the stellar population from which they originate
     
     // starts the same as get_recycle_fraction
-    double m0, m1, piecewise_int;
-    assert(t1>t0); // no point running this otherwise
-    m0 = 1.0 / pow(t1 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
+    double piecewise_int;
     if(m0<1.0) m0 = 1.0;
-    if(t0>0)
-    {
-        m1 = 1.0 / pow(t0 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
-        if(m1>100.0) m1 = 50.0;
-    }
-    else
-        m1 = 50.0;
+    if(m1>50.0) m1 = 50.0;
     assert(m1>m0);
     
     piecewise_int = 0.0;

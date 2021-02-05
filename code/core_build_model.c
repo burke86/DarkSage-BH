@@ -282,7 +282,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-background subhalo (i.e. main halo)
 {
   int p, i, step, centralgal, merger_centralgal, currenthalo, offset, k, k_now;
-  double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt, tot_ICS, tot_ICSMetals, tot_ejected, tot_ejectedMetals, tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS], InstantTimeFrame;
+  double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt, tot_ICS, tot_ICSMetals, tot_ejected, tot_ejectedMetals, tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS], InstantTimeFrame, StellarOutput[2];
 
   centralgal = Gal[0].CentralGal;
   if(Gal[centralgal].Type != 0 || Gal[centralgal].HaloNr != halonr)
@@ -362,7 +362,9 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         {
             k_now = get_stellar_age_bin_index(time);
             InstantTimeFrame = 0.5*(AgeBinEdge[k_now] - AgeBinEdge[k_now+1]);
-            RecycleFraction = get_recycle_fraction(0.0, InstantTimeFrame);
+            get_RecycleFraction_and_NumSNperMass(0.0, InstantTimeFrame, StellarOutput);
+            RecycleFraction = 1.0*StellarOutput[0];
+            SNperMassFormed = 1.0*StellarOutput[1];
             
         }
         
