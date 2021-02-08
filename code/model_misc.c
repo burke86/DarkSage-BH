@@ -203,8 +203,8 @@ double get_metallicity(double gas, double metals)
 {
     double metallicity;
     
-//    if(metals>gas)
-//    printf("get_metallicity report: metals, gas/stars = %e, %e\n", metals, gas);
+    if(metals>gas)
+    printf("get_metallicity report: metals, gas/stars = %e, %e\n", metals, gas);
     
     if(gas > 0.0 && metals > 0.0)
     {
@@ -866,7 +866,11 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
         stellar_output[1] = 0.0;
         return;
     }
-    if(m0<1.0) m0 = 1.0; 
+    
+//    if(m0<0.1)
+//        m0 = 0.1;
+    if(m0<1.0) 
+        m0 = 1.0; 
     
     if(t0>0)
     {
@@ -884,7 +888,7 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
     
     assert(m1>m0);
     
-    double denom = (integrate_m_IMF(0.1,m0) + integrate_mremnant_IMF(m0,100.0));
+    double denom = (integrate_m_IMF(0.1,m1) + integrate_mremnant_IMF(m1,100.0));
     stellar_output[0] = (integrate_m_IMF(m0,m1) - integrate_mremnant_IMF(m0,m1)) / denom;
     stellar_output[1] = get_numSN_perMass(m0,m1) / (denom * SOLAR_MASS * Hubble_h) * UnitMass_in_g; // convert to internal units (inverse mass)
     return;

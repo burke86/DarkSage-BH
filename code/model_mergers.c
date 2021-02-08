@@ -706,7 +706,7 @@ void disrupt_satellite_to_ICS(int centralgal, int gal)
 void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_centralgal, int centralgal, double dt, int mode, int step, int k_now)
 {
  double stars, reheated_mass, ejected_mass, fac, metallicity, CentralVvir, eburst, Sigma_0gas, area, stars_sum, metals_stars, stars_angmom;
- double r_inner, r_outer, j_bin;
+ double r_inner, r_outer, j_bin, new_metals;
  //double NewStars[N_BINS], NewStarsMetals[N_BINS];
  int k, s;
 
@@ -786,18 +786,21 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     if(reheated_mass > Gal[merger_centralgal].DiscGas[k] && reheated_mass < 1.01*Gal[merger_centralgal].DiscGas[k])
 	  reheated_mass = Gal[merger_centralgal].DiscGas[k];
 
-	// update from feedback
+      // Inject new metals from SN II
+      if(SupernovaRecipeOn>0 && stars>=MIN_STARS_FOR_SN)
+      {
+          new_metals = Yield * stars*(1-metallicity) * RecycleFraction/FinalRecycleFraction;
+          Gal[merger_centralgal].DiscGasMetals[k] += new_metals;
+          Gal[merger_centralgal].MetalsColdGas += new_metals;
+      }
+
+      
+      // update from feedback
 	metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[k], Gal[merger_centralgal].DiscGasMetals[k]);
 	assert(Gal[merger_centralgal].DiscGasMetals[k] <= Gal[merger_centralgal].DiscGas[k]);
       assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
 	update_from_feedback(merger_centralgal, centralgal, reheated_mass, metallicity, k);
  
-    // Inject new metals from SN II
-	if(SupernovaRecipeOn>0 && stars>=MIN_STARS_FOR_SN)
-	{
-	    Gal[merger_centralgal].DiscGasMetals[k] += Yield * stars*(1-get_metallicity(stars,metals_stars));
-	    Gal[merger_centralgal].MetalsColdGas += Yield * stars*(1-get_metallicity(stars,metals_stars));
-	}
       
     if(!(Gal[merger_centralgal].DiscGasMetals[k]<=Gal[merger_centralgal].DiscGas[k]))
     {

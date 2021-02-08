@@ -14,7 +14,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
 {
   double strdot, stars, reheated_mass, ejected_mass, fac, metallicity, stars_sum, area, SFE_H2, f_H2_const, Sigma_0gas, DiscGasSum, DiscStarsSum, DiscPre, ColdPre;
   double r_inner, r_outer;
-  double reff, tdyn, cold_crit, strdotfull, H2sum; // For SFprescription==3
+  double reff, tdyn, cold_crit, strdotfull, H2sum, new_metals; // For SFprescription==3
 
   double NewStars[N_BINS], NewStarsMetals[N_BINS];
   int i, k;
@@ -165,25 +165,29 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
 	DiscPre = Gal[p].DiscGas[i];
 	ColdPre = Gal[p].ColdGas;
 
-    // Update from SN feedback
-	metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
-	assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
-    assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
-    if(reheated_mass > 0.0)
-      update_from_feedback(p, centralgal, reheated_mass, metallicity, i);
 
-      assert(fabs(Gal[p].ColdGas-ColdPre) <= 1.01*fabs(Gal[p].DiscGas[i]-DiscPre) && fabs(Gal[p].ColdGas-ColdPre) >= 0.999*fabs(Gal[p].DiscGas[i]-DiscPre) && (Gal[p].ColdGas-ColdPre)*(Gal[p].DiscGas[i]-DiscPre)>=0.0);
-
-	// Inject new metals from SN II
+	// Inject new metals from SN
 	if(SupernovaRecipeOn > 0 && stars>=MIN_STARS_FOR_SN)
 	{
-	    Gal[p].DiscGasMetals[i] += Yield * stars*(1.0 - get_metallicity(NewStars[i],NewStarsMetals[i])); // Could just use metallicity variable here, surely
-	    Gal[p].MetalsColdGas += Yield * stars*(1.0 - get_metallicity(NewStars[i],NewStarsMetals[i]));
-	}
+        new_metals = Yield * stars*(1-metallicity) * RecycleFraction/FinalRecycleFraction;
+        Gal[p].DiscGasMetals[i] += new_metals;
+        Gal[p].MetalsColdGas += new_metals;	
+    }
     if(Gal[p].DiscGasMetals[i] > Gal[p].DiscGas[i]) printf("DiscGas, Metals = %e, %e\n", Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
 	assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
 	if(Gal[p].DiscStarsMetals[i] > Gal[p].DiscStars[i]) printf("DiscStars, Metals = %e, %e\n", Gal[p].DiscStars[i], Gal[p].DiscStarsMetals[i]);
 	assert(Gal[p].DiscStarsMetals[i] <= Gal[p].DiscStars[i]);
+
+      // Update from SN feedback
+      metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
+      assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
+      assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
+      if(reheated_mass > 0.0)
+        update_from_feedback(p, centralgal, reheated_mass, metallicity, i);
+
+        assert(fabs(Gal[p].ColdGas-ColdPre) <= 1.01*fabs(Gal[p].DiscGas[i]-DiscPre) && fabs(Gal[p].ColdGas-ColdPre) >= 0.999*fabs(Gal[p].DiscGas[i]-DiscPre) && (Gal[p].ColdGas-ColdPre)*(Gal[p].DiscGas[i]-DiscPre)>=0.0);
+
+
   }
 
   update_from_ejection(p, centralgal, ejected_sum);

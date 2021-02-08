@@ -157,12 +157,20 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
             }
 		}
         
-        Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / G / (Gal[p].DiscGas[i]-SNgas[i]);
-        if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, SNgas = %e", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], SNgas[i]);
-        assert(Q_gas>0);
-        if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min = %e, %e\n", Q_gas, Q_gas_min);
-        assert(Q_gas >= 0.99*Q_gas_min);
-        assert(Q_gas >= 0.99*QTotMin);
+        if(SNgas[i]>Gal[p].DiscGas[i])
+        {
+            SNgas[i] = 1.0*Gal[p].DiscGas[i];
+            Q_gas = 1e5; // arbitrarily large
+        }
+        else
+        {
+            Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / G / (Gal[p].DiscGas[i]-SNgas[i]);
+            if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, SNgas = %e", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], SNgas[i]);
+            assert(Q_gas>0);
+            if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min = %e, %e\n", Q_gas, Q_gas_min);
+            assert(Q_gas >= 0.99*Q_gas_min);
+            assert(Q_gas >= 0.99*QTotMin);
+        }
 	}
 	
 	gas_sink += Gal[p].BlackHoleMass; // Because this was set as -BHMass at the start, this is actually the increase in BH mass from the instab.
@@ -437,10 +445,10 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
     }
     else // Conserve angular momentum while moving gas to restore stability
     {
-        j_gain = (DiscBinEdge[i+2]-DiscBinEdge[i])/2.0;
+        j_gain = (DiscBinEdge[i+2]-DiscBinEdge[i])*0.5;
         if(i==0)
         {
-            j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i])/2.0;
+            j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i])*0.5;
             m_up = j_lose / (j_gain + j_lose) * gas_sink;
             m_down = m_up * j_gain / j_lose;
             Gal[p].BlackHoleMass += m_down;
@@ -450,7 +458,7 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
         }
         else
         {
-            j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i-1])/2.0;
+            j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i-1])*0.5;
             m_up = j_lose / (j_gain + j_lose) * gas_sink;
             m_down = m_up * j_gain / j_lose;
             Gal[p].DiscGas[i-1] += m_down;
@@ -481,16 +489,18 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 		if(reheated_mass > Gal[p].DiscGas[i] && reheated_mass < 1.01*Gal[p].DiscGas[i])
 		  reheated_mass = Gal[p].DiscGas[i];
 		
-		metallicity_new = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
+        if(SupernovaRecipeOn>0 && stars>=MIN_STARS_FOR_SN)
+        {
+            double new_metals = Yield * stars*(1-metallicity) * RecycleFraction/FinalRecycleFraction;
+            Gal[p].DiscGasMetals[i] += new_metals;
+            Gal[p].MetalsColdGas += new_metals;
+        }
+        
+        metallicity_new = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
 		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
 
 	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i);
 
-        if(SupernovaRecipeOn>0 && stars>=MIN_STARS_FOR_SN)
-        {
-			Gal[p].DiscGasMetals[i] += Yield * stars*(1-metallicity);
-	    	Gal[p].MetalsColdGas += Yield * stars*(1-metallicity);
-		}
 	}
     
     update_from_ejection(p, centralgal, ejected_sum);
