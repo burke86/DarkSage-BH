@@ -248,7 +248,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         else if(SupernovaRecipeOn == 3 || SupernovaRecipeOn == 4)
         {
 //            energy_feedback = FeedbackReheatCoupling * stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // 630 km/s for kinetic velocity kick from supernovae assumed -- 198450.0 = 0.5*630*630, where the 0.5 is to account for the 1/2 in formula for kinetic energy
-            energy_feedback = FeedbackReheatCoupling * stars * EnergySNcode;
+            energy_feedback = FeedbackReheatCoupling * stars * EnergySNcode * SNperMassFormed;
             annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
             annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
             cold_specific_energy = 0.25 * sqr(annulus_velocity) + (Gal[p].Potential[i] + Gal[p].Potential[i+1]);
