@@ -53,7 +53,7 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('SpinStars'                    , (floattype, 3)),
                     ('SpinGas'                      , (floattype, 3)),
                     ('SpinClassicalBulge'           , (floattype, 3)),
-                    ('StarsInSitu'                  , floattype),
+                    ('StarsFromH2'                  , floattype),
                     ('StarsInstability'             , floattype),
                     ('StarsMergeBurst'              , floattype),
                     ('DiscHI'                       , (floattype, Nannuli)),
@@ -385,7 +385,7 @@ def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=No
 
 
 
-def savepng(filename, xsize=1024, ysize=None, fig=None, transparent=False):
+def savepng(filename, xsize=1024, ysize=None, fig=None, transparent=False, compact=False):
     # Save a figure as a PNG with a normalised size / aspect ratio
     xpix = 2560
     ypix = 1440
@@ -399,6 +399,7 @@ def savepng(filename, xsize=1024, ysize=None, fig=None, transparent=False):
     if fig is None: fig = plt.gcf()
     fig.set_size_inches(xinplot,yinplot)
     fig.set_dpi(mydpi)
+    if compact: fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
     
     filename = str(filename)
     if filename[-4:] != '.png':

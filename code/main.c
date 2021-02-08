@@ -146,7 +146,7 @@ int main(int argc, char **argv)
     // Determine the total returned mass fraction from a population of stars
     double StellarOutput[2];
     get_RecycleFraction_and_NumSNperMass(0, 1e20, StellarOutput); // arbitrarily large number for upper bound on time
-    printf("FinalRecycleFraction, SNperMassFormed = %e, %e\n", StellarOutput[0], StellarOutput[1]);
+//    printf("FinalRecycleFraction, SNperMassFormed = %e, %e\n", StellarOutput[0], StellarOutput[1]);
     if(DelayedFeedbackOn>0)
         FinalRecycleFraction = 1.0*StellarOutput[0];
     else
