@@ -248,14 +248,12 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         else if(SupernovaRecipeOn == 3 || SupernovaRecipeOn == 4)
         {
 //            energy_feedback = FeedbackReheatCoupling * stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // 630 km/s for kinetic velocity kick from supernovae assumed -- 198450.0 = 0.5*630*630, where the 0.5 is to account for the 1/2 in formula for kinetic energy
-            energy_feedback = FeedbackReheatCoupling * stars * EnergySNcode * SNperMassFormed;
+            energy_feedback = FeedbackReheatCoupling * stars * EnergySNcode * SNperMassFormed; // still controlled by a coupling efficiency
             annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
             annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
-            cold_specific_energy = 0.25 * sqr(annulus_velocity) + (Gal[p].Potential[i] + Gal[p].Potential[i+1]);
+            cold_specific_energy = 0.5 * sqr(annulus_velocity) + 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]);
             reheat_specific_energy = hot_specific_energy - cold_specific_energy;
-            reheated_mass = energy_feedback / reheat_specific_energy; // still controlled by a coupling efficiency
-
-            
+            reheated_mass = energy_feedback / reheat_specific_energy;  
         }
         else
             reheated_mass = 0.0;
@@ -383,6 +381,10 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
     if(!(reheated_mass <= Gal[p].DiscGas[i])) printf("disc gas, reheated gas = %e, %e\n", Gal[p].DiscGas[i], reheated_mass);
   assert(reheated_mass <= Gal[p].DiscGas[i]);
   assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
+    assert(Gal[p].HotGas>=0);
+    assert(Gal[p].MetalsHotGas>=0);
+    assert(metallicity>=0);
+    assert(reheated_mass>=0);
 
   if(SupernovaRecipeOn>0)
   {
@@ -417,6 +419,7 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
     }
   }
 
+    if(!(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas)) printf("Gal[centralgal].MetalsHotGas, Gal[centralgal].HotGas = %e, %e\n", Gal[centralgal].MetalsHotGas, Gal[centralgal].HotGas);
   assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
 
   if(Gal[p].DiscGas[i] <= 0.0)
@@ -441,7 +444,9 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
   }
     
   Gal[p].OutflowRate += reheated_mass;
-    
+    assert(Gal[p].HotGas>=0);
+    assert(Gal[p].MetalsHotGas>=0);
+
 }
 
 
@@ -451,7 +456,9 @@ void update_from_ejection(int p, int centralgal, double ejected_mass)
     
     assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
     assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
-    
+    assert(Gal[p].HotGas>=0);
+    assert(Gal[p].MetalsHotGas>=0);
+
     if(HeatedToCentral)
     {
     	metallicityHot = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
@@ -497,6 +504,8 @@ void update_from_ejection(int p, int centralgal, double ejected_mass)
     //printf("Eject, Metals = %e, %e\n", Gal[p].EjectedMass, Gal[p].MetalsEjectedMass);
     assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
     assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
+    assert(Gal[p].HotGas>=0);
+    assert(Gal[p].MetalsHotGas>=0);
 }
 
 
@@ -721,7 +730,7 @@ void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewD
 		high_bound = DiscBinEdge[i+1] / cos_angle;
 		j = j_old;
 		
-		while(DiscBinEdge[j]<=high_bound)
+		while(DiscBinEdge[j]<high_bound)
 		{
 			j++;
 			if(j==N_BINS) break;
@@ -739,8 +748,8 @@ void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewD
 			if(j!=N_BINS-1){
 				ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (DiscBinEdge[j+1]-DiscBinEdge[j]));
 				assert(ratio_last_bin<=1.0);}
-			else if(high_bound < Gal[p].Rvir/Gal[p].Vvir){
-				ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (Gal[p].Rvir/Gal[p].Vvir-DiscBinEdge[j]));
+			else if(high_bound < Gal[p].Rvir*Gal[p].Vvir){
+				ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (Gal[p].Rvir*Gal[p].Vvir-DiscBinEdge[j]));
 				assert(ratio_last_bin<=1.0);}
 			else
 				ratio_last_bin = 1.0;
@@ -775,7 +784,7 @@ void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, 
         high_bound = DiscBinEdge[i+1] / cos_angle;
         j = j_old;
         
-        while(DiscBinEdge[j]<=high_bound)
+        while(DiscBinEdge[j]<high_bound)
         {
             j++;
             if(j==N_BINS) break;
@@ -792,16 +801,26 @@ void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, 
         
         if(i!=N_BINS-1)
         {
-            if(j!=N_BINS-1){
-                ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (DiscBinEdge[j+1]-DiscBinEdge[j]));
-                assert(ratio_last_bin<=1.0);}
-            else if(high_bound < Gal[p].Rvir/Gal[p].Vvir){
-                ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (Gal[p].Rvir/Gal[p].Vvir-DiscBinEdge[j]));
-                assert(ratio_last_bin<=1.0);}
+            if(j!=N_BINS-1)
+            {
+                ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (DiscBinEdge[j+1] - DiscBinEdge[j]));
+                assert(ratio_last_bin<=1.0);
+                if(!(ratio_last_bin>0))
+                    printf("j, ratio_last_bin, high_bound, DiscBinEdge[j], DiscBinEdge[j+1] = %i, %e, %e, %e, %e\n", j, ratio_last_bin, high_bound, DiscBinEdge[j], DiscBinEdge[j+1]);
+                assert(ratio_last_bin>0);
+            }
+            else if(high_bound < Gal[p].Rvir*Gal[p].Vvir)
+            {
+                ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (Gal[p].Rvir*Gal[p].Vvir - DiscBinEdge[j]));
+                assert(ratio_last_bin<=1.0);
+                assert(ratio_last_bin>0);
+            }
             else
                 ratio_last_bin = 1.0;
             
 
+            assert(ratio_last_bin>0);
+            assert(DiscMassAge[j][k]>=0);
             NewDiscAge[i] += ratio_last_bin * DiscMassAge[j][k];
             DiscMassAge[j][k] -= ratio_last_bin * DiscMassAge[j][k];
         }
@@ -889,7 +908,117 @@ void update_HI_H2(int p)
 
 
 
-void delayed_feedback(int p)
+void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 {
+    int k, i;
+    double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, ejected_specific_energy, excess_energy, return_metal_mass, new_metals;
+    double StellarOutput[2];
+    
+    double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
+    
+    if(HeatedToCentral>0)
+    {
+        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * sqr(Gal[centralgal].Vvir);
+        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * sqr(Gal[centralgal].Vvir);
+    }
+    else
+    {
+        hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir);
+        ejected_specific_energy = Gal[p].EjectedPotential + 0.5 * sqr(Gal[p].Vvir);
+    }
+    
+    // loop over age bins prior to the current one and calculate the return fraction and SN per remaining mass
+    if(k_now==N_AGE_BINS-1) return;
+    double ReturnFraction[N_AGE_BINS], SNperMassRemaining[N_AGE_BINS];
+    for(k=N_AGE_BINS-1; k>k_now; k--)
+    {
+        t0 = 0.5*(AgeBinEdge[k]+AgeBinEdge[k+1]) - (time+0.5*dt); // start of time window considered for the delayed feedback
+        if(!(t0>0)) printf("k, AgeBinEdge[k-1], AgeBinEdge[k], AgeBinEdge[k+1], time+0.5*dt  = %i, %e, %e, %e, %e", k, AgeBinEdge[k-1], AgeBinEdge[k], AgeBinEdge[k+1], time+0.5*dt);
+        assert(t0>0);
+        t1 = t0 + dt; // end of time window
+//        printf("t0, t1 = %e, %e\n", t0, t1);
+        get_RecycleFraction_and_NumSNperMass(t0, t1, StellarOutput);
+        ReturnFraction[k] = 1.0*StellarOutput[0];
+        SNperMassRemaining[k] = 1.0*StellarOutput[1];
+        if(!(ReturnFraction[k]>=0)) printf("StellarOutput = %e, %e\n", StellarOutput[0], StellarOutput[1]);
+        assert(ReturnFraction[k]>=0);
+        assert(ReturnFraction[k]<1);
+    }
+                
+    double ejected_sum = 0.0;
+    
+    // loop over annuli
+    for(i=0; i<N_BINS; i++)
+    {
+        // initialise for this annulus
+        energy_feedback = 0.0;
+        
+        // relevant energy quantities for this annulus
+        annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
+        annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
+        cold_specific_energy = 0.5 * sqr(annulus_velocity) + 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]);
+        reheat_specific_energy = hot_specific_energy - cold_specific_energy;
+        
+        // loop over age bins for an annulus
+        for(k=N_AGE_BINS-1; k>k_now; k--)
+        {
+            // ensure there is something to actually do
+            if(SNperMassRemaining[k]<=0 || ReturnFraction[k]<=0 || Gal[p].DiscStarsAge[i][k]<=0) continue;
+            
+            // initial calculation of reheated mass from supernovae
+            energy_feedback += (FeedbackReheatCoupling * Gal[p].DiscStarsAge[i][k] * EnergySNcode * SNperMassRemaining[k]);
+
+            // stellar mass loss
+            metallicity = get_metallicity(Gal[p].DiscStarsAge[i][k], Gal[p].DiscStarsMetalsAge[i][k]);
+            return_mass = ReturnFraction[k] * Gal[p].DiscStarsAge[i][k];
+            return_metal_mass = ReturnFraction[k] * Gal[p].DiscStarsMetalsAge[i][k];
+            Gal[p].DiscStars[i] -= return_mass;
+            Gal[p].DiscStarsAge[i][k] -= return_mass;
+            Gal[p].StellarMass -= return_mass;
+            Gal[p].DiscStarsMetals[i] -= return_metal_mass;
+            Gal[p].DiscStarsMetalsAge[i][k] -= return_metal_mass;
+            Gal[p].MetalsStellarMass -= return_metal_mass;
+            Gal[p].DiscGas[i] += return_mass;
+            Gal[p].DiscGasMetals[i] += return_metal_mass;
+            Gal[p].ColdGas += return_mass;
+            Gal[p].MetalsColdGas += return_metal_mass;
+
+            assert(Gal[p].DiscStarsAge[i][k]>0);
+            if(!(Gal[p].DiscStarsMetalsAge[i][k]>=0)) printf("Gal[p].DiscStarsAge[i][k], Gal[p].DiscStarsMetalsAge[i][k], metallicity = %e, %e, %e\n", Gal[p].DiscStarsAge[i][k], Gal[p].DiscStarsMetalsAge[i][k], metallicity);
+            assert(Gal[p].DiscStarsMetalsAge[i][k]>=0);
+            
+            // enrich gas with new metals from this stellar population
+            new_metals = (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
+            Gal[p].DiscGasMetals[i] += new_metals;
+            Gal[p].MetalsColdGas += new_metals;
+        }
+        
+        // finalise reheated mass from delayed feedback across all stellar populations in this annulus (cannot exceed gas available to reheat)
+        reheated_mass = energy_feedback / reheat_specific_energy;
+        if(!(reheated_mass>=0))
+        {
+            printf("cold_specific_energy, hot_specific_energy = %e, %e\n", cold_specific_energy, hot_specific_energy);
+            printf("ColdGasPotential, ColdKineticEnergy = %e, %e\n", 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]), 0.5*sqr(annulus_velocity));
+            printf("HotGasPotential, HotGasThermal = %e, %e, %e\n", Gal[centralgal].HotGasPotential, 0.5*sqr(Gal[centralgal].Vvir));
+            printf("energy_feedback, reheat_specific_energy = %e, %e\n", energy_feedback, reheat_specific_energy);
+        }
+        assert(reheated_mass>=0);
+        if(reheated_mass > Gal[p].DiscGas[i]) reheated_mass = 1.0*Gal[p].DiscGas[i];
+        assert(reheated_mass>=0);
+        
+        // apply feedback
+        metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
+        update_from_feedback(p, centralgal, reheated_mass, metallicity, i);
+        
+        // excess energy that goes into gas ejection from this annulus
+        excess_energy = energy_feedback - reheat_specific_energy * reheated_mass;
+        ejected_sum += (FeedbackEjectCoupling * excess_energy / (ejected_specific_energy - hot_specific_energy));
+    }
+    
+    if(ejected_sum < Gal[centralgal].HotGas)
+        update_from_ejection(p, centralgal, ejected_sum);
+    else
+        update_from_ejection(p, centralgal, Gal[centralgal].HotGas);
+        
     
 }

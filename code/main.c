@@ -138,6 +138,8 @@ int main(int argc, char **argv)
         }
         AgeBinEdge[N_AGE_BINS] = time_to_present(ZZ[0]);
     }
+    
+//    for(i=0; i<=N_AGE_BINS; i++) printf("i, AgeBinEdge[i] = %i, %e\n", i, AgeBinEdge[i]);
         
     // Set counts for prograde and retrograde satellite collisions
     RetroCount = 0;
@@ -152,7 +154,7 @@ int main(int argc, char **argv)
     else
         FinalRecycleFraction = 1.0 * RecycleFraction;
     
-    // Used for SupernovaRecipeOn>3.  If DelayedFeedbackOn==1, this will be updated in build_disc_model().  The value below assumes the instantaneous recycling (and therefore instantaneous feedback) approximation
+    // Used for SupernovaRecipeOn>3.  If DelayedFeedbackOn==1, this will be updated in core_build_model.c.  The value below assumes the instantaneous recycling (and therefore instantaneous feedback) approximation
     SNperMassFormed = 1.0*StellarOutput[1];
     
 #ifdef MPI

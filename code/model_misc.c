@@ -886,6 +886,8 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
     else
         m1 = 50.0;
     
+    if(!(m1>m0))
+        printf("m0, m1, t0, t1 = %e, %e, %e, %e\n", m0, m1, t0, t1);
     assert(m1>m0);
     
     double denom = (integrate_m_IMF(0.1,m1) + integrate_mremnant_IMF(m1,100.0));
@@ -915,29 +917,37 @@ double integrate_m_IMF(double m0, double m1)
         return -0.7945925666666667 * (pow(m1, -0.3) - pow(m0, -0.3));
 }
 
-double indef_integral_mremnant_IMF(double m)
+double indef_integral_mremnant_IMF(double m, int piece)
 {
-    // analytic indefinite integral of mremnant*IMF. Mass unit is solar (not the Dark Sage internal mass unit).
-    if(m>50)
+    // analytic indefinite integral of mremnant*IMF. Mass unit is solar (not the Dark Sage internal mass unit).    
+    
+    if(m>=50 && piece==4)
         return -0.7945925666666667 * pow(m, -0.3);
+    else if(m>=1 && m<=7 && piece==1)
+        return -0.08141517683076922*pow(m,-1.3) - 0.0667457756*pow(m,-0.3);
+    else if(m>=7 && m<=8 && piece==2)
+        return -0.07683098894615384*pow(m,-1.3) - 0.08661058976666666*pow(m,-0.3);
+    else if(m>=8 && m<=50 && piece==3)
+        return -0.2567145215384615*pow(m,-1.3);
     else if(m<1)
         printf("Have not added functionality for indef_integral_mremnant_IMF to take m<1 yet! Either it is time to add this to the code, or there is a bug causing this to happen.");
-    else if(m>=1 && m<=7)
-        return -0.08141517683076922*pow(m,-1.3) - 0.0667457756*pow(m,-0.3);
-    else if(m<7 && m>8)
-        return -0.07683098894615384*pow(m,-1.3) - 0.08661058976666666*pow(m,-0.3);
     else
-        return -0.2567145215384615*pow(m,-1.3);
+        printf("Improper use of indef_integral_mremnant_IMF()!");
 }
 
 double integrate_mremnant_IMF(double m0, double m1)
 {
     double piecewise_int = 0.0;
-    if(m0<7.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(7.0,m1)) - indef_integral_mremnant_IMF(dmax(1.0,m0)));
+    // another if statement here for when m0<1?  Or would this never come up?
+    if(m0<1.0) piecewise_int += integrate_m_IMF(dmax(0.1,m0), dmin(1.0,m1));
+    if(m1<=1.0) return piecewise_int;
+    if(m0<7.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(7.0,m1),1) - indef_integral_mremnant_IMF(dmax(1.0,m0),1));
     if(m1<=7.0) return piecewise_int;
-    if(m0<8.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(8.0,m1)) - indef_integral_mremnant_IMF(dmax(7.0,m0)));
+    if(m0<8.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(8.0,m1),2) - indef_integral_mremnant_IMF(dmax(7.0,m0),2));
     if(m1<=8.0) return piecewise_int;
-    piecewise_int += (indef_integral_mremnant_IMF(dmin(50.0,m1)) - indef_integral_mremnant_IMF(dmax(8.0,m0)));
+    if(m0<50.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(50.0,m1),3) - indef_integral_mremnant_IMF(dmax(8.0,m0),3));
+    if(m1<=50.0) return piecewise_int;
+    piecewise_int += integrate_m_IMF(dmax(50.0,m0), dmin(100.0,m1));
     return piecewise_int;
 }
 

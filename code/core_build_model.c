@@ -357,15 +357,17 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && Gal[p].Type==0)
         update_disc_radii(p);
 	
-      // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step
+      // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
         if(DelayedFeedbackOn>0 && N_AGE_BINS>1)
         {
             k_now = get_stellar_age_bin_index(time);
-            InstantTimeFrame = 0.5*(AgeBinEdge[k_now] - AgeBinEdge[k_now+1]);
+            InstantTimeFrame = 0.5*(AgeBinEdge[k_now+1] - AgeBinEdge[k_now]);
+//            printf("InstantTimeFrame = %e\n", InstantTimeFrame);
             get_RecycleFraction_and_NumSNperMass(0.0, InstantTimeFrame, StellarOutput);
             RecycleFraction = 1.0*StellarOutput[0];
             SNperMassFormed = 1.0*StellarOutput[1];
             
+            delayed_feedback(p, k_now, centralgal, time, dt);
         }
         
 	  // stars form and then explode!
