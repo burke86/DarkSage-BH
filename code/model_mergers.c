@@ -533,12 +533,12 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
       double dCOM_p[3], dCOM_t[3], dvCOM_p[3], dvCOM_t[3], j_t[3], j_p[3], m_t, m_p, inv_m_sum;
       m_t = dmax(Gal[t].Mvir, Gal[t].StellarMass+Gal[t].HotGas+Gal[t].ColdGas+Gal[t].BlackHoleMass);
       m_p = dmax(Gal[p].Mvir, Gal[p].StellarMass+Gal[p].HotGas+Gal[p].ColdGas+Gal[p].BlackHoleMass);
-      m_t_frac = m_t/(m_t+m_p);
-      m_p_frac = 1-m_t_frac;
+      double m_t_frac = m_t/(m_t+m_p);
+      double m_p_frac = 1-m_t_frac;
       for(i=0; i<3; i++)
       {
          dCOM_p[i] = dPos[i] * m_t_frac;
-         dCOM_t[i] = -=dPos[i] * m_p_frac;
+         dCOM_t[i] = -dPos[i] * m_p_frac;
           
          dvCOM_p[i] = dVel[i] * m_t_frac; 
          dvCOM_t[i] = -dVel[i] * m_p_frac; 

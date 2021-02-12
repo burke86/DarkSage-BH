@@ -987,22 +987,22 @@ double get_numSN_perMass(double m0, double m1)
 //}
 
 
-double get_satellite_potential(int p, int centralgal)
-{
-    double r = get_satellite_radius(p, centralgal);
-    
-}
-
-double get_satellite_radius(int p, int centralgal)
-{
-    int i;
-    double dx;
-    double r2 = 0.0;
-    for(i=0; i<3; i++)
-    {
-        dx = fabs(Gal[p].Pos[i] - Gal[centralgal].Pos[i]);
-        if(dx>HalfBoxLen) dx -= BoxLen;
-        r2 += sqr(dx);
-    }
-    return sqrt(r2);
-}
+//double get_satellite_potential(int p, int centralgal)
+//{
+//    double r = get_satellite_radius(p, centralgal);
+//    
+//}
+//
+//double get_satellite_radius(int p, int centralgal)
+//{
+//    int i;
+//    double dx;
+//    double r2 = 0.0;
+//    for(i=0; i<3; i++)
+//    {
+//        dx = fabs(Gal[p].Pos[i] - Gal[centralgal].Pos[i]);
+//        if(dx>HalfBoxLen) dx -= BoxLen;
+//        r2 += sqr(dx);
+//    }
+//    return sqrt(r2);
+//}
