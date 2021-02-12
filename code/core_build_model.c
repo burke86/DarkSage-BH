@@ -358,7 +358,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         update_disc_radii(p);
 	
       // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
-        if(DelayedFeedbackOn>0 && N_AGE_BINS>1)
+        if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && Gal[p].StellarMass>0)
         {
             k_now = get_stellar_age_bin_index(time);
             InstantTimeFrame = 0.5*(AgeBinEdge[k_now+1] - AgeBinEdge[k_now]);

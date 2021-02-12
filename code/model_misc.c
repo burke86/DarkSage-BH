@@ -596,7 +596,7 @@ void update_disc_radii(int p)
         const int NUM_R_BINS=51;
         
         // set up array of radii and j from which to interpolate
-        double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS], analytic_fsupport[NUM_R_BINS], analytic_potential[NUM_R_BINS];
+        double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS], analytic_fsupport[NUM_R_BINS], analytic_potential[NUM_R_BINS], analytic_sphericized_potential[NUM_R_BINS];
         analytic_j[0] = 0.0;
         analytic_r[0] = 0.0;
         analytic_potential[NUM_R_BINS-1] = 0.0; // consider making this -G*Gal[p].Mvir/Gal[p].Rvir, which would aassume that analytic_r was always <Rvir.  This assumption likely wouldn't be strictly true.  In a way, it doesn't matter, provided potentials are always used for taking differences (what else would they be useful for?)
@@ -660,7 +660,7 @@ void update_disc_radii(int p)
                 r *= inv_ExponentBin;
    
         }
-        analytic_potential[i] = analytic_potential[i+1]; // assumes the potential flattens at the centre, as internal mass goes to zero as radius goes to zero
+        analytic_potential[0] = analytic_potential[1]; // assumes the potential flattens at the centre, as internal mass goes to zero as radius goes to zero
 
 
         
@@ -674,7 +674,7 @@ void update_disc_radii(int p)
             {
                 analytic_j_reduced[k] = 1.0*analytic_j[k+i];
                 analytic_r_reduced[k] = 1.0*analytic_r[k+i];
-                analytic_potential_reduced[k] = 1.0*analytic_potential[k+1];
+                analytic_potential_reduced[k] = 1.0*analytic_potential[k+i];
             }
             gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS_REDUCED);
             gsl_spline_init(spline, analytic_j_reduced, analytic_r_reduced, NUM_R_BINS_REDUCED);
@@ -733,6 +733,7 @@ void update_disc_radii(int p)
 //            potential_sum -= 
 //    }
     
+    if(Gal[p].Potential[0]<=0) Gal[p].Potential[0] = Gal[p].Potential[1];
     
     update_stellardisc_scaleradius(p);
     // if other functionality is added for gas disc scale radius, update it here too
@@ -984,3 +985,24 @@ double get_numSN_perMass(double m0, double m1)
 //    else
 //        return 0.0;
 //}
+
+
+double get_satellite_potential(int p, int centralgal)
+{
+    double r = get_satellite_radius(p, centralgal);
+    
+}
+
+double get_satellite_radius(int p, int centralgal)
+{
+    int i;
+    double dx;
+    double r2 = 0.0;
+    for(i=0; i<3; i++)
+    {
+        dx = fabs(Gal[p].Pos[i] - Gal[centralgal].Pos[i]);
+        if(dx>HalfBoxLen) dx -= BoxLen;
+        r2 += sqr(dx);
+    }
+    return sqrt(r2);
+}

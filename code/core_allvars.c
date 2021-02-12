@@ -47,6 +47,7 @@ double Omega;
 double OmegaLambda;
 double Hubble_h;
 double PartMass;
+double BoxLen;
 double EnergySNcode, EnergySN;
 double EtaSNcode, EtaSN;
 
@@ -106,6 +107,7 @@ double ThresholdSatDisruption;
 double AlphaBurst;
 double BetaBurst;
 double Ratio_Ia_II;
+double HalfBoxLen;
 
 // more misc 
 double UnitLength_in_cm,

@@ -104,6 +104,10 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "Hubble_h");
   addr[nt] = &Hubble_h;
   id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "BoxLen");
+    addr[nt] = &BoxLen;
+    id[nt++] = DOUBLE;
 
   strcpy(tag[nt], "ReionizationOn");
   addr[nt] = &ReionizationOn;

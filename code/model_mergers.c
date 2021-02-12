@@ -316,7 +316,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
 {
   int step, i, s, k;
-  double DiscGasSum, CentralGasOrig, ExpFac;
+  double DiscGasSum, CentralGasOrig, ExpFac, dPos[3], dVel[3];
     ExpFac = AA[Gal[t].SnapNum]; // Expansion factor needed for determining physical distances for calculating j
     
 	CentralGasOrig = get_disc_gas(t);
@@ -336,15 +336,29 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
 	
   Gal[t].ColdGas += DiscGasSum;
   Gal[t].MetalsColdGas += Gal[p].MetalsColdGas;
+    
+  for(s=0; s<3; s++)
+  {
+    dPos[s] = Gal[p].Pos[s]-Gal[t].Pos[s];
+
+    // Need to account for periodic boundary conditions in calculating galaxy--galaxy separations
+    if(dPos[s]>HalfBoxLen) dPos[s] -= BoxLen;
+    if(dPos[s]<-HalfBoxLen) dPos[s] += BoxLen;
+    dPos[s] *= ExpFac;
+
+    // Velocity here only considers peculiar component but not Hubble -- should it?
+    dVel[s] = Gal[p].Vel[s]-Gal[t].Vel[s];
+  }
+
 
   if(mass_ratio<ThreshMajorMerger) // Minor mergers, combine discs by conserving angular momentum
   {
 	// Satellite's specific angular momentum
 	double sat_sam[3];
-	sat_sam[0] = (Gal[p].Pos[1]-Gal[t].Pos[1])*(Gal[p].Vel[2]-Gal[t].Vel[2])*ExpFac - (Gal[p].Pos[2]-Gal[t].Pos[2])*(Gal[p].Vel[1]-Gal[t].Vel[1])*ExpFac;
-	sat_sam[1] = (Gal[p].Pos[2]-Gal[t].Pos[2])*(Gal[p].Vel[0]-Gal[t].Vel[0])*ExpFac - (Gal[p].Pos[0]-Gal[t].Pos[0])*(Gal[p].Vel[2]-Gal[t].Vel[2])*ExpFac;
-	sat_sam[2] = (Gal[p].Pos[0]-Gal[t].Pos[0])*(Gal[p].Vel[1]-Gal[t].Vel[1])*ExpFac - (Gal[p].Pos[1]-Gal[t].Pos[1])*(Gal[p].Vel[0]-Gal[t].Vel[0])*ExpFac;
-	
+    sat_sam[0] = dPos[1]*dVel[2] - dPos[2]*dVel[1];
+    sat_sam[1] = dPos[2]*dVel[0] - dPos[0]*dVel[2];
+    sat_sam[2] = dPos[0]*dVel[1] - dPos[1]*dVel[0];
+      
 	double sat_sam_mag, cos_angle_sat_disc, sat_sam_max, sat_sam_min;
 	int i_min, i_max, bin_num;
 	
@@ -359,7 +373,7 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
             sat_sam_mag *= fabs(cos_angle_sat_disc); // Project satellite's (gas) angular momentum onto central's disc
             
             // Consider that the satellite will have rotation and hence it will have a distribution of angular momentum to contribute
-            sat_sam_max =  sat_sam_mag  +  Gal[p].Vvir * fabs(cos_angle_sat_disc) * sqrt(sqr(Gal[p].Pos[0]-Gal[t].Pos[0]) + sqr(Gal[p].Pos[1]-Gal[t].Pos[1]) + sqr(Gal[p].Pos[2]-Gal[t].Pos[2]));
+            sat_sam_max =  sat_sam_mag  +  Gal[p].Vvir * fabs(cos_angle_sat_disc) * sqrt(sqr(dPos[0]) + sqr(dPos[1]) + sqr(dPos[2]));
             sat_sam_min = 2.0*sat_sam_mag - sat_sam_max;
             if(sat_sam_min<0.0)
             sat_sam_min = 0.0;
@@ -516,22 +530,27 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
 
       // Set spin of classical bulge.  The mass itself will be transfered there in stars_to_bulge
       // First need to know the pos and vel of the centre of momentum
-      double COM[3], vCOM[3], j_t[3], j_p[3], m_t, m_p;
+      double dCOM_p[3], dCOM_t[3], dvCOM_p[3], dvCOM_t[3], j_t[3], j_p[3], m_t, m_p, inv_m_sum;
       m_t = dmax(Gal[t].Mvir, Gal[t].StellarMass+Gal[t].HotGas+Gal[t].ColdGas+Gal[t].BlackHoleMass);
       m_p = dmax(Gal[p].Mvir, Gal[p].StellarMass+Gal[p].HotGas+Gal[p].ColdGas+Gal[p].BlackHoleMass);
+      m_t_frac = m_t/(m_t+m_p);
+      m_p_frac = 1-m_t_frac;
       for(i=0; i<3; i++)
       {
-         COM[i] = (Gal[t].Pos[i]*m_t + Gal[p].Pos[i]*m_p)/(m_t+m_p);
-        vCOM[i] = (Gal[t].Vel[i]*m_t + Gal[p].Vel[i]*m_p)/(m_t+m_p);
+         dCOM_p[i] = dPos[i] * m_t_frac;
+         dCOM_t[i] = -=dPos[i] * m_p_frac;
+          
+         dvCOM_p[i] = dVel[i] * m_t_frac; 
+         dvCOM_t[i] = -dVel[i] * m_p_frac; 
       }
-
-      // Velocity here only considers peculiar component but not Hubble -- should it?
-      j_p[0] = (Gal[p].Pos[1]-COM[1])*(Gal[p].Vel[2]-vCOM[2])*ExpFac - (Gal[p].Pos[2]-COM[2])*(Gal[p].Vel[1]-vCOM[1])*ExpFac;
-      j_p[1] = (Gal[p].Pos[2]-COM[2])*(Gal[p].Vel[0]-vCOM[0])*ExpFac - (Gal[p].Pos[0]-COM[0])*(Gal[p].Vel[2]-vCOM[2])*ExpFac;
-      j_p[2] = (Gal[p].Pos[0]-COM[0])*(Gal[p].Vel[1]-vCOM[1])*ExpFac - (Gal[p].Pos[1]-COM[1])*(Gal[p].Vel[0]-vCOM[0])*ExpFac;
-      j_t[0] = (Gal[t].Pos[1]-COM[1])*(Gal[t].Vel[2]-vCOM[2])*ExpFac - (Gal[t].Pos[2]-COM[2])*(Gal[t].Vel[1]-vCOM[1])*ExpFac;
-      j_t[1] = (Gal[t].Pos[2]-COM[2])*(Gal[t].Vel[0]-vCOM[0])*ExpFac - (Gal[t].Pos[0]-COM[0])*(Gal[t].Vel[2]-vCOM[2])*ExpFac;
-      j_t[2] = (Gal[t].Pos[0]-COM[0])*(Gal[t].Vel[1]-vCOM[1])*ExpFac - (Gal[t].Pos[1]-COM[1])*(Gal[t].Vel[0]-vCOM[0])*ExpFac;
+      
+      
+      j_p[0] = dCOM_p[1]*dvCOM_p[2] - dCOM_p[2]*dvCOM_p[1];
+      j_p[1] = dCOM_p[2]*dvCOM_p[0] - dCOM_p[0]*dvCOM_p[2];
+      j_p[2] = dCOM_p[0]*dvCOM_p[1] - dCOM_p[1]*dvCOM_p[0];
+      j_t[0] = dCOM_t[1]*dvCOM_t[2] - dCOM_t[2]*dvCOM_t[1];
+      j_t[1] = dCOM_t[2]*dvCOM_t[0] - dCOM_t[0]*dvCOM_t[2];
+      j_t[2] = dCOM_t[0]*dvCOM_t[1] - dCOM_t[1]*dvCOM_t[0];
       
       for(s=0; s<3; s++)
       {
@@ -722,8 +741,8 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
  double hot_specific_energy, ejected_specific_energy;
     if(HeatedToCentral>0)
     {
-        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * sqr(Gal[centralgal].Vvir);
-        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * sqr(Gal[centralgal].Vvir);
+        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
+        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
     }
     else
     {

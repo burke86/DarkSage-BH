@@ -157,6 +157,8 @@ int main(int argc, char **argv)
     // Used for SupernovaRecipeOn>3.  If DelayedFeedbackOn==1, this will be updated in core_build_model.c.  The value below assumes the instantaneous recycling (and therefore instantaneous feedback) approximation
     SNperMassFormed = 1.0*StellarOutput[1];
     
+    HalfBoxLen = 0.5 * BoxLen; // useful to have a field of half the box length for calculating galaxy--galaxy distances
+    
 #ifdef MPI
     // A small delay so that processors don't use the same file
     //    printf("Small delay for processors\n");

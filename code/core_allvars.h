@@ -422,6 +422,7 @@ extern double Omega;
 extern double OmegaLambda;
 extern double PartMass;
 extern double Hubble_h;
+extern double BoxLen;
 extern double EnergySNcode, EnergySN;
 extern double EtaSNcode, EtaSN;
 

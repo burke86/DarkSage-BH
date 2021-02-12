@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/23p/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/24/
 
 FirstFile                   0
 LastFile                    7
@@ -37,6 +37,7 @@ BaryonFrac            0.1573
 Hubble_h            0.6751
 
 PartMass        0.107
+BoxLen          75.0
 
 
 %------------------------------------------
@@ -57,7 +58,7 @@ ReincorpotationModel        0       ;0: based on Vvir (same as SAGE); 1: based o
 CoolingExponentialRadiusOn  0       ;0: cooling gas is exponential with j (original model); 1: exponential with radius instead
 MvirDefinition              2       ;Mass definition in the treefiles used for Mvir (default for Millennium should be 2, i.e. M200c)
 AgeStructOut                1       ;Include age structure in output (0 for no, 1 for yes). WARNING: Slows code and increases size of output significantly!! Recommended for a single snapshot only.
-DelayedFeedbackOn           0       ; Abandon the instantaneous recycling approximation and use the age bins to impose a semi-instantaneous, semi-delayed feedback and metal enrichment treatment (requires N_AGE_BINS to be non-zero, ideally >20).  1 for on, 0 for off.
+DelayedFeedbackOn           1       ; Abandon the instantaneous recycling approximation and use the age bins to impose a semi-instantaneous, semi-delayed feedback and metal enrichment treatment (requires N_AGE_BINS to be non-zero, ideally >20).  1 for on, 0 for off.
 
 
 %----------------------------------------------------------
