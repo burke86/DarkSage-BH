@@ -86,6 +86,8 @@ double integrate_mremnant_IMF(double m0, double m1);
 double get_numSN_perMass(double t0, double t1);
 double dmin(double x, double y);
 void delayed_feedback(int p, int k_now, int centralgal, double time, double dt);
+double get_satellite_potential(int p, int centralgal);
+double get_satellite_radius(int p, int centralgal);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas);
 void disrupt_satellite_to_ICS(int centralgal, int gal);

@@ -987,22 +987,130 @@ double get_numSN_perMass(double m0, double m1)
 //}
 
 
-//double get_satellite_potential(int p, int centralgal)
-//{
-//    double r = get_satellite_radius(p, centralgal);
-//    
-//}
-//
-//double get_satellite_radius(int p, int centralgal)
-//{
-//    int i;
-//    double dx;
-//    double r2 = 0.0;
-//    for(i=0; i<3; i++)
+double get_satellite_potential(int p, int centralgal)
+{
+    if(p==centralgal) return 0.0; // not a satellite in this case
+    
+    double r = get_satellite_radius(p, centralgal);
+    double Potential, frac_low, HotRad;
+    int i;
+    
+    HotRad = 0.5*Gal[centralgal].Rvir;
+    
+    if(r >= Gal[centralgal].Rvir)
+        return Gal[centralgal].EjectedPotential;
+    
+    else if(r <= Gal[centralgal].DiscRadii[1])
+        return Gal[centralgal].Potential[1]; // First 2 Potential entries should be the same
+        
+    else if(r < Gal[centralgal].DiscRadii[N_BINS-1])
+    {
+//            printf("Interp with N: r, DiscRadii0, DiscRadiiLast, Potential0, PotentialLast = %e, %e, %e, %e, %e\n", r, Gal[centralgal].DiscRadii[0], Gal[centralgal].DiscRadii[N_BINS], Gal[centralgal].Potential[0], Gal[centralgal].Potential[N_BINS]);
+//            for(i=1; i<N_BINS; i++) printf("i, Radius, Potential = %i, %e, %e\n", i, Gal[centralgal].DiscRadii[i], Gal[centralgal].Potential[i]);
+        
+        // interpolate satellite's potential using its position and the central's potential profile
+        gsl_interp_accel *acc = gsl_interp_accel_alloc();
+        gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, N_BINS);
+        gsl_spline_init(spline, Gal[centralgal].DiscRadii, Gal[centralgal].Potential, N_BINS);
+        Potential = gsl_spline_eval(spline, r, acc);
+        gsl_spline_free (spline);
+        gsl_interp_accel_free (acc);
+        return Potential;
+    }
+    
+    else if(r < Gal[centralgal].DiscRadii[N_BINS])
+    {
+        // implicitly assuming that r is closer to at least 2 of DiscRadii[N_BINS], DiscRadii[N_BINS-1] and 0.5*Rvir than Rvir (this will still work if that isn't true, it just wouldn't be as accurate an interpolation as it might have otherwise been in that case)
+        
+        if(r >= HotRad && HotRad >= Gal[centralgal].DiscRadii[N_BINS-1])
+        {
+            frac_low = (r - HotRad) / (Gal[centralgal].DiscRadii[N_BINS] - HotRad);
+            return frac_low*Gal[centralgal].Potential[N_BINS] + (1-frac_low)*Gal[centralgal].HotGasPotential;
+        }
+        else if(r < HotRad && HotRad < Gal[centralgal].DiscRadii[N_BINS])
+        {
+            frac_low = (r - Gal[centralgal].DiscRadii[N_BINS-1]) / (HotRad - Gal[centralgal].DiscRadii[N_BINS-1]);
+            return frac_low*Gal[centralgal].HotGasPotential + (1-frac_low)*Gal[centralgal].Potential[N_BINS-1];
+        }
+        else
+        {
+            frac_low = (r - Gal[centralgal].DiscRadii[N_BINS-1]) / (Gal[centralgal].DiscRadii[N_BINS] - Gal[centralgal].DiscRadii[N_BINS-1]);
+            return frac_low*Gal[centralgal].Potential[N_BINS] + (1-frac_low)*Gal[centralgal].Potential[N_BINS-1];
+        }
+    }
+    else
+    {
+        if(r < HotRad)
+        {
+            frac_low = (r - Gal[centralgal].DiscRadii[N_BINS]) / (HotRad - Gal[centralgal].DiscRadii[N_BINS]);
+            return frac_low*Gal[centralgal].HotGasPotential + (1-frac_low)*Gal[centralgal].Potential[N_BINS];
+        }
+        else if(HotRad >= Gal[centralgal].DiscRadii[N_BINS])
+        {
+            frac_low = (r - HotRad) / HotRad; // Assumption here that Rvir-HotRad = HotRad, i.e. HotRad = Rvir/2 (which is currently hard-coded)
+            return frac_low*Gal[centralgal].EjectedPotential + (1-frac_low)*Gal[centralgal].HotGasPotential;
+        }
+        else
+        {
+            frac_low = (r - Gal[centralgal].DiscRadii[N_BINS]) / (Gal[centralgal].Rvir - Gal[centralgal].DiscRadii[N_BINS]);
+            return frac_low*Gal[centralgal].EjectedPotential + (1-frac_low)*Gal[centralgal].Potential[N_BINS];
+        }
+
+    }
+    
+    
+    
+//    else // I probably don't need to call an interpolation function here, but not obvious that doing the interpolation manually would be any faster
 //    {
-//        dx = fabs(Gal[p].Pos[i] - Gal[centralgal].Pos[i]);
-//        if(dx>HalfBoxLen) dx -= BoxLen;
-//        r2 += sqr(dx);
+//        if(Gal[centralgal].DiscRadii[N_BINS] < 0.5*Gal[centralgal].Rvir)
+//        {
+//            printf("Interp with 3\n");
+//            double radius_arr[3], potential_arr[3];
+//            radius_arr[0] = 1.0*Gal[centralgal].DiscRadii[N_BINS];
+//            radius_arr[1] = 0.5*Gal[centralgal].Rvir;
+//            radius_arr[2] = 1.0*Gal[centralgal].Rvir;
+//            potential_arr[0] = 1.0*Gal[centralgal].Potential[N_BINS];
+//            potential_arr[1] = 1.0*Gal[centralgal].HotGasPotential;
+//            potential_arr[2] = 1.0*Gal[centralgal].EjectedPotential;
+//            
+//            gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, 3);
+//            gsl_spline_init(spline, radius_arr, potential_arr, 3);
+//            Potential = gsl_spline_eval(spline, r, acc);
+//            gsl_spline_free (spline);
+//            gsl_interp_accel_free (acc);
+//            return Potential;
+//            
+//        }
+//        else
+//        {
+//            printf("Interp with 2\n");
+//            double radius_arr[2], potential_arr[2];
+//            radius_arr[0] = 1.0*Gal[centralgal].DiscRadii[N_BINS];
+//            radius_arr[1] = 1.0*Gal[centralgal].Rvir;
+//            potential_arr[0] = 1.0*Gal[centralgal].Potential[N_BINS];
+//            potential_arr[1] = 1.0*Gal[centralgal].EjectedPotential;
+//            
+//            gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, 2);
+//            gsl_spline_init(spline, radius_arr, potential_arr, 2);
+//            Potential = gsl_spline_eval(spline, r, acc);
+//            gsl_spline_free (spline);
+//            gsl_interp_accel_free (acc);
+//            return Potential;
+//        }
 //    }
-//    return sqrt(r2);
-//}
+    
+}
+
+double get_satellite_radius(int p, int centralgal)
+{
+    int i;
+    double dx;
+    double r2 = 0.0;
+    for(i=0; i<3; i++)
+    {
+        dx = fabs(Gal[p].Pos[i] - Gal[centralgal].Pos[i]);
+        if(dx>HalfBoxLen) dx -= BoxLen;
+        r2 += sqr(dx);
+    }
+    return sqrt(r2) * AA[Gal[p].SnapNum]; // returns in physical units, not comoving
+}

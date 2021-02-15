@@ -738,11 +738,12 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
  double feedback_mass[3];
     
  // these 2 terms only used when SupernovaRecipeOn>=3
- double hot_specific_energy, ejected_specific_energy;
+ double hot_specific_energy, ejected_specific_energy, satellite_specific_energy;
     if(HeatedToCentral>0)
     {
-        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
-        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
+        satellite_specific_energy = get_satellite_potential(merger_centralgal, centralgal);
+        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
+        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
     }
     else
     {

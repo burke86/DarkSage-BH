@@ -413,11 +413,12 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
     double feedback_mass[3]; 
     
     // these 2 terms only used when SupernovaRecipeOn>=3
-    double hot_specific_energy, ejected_specific_energy;
+    double hot_specific_energy, ejected_specific_energy, satellite_specific_energy;
     if(HeatedToCentral>0)
-    {
-        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
-        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
+    {      
+        satellite_specific_energy = get_satellite_potential(p, centralgal);
+        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
+        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
     }
     else
     {

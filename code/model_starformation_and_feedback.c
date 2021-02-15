@@ -22,16 +22,21 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   double feedback_mass[3];
     
   // these 2 terms only used when SupernovaRecipeOn>=3
-  double hot_specific_energy, ejected_specific_energy;
+  double hot_specific_energy, ejected_specific_energy, satellite_specific_energy;
   if(HeatedToCentral>0)
   {
-      hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
-      ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
+      // note that the way I've incorporate energy for a satellite is effectively increase the energy of the hot medium it's trying to go to, rather than decreasing the energy the gas about to be reheated currently sits it.  The net effect is the same.
+      satellite_specific_energy = get_satellite_potential(p, centralgal);
+      hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
+      ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
+      
+      
   }
   else
   {
       hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir);
       ejected_specific_energy = Gal[p].EjectedPotential + 0.5 * sqr(Gal[p].Vvir);
+      satellite_specific_energy = 0.0;
   }
     
 
@@ -911,28 +916,20 @@ void update_HI_H2(int p)
 void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 {
     int k, i;
-    double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, ejected_specific_energy, excess_energy, return_metal_mass, new_metals, parent_potential;
+    double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, ejected_specific_energy, excess_energy, return_metal_mass, new_metals, satellite_specific_energy;
     double StellarOutput[2];
     
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     
-    if(HeatedToCentral>0)
-    {
-        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
-        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
-    }
-    else
-    {
-        hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir);
-        ejected_specific_energy = Gal[p].EjectedPotential + 0.5 * sqr(Gal[p].Vvir);
-    }
+    satellite_specific_energy = get_satellite_potential(p, centralgal);
+    ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
     
-    if(p!=centralgal) // satellite galaxy's position needs to be considered for its potential when doing energy differentials
-    {
-        
-    }
+    if(HeatedToCentral>0)
+        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
     else
-        parent_potential = 0.0;
+        hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir) + sqr(4*Gal[p].Vvir*Gal[p].CoolScaleRadius/Gal[p].Rvir));
+    
+    
     
     // loop over age bins prior to the current one and calculate the return fraction and SN per remaining mass
     if(k_now==N_AGE_BINS-1) return;
@@ -1003,22 +1000,25 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         
         // finalise reheated mass from delayed feedback across all stellar populations in this annulus (cannot exceed gas available to reheat)
         reheated_mass = energy_feedback / reheat_specific_energy;
-        if(!(reheated_mass>=0))
-        {
-            printf("i, p, centralgal = %i, %i, %i\n", i, p, centralgal);
-            printf("Gal[p].DiscRadii[i+1], Gal[p].Rvir = %e, %e\n", Gal[p].DiscRadii[i+1], Gal[p].Rvir);
-//            printf("");
-            printf("cold_specific_energy, hot_specific_energy = %e, %e\n", cold_specific_energy, hot_specific_energy);
-            printf("ColdGasPotential, ColdKineticEnergy = %e, %e\n", 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]), 0.5*sqr(annulus_velocity));
-            printf("HotGasPotential, HotGasThermal, HotKinetic = %e, %e, %e\n", Gal[centralgal].HotGasPotential, 0.5*sqr(Gal[centralgal].Vvir), 0.5*sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
-            printf("energy_feedback, reheat_specific_energy = %e, %e\n\n", energy_feedback, reheat_specific_energy);
-            
-//            int j;
-//            for(j=0; j<=N_AGE_BINS; j++) printf("j, Gal[p].DiscRadii[j]/Gal[p].Rvir, Gal[p].Potential[j] = %i, %e, %e\n", j, Gal[p].DiscRadii[j]/Gal[p].Rvir, Gal[p].Potential[j]);
-        }
-//        assert(reheated_mass>=0);
-        if(reheated_mass<=0.0) reheated_mass = 0.0;
-        if(reheated_mass > Gal[p].DiscGas[i]) reheated_mass = 1.0*Gal[p].DiscGas[i];
+//        if(!(reheated_mass>=0))
+//        {
+//            printf("i, p, centralgal = %i, %i, %i\n", i, p, centralgal);
+//            printf("Gal[p].DiscRadii[i+1], Gal[p].Rvir = %e, %e\n", Gal[p].DiscRadii[i+1], Gal[p].Rvir);
+////            printf("");
+//            printf("cold_specific_energy, hot_specific_energy = %e, %e\n", cold_specific_energy, hot_specific_energy);
+//            printf("ColdGasPotential, ColdKineticEnergy = %e, %e\n", 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]), 0.5*sqr(annulus_velocity));
+//            printf("HotGasPotential, HotGasThermal, HotKinetic = %e, %e, %e\n", Gal[centralgal].HotGasPotential, 0.5*sqr(Gal[centralgal].Vvir), 0.5*sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
+//            printf("energy_feedback, reheat_specific_energy = %e, %e\n\n", energy_feedback, reheat_specific_energy);
+//            
+////            int j;
+////            for(j=0; j<=N_AGE_BINS; j++) printf("j, Gal[p].DiscRadii[j]/Gal[p].Rvir, Gal[p].Potential[j] = %i, %e, %e\n", j, Gal[p].DiscRadii[j]/Gal[p].Rvir, Gal[p].Potential[j]);
+//        }
+////        assert(reheated_mass>=0);
+//        if(reheated_mass<=0.0) reheated_mass = 0.0;
+        
+        // if hot specific energy is lower than cold specific energy, then any perturbation in that gas's energy should theoretically heat it all
+        if(reheat_specific_energy <= 0   ||   reheated_mass > Gal[p].DiscGas[i]) 
+            reheated_mass = 1.0*Gal[p].DiscGas[i];
         assert(reheated_mass>=0);
         
         // apply feedback
@@ -1026,8 +1026,14 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i);
         
         // excess energy that goes into gas ejection from this annulus
-        excess_energy = energy_feedback - reheat_specific_energy * reheated_mass;
-        ejected_sum += (excess_energy * inv_eject_feedback_specific_energy);
+        if(reheat_specific_energy > 0.0)
+        {
+            excess_energy = energy_feedback - reheat_specific_energy * reheated_mass;
+            ejected_sum += (excess_energy * inv_eject_feedback_specific_energy);
+        }
+        else // all the energy remaining if the reheating was free
+            ejected_sum += (energy_feedback * inv_eject_feedback_specific_energy);
+        
     }
     
     if(ejected_sum < Gal[centralgal].HotGas)
