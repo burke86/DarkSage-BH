@@ -921,15 +921,17 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     
-    satellite_specific_energy = get_satellite_potential(p, centralgal);
-    ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
-    
     if(HeatedToCentral>0)
+    {
+        satellite_specific_energy = get_satellite_potential(p, centralgal);
         hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
+        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
+    }
     else
-        hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir) + sqr(4*Gal[p].Vvir*Gal[p].CoolScaleRadius/Gal[p].Rvir));
-    
-    
+    {
+        hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir);
+        ejected_specific_energy = Gal[p].EjectedPotential + 0.5 * sqr(Gal[p].Vvir);
+    }
     
     // loop over age bins prior to the current one and calculate the return fraction and SN per remaining mass
     if(k_now==N_AGE_BINS-1) return;
