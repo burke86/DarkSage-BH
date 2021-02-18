@@ -21,28 +21,26 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
     
   double feedback_mass[3];
     
-  // these 2 terms only used when SupernovaRecipeOn>=3
-  double hot_specific_energy, ejected_specific_energy, satellite_specific_energy;
+  // these terms only used when SupernovaRecipeOn>=3
+  double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot;
+    
+  // note that the way I've incorporate energy for a satellite is effectively increase the energy of the hot medium it's trying to go to, rather than decreasing the energy the gas about to be reheated currently sits it.  The net effect is the same.
   if(HeatedToCentral>0)
   {
-      // note that the way I've incorporate energy for a satellite is effectively increase the energy of the hot medium it's trying to go to, rather than decreasing the energy the gas about to be reheated currently sits it.  The net effect is the same.
       satellite_specific_energy = get_satellite_potential(p, centralgal);
-      hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
-      ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
-      
-      
+      j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
+      hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*j_hot/Gal[centralgal].Rvir));
+      hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
   }
   else
   {
-      hot_specific_energy = Gal[p].HotGasPotential + 0.5 * sqr(Gal[p].Vvir);
-      ejected_specific_energy = Gal[p].EjectedPotential + 0.5 * sqr(Gal[p].Vvir);
       satellite_specific_energy = 0.0;
+      j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+      hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(2*j_hot/Gal[p].Rvir));
+      hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
   }
-    
+  ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
 
-//  for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
-
-    
   double StarsPre = Gal[p].StellarMass;
   check_channel_stars(p);
 
@@ -202,10 +200,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
     
   // Sum stellar discs together
   if(NewStarSum>0.0)
-  {
-//      for(k=0; k<N_AGE_BINS; k++) for(i=0; i<N_BINS; i++) assert(Gal[p].DiscStarsAge[i][k] >= 0);
     combine_stellar_discs(p, NewStars, NewStarsMetals, time);
-  }
 
   // Update the star formation rate 
   Gal[p].SfrFromH2[step] += stars_sum / dt;
@@ -221,11 +216,6 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   DiscGasSum = get_disc_gas(p);
   assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas*0.99);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
-    
-//    if(HaloGal[p].GalaxyNr==0)
-//    {
-//        printf("\nMass-loading factor, Ejected/reheated = %e, %e\n", reheated_sum/stars_sum, ejected_sum/reheated_sum);
-//    }
 
 }
 
@@ -252,7 +242,6 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             reheated_mass = FeedbackReheatingEpsilon * stars;
         else if(SupernovaRecipeOn == 3 || SupernovaRecipeOn == 4)
         {
-//            energy_feedback = FeedbackReheatCoupling * stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // 630 km/s for kinetic velocity kick from supernovae assumed -- 198450.0 = 0.5*630*630, where the 0.5 is to account for the 1/2 in formula for kinetic energy
             energy_feedback = FeedbackReheatCoupling * stars * EnergySNcode * SNperMassFormed; // still controlled by a coupling efficiency
             annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
             annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
@@ -273,9 +262,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
                 reheated_mass *= fac;
             }
             else
-            {
                 reheated_mass = max_consume - (1-RecycleFraction)*stars; // Note the important change here that recycled gas can immediately be reheated!  Stars also isn't rescaled!
-            }
         }
         
         
@@ -305,26 +292,14 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         }
         else
         {
-//            energy_feedback = stars * 198450.0 * sqr(UnitVelocity_in_cm_per_s) * 1e-10; // recalculate as rescaling may have occurred to stay in mass limitations
             excess_energy = energy_feedback - reheat_specific_energy * reheated_mass;
             ejected_mass = FeedbackEjectCoupling * excess_energy / (ejected_specific_energy - hot_specific_energy);
-            
-            
-//            if(HaloGal[p].GalaxyNr==0)
-//            {
-//                printf("\ni = %i\n", i);
-//                printf("stars, reheated_mass, ejected_mass = %e, %e, %e\n", stars, reheated_mass, ejected_mass);
-//                printf("energy_feedback, excess_energy = %e, %e\n", energy_feedback, excess_energy);
-//                printf("cold rot energy, cold NFW pot energy, cold proper pot energy = %e, %e, %e\n", 0.5 * sqr(annulus_velocity), NFW_potential(p, annulus_radius), 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]));
-//                printf("cold_specific_energy, hot_specific_energy, ejected_specific_energy = %e, %e, %e\n", cold_specific_energy, hot_specific_energy, ejected_specific_energy);
-//            }
         }
         
         
         if(ejected_mass < MIN_STARFORMATION)
             ejected_mass = 0.0;
-    
-//        assert(stars+reheated_mass < 1.01*max_consume);
+        
     }
     else // I haven't actually dealt with the situation of Supernovae being turned off here.  But do I even want to turn SN off?
     {
@@ -916,18 +891,26 @@ void update_HI_H2(int p)
 void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 {
     int k, i;
-    double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, ejected_specific_energy, excess_energy, return_metal_mass, new_metals, satellite_specific_energy;
+    double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, ejected_specific_energy, excess_energy, return_metal_mass, new_metals, satellite_specific_energy, j_hot, hot_thermal_and_kinetic;
     double StellarOutput[2];
     
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     
-    satellite_specific_energy = get_satellite_potential(p, centralgal);
-    ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
-    
     if(HeatedToCentral>0)
-        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
+    {
+        satellite_specific_energy = get_satellite_potential(p, centralgal);
+        j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
+        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*j_hot/Gal[centralgal].Rvir));
+        hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
+    }
     else
-        hot_specific_energy = Gal[p].HotGasPotential + 0.5 * (sqr(Gal[p].Vvir) + sqr(4*Gal[p].Vvir*Gal[p].CoolScaleRadius/Gal[p].Rvir));
+    {
+        satellite_specific_energy = 0.0;
+        j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(2*j_hot/Gal[p].Rvir));
+        hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
+    }
+    ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
     
     if(!(ejected_specific_energy>hot_specific_energy))
     {
@@ -1083,7 +1066,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         
     }
     
-        
+    Gal[p].OutflowRate += reheated_mass;
     
     if(ejected_sum < Gal[centralgal].HotGas)
         update_from_ejection(p, centralgal, ejected_sum);

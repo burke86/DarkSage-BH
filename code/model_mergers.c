@@ -737,19 +737,23 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
  double metals_stars_sum = 0.0;
  double feedback_mass[3];
     
- // these 2 terms only used when SupernovaRecipeOn>=3
- double hot_specific_energy, ejected_specific_energy, satellite_specific_energy;
-    if(HeatedToCentral>0)
-    {
-        satellite_specific_energy = get_satellite_potential(merger_centralgal, centralgal);
-        hot_specific_energy = Gal[centralgal].HotGasPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
-        ejected_specific_energy = Gal[centralgal].EjectedPotential + 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir)) - satellite_specific_energy;
-    }
-    else
-    {
-        hot_specific_energy = Gal[merger_centralgal].HotGasPotential + 0.5 * sqr(Gal[merger_centralgal].Vvir);
-        ejected_specific_energy = Gal[merger_centralgal].EjectedPotential + 0.5 * sqr(Gal[merger_centralgal].Vvir);
-    }
+ // these terms only used when SupernovaRecipeOn>=3
+ double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot;
+ if(HeatedToCentral>0)
+ {
+    satellite_specific_energy = get_satellite_potential(merger_centralgal, centralgal);
+    j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*j_hot/Gal[centralgal].Rvir));
+    hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
+ }
+ else
+ {
+    satellite_specific_energy = 0.0;
+    j_hot = 2 * Gal[merger_centralgal].Vvir * Gal[merger_centralgal].CoolScaleRadius;
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[merger_centralgal].Vvir) + sqr(2*j_hot/Gal[merger_centralgal].Rvir));
+    hot_specific_energy = Gal[merger_centralgal].HotGasPotential + hot_thermal_and_kinetic;
+ }
+ ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
 
 
  stars_sum = 0.0;

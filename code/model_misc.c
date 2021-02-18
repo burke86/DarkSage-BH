@@ -440,6 +440,8 @@ double get_disc_stars(int p)
 
 void check_channel_stars(int p)
 {
+    if(DelayedFeedbackOn>=1) return;
+    
     double ChannelFrac;
     
     if(Gal[p].StellarMass>0.0)
