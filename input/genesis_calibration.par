@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/24d/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/24e/
 
 FirstFile                   0
 LastFile                    7
@@ -122,7 +122,7 @@ ClumpExponent               0.3     ; Controls the clump factor which affects H2
 %%%= ==================== =%%%
 
 
-RadiusWeight                0.5     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
+RadiusWeight                0.2     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
 
 QTotMin                     1.0    ;threshold Toomre Q value for instabilities
 GasSinkRate                 0.5

@@ -912,11 +912,11 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     }
     ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
     
-    if(!(ejected_specific_energy>hot_specific_energy))
-    {
-        printf("Hot gas energy contributions = %e, %e, %e\n", Gal[centralgal].HotGasPotential, 0.5*sqr(Gal[centralgal].Vvir), 0.5*sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
-        printf("Ejected gas energy contributions = %e, %e, %e\n", Gal[centralgal].EjectedPotential, 0.5*sqr(Gal[centralgal].Vvir), 0.5*sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
-    }
+//    if(!(ejected_specific_energy>hot_specific_energy))
+//    {
+//        printf("Hot gas energy contributions = %e, %e, %e\n", Gal[centralgal].HotGasPotential, 0.5*sqr(Gal[centralgal].Vvir), 0.5*sqr(4*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
+//        printf("Ejected gas energy contributions = %e, %e, %e\n", Gal[centralgal].EjectedPotential, 0.5*sqr(Gal[centralgal].Vvir), 0.5*sqr(2*Gal[centralgal].Vvir*Gal[centralgal].CoolScaleRadius/Gal[centralgal].Rvir));
+//    }
     assert(ejected_specific_energy>hot_specific_energy);
     
     

@@ -531,6 +531,8 @@ void update_disc_radii(int p)
     double f_support, BTT, v_max;
     double v2_spherical, v2_sdisc, v2_gdisc;
     
+    const double inv_Rvir = 1.0/Gal[p].Rvir;
+    
     update_stellardisc_scaleradius(p); // need this at the start, as disc scale radii are part of this calculation
     update_gasdisc_scaleradius(p);
     
@@ -559,10 +561,10 @@ void update_disc_radii(int p)
     
     // Determine distribution for bulge and ICS ==================
     a_SB = 0.2 * Gal[p].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
-    M_SB_inf = Gal[p].SecularBulgeMass * sqr((Gal[p].Rvir+a_SB)/Gal[p].Rvir);
+    M_SB_inf = Gal[p].SecularBulgeMass * sqr((Gal[p].Rvir+a_SB)*inv_Rvir);
     
     a_CB = pow(10.0, (log10(Gal[p].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
-    M_CB_inf = Gal[p].ClassicalBulgeMass * sqr((Gal[p].Rvir+a_CB)/Gal[p].Rvir);
+    M_CB_inf = Gal[p].ClassicalBulgeMass * sqr((Gal[p].Rvir+a_CB)*inv_Rvir);
     
     a_ICS = 0.0;
     if(Gal[p].ClassicalBulgeMass>0.0)
@@ -573,7 +575,7 @@ void update_disc_radii(int p)
     {
         printf("Issue with ICS size, ICS = %e\n", Gal[p].ICS);
     }
-    M_ICS_inf = Gal[p].ICS * sqr((Gal[p].Rvir+a_ICS)/Gal[p].Rvir);
+    M_ICS_inf = Gal[p].ICS * sqr((Gal[p].Rvir+a_ICS)*inv_Rvir);
     // ===========================================================
     
     M_D = 0.0;
@@ -593,12 +595,12 @@ void update_disc_radii(int p)
     
     if(Gal[p].Mvir>0.0 && BTT<1.0)
     {
-        const double hot_fraction = Gal[p].HotGas/Gal[p].Rvir;
+        const double hot_fraction = Gal[p].HotGas*inv_Rvir;
         const double exponent_support = -3.0*(1.0-BTT)/Gal[p].StellarDiscScaleRadius;
         const int NUM_R_BINS=51;
         
         // set up array of radii and j from which to interpolate
-        double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS], analytic_fsupport[NUM_R_BINS], analytic_potential[NUM_R_BINS], analytic_sphericized_potential[NUM_R_BINS];
+        double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS], analytic_fsupport[NUM_R_BINS], analytic_potential[NUM_R_BINS];
         analytic_j[0] = 0.0;
         analytic_r[0] = 0.0;
         analytic_potential[NUM_R_BINS-1] = 0.0; // consider making this -G*Gal[p].Mvir/Gal[p].Rvir, which would aassume that analytic_r was always <Rvir.  This assumption likely wouldn't be strictly true.  In a way, it doesn't matter, provided potentials are always used for taking differences (what else would they be useful for?)
@@ -609,8 +611,8 @@ void update_disc_radii(int p)
         const double inv_ExponentBin = 1.0/ExponentBin;
         const double c_sdisc = Gal[p].Rvir / Gal[p].StellarDiscScaleRadius;
         const double c_gdisc = Gal[p].Rvir / Gal[p].GasDiscScaleRadius;
-        const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) / Gal[p].Rvir;
-        const double GM_gdisc_r = G * Gal[p].ColdGas / Gal[p].Rvir;
+        const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) * inv_Rvir;
+        const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
         double vrot, rrat;
         M_DM = 1.0; // random initialisation to trigger if statement
         
@@ -638,8 +640,8 @@ void update_disc_radii(int p)
             M_int = M_DM + M_CB + M_SB + M_ICS + M_hot + Gal[p].BlackHoleMass;
 
             v2_spherical = G * M_int / r;
-            v2_sdisc = GM_sdisc_r * v2_disc_cterm(r, c_sdisc);
-            v2_gdisc = GM_gdisc_r * v2_disc_cterm(r, c_gdisc);
+            v2_sdisc = GM_sdisc_r * v2_disc_cterm(r*inv_Rvir, c_sdisc);
+            v2_gdisc = GM_gdisc_r * v2_disc_cterm(r*inv_Rvir, c_gdisc);
             
             f_support = 1.0 - exp(exponent_support*r); // Fraction of support in rotation
             if(f_support<1e-5) f_support = 1e-5; // Minimum safety net
@@ -716,8 +718,12 @@ void update_disc_radii(int p)
                 Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
             }
             
-            Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
-            Gal[p].EjectedPotential = gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc);
+            Gal[p].HotGasPotential = dmax(analytic_potential[0], gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc));
+            Gal[p].EjectedPotential = dmax(Gal[p].HotGasPotential*0.9999, gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which is should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
+            
+//            if(Gal[p].EjectedPotential < Gal[p].HotGasPotential)
+//                for(k=0; k<NUM_R_BINS; k++) printf("r, Potential = %e, %e\n", analytic_r[k], analytic_potential[k]);
+
             
             gsl_spline_free (spline);
             gsl_spline_free (spline2);
@@ -736,6 +742,7 @@ void update_disc_radii(int p)
 //    }
     
     if(Gal[p].Potential[0]<=0) Gal[p].Potential[0] = Gal[p].Potential[1];
+    
     
     update_stellardisc_scaleradius(p);
     // if other functionality is added for gas disc scale radius, update it here too
