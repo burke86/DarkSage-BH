@@ -29,13 +29,15 @@ do {                                                                \
 #define  CM_PER_MPC  3.085678e24
 #define  PROTONMASS  1.6726e-24
 #define  HUBBLE      3.2407789e-18   /* in h/sec */
+#define  BIG_BANG_METALLICITY 1e-10  /* metallicity from Big Bang nucleosynthesis (basically all Lithium) */
 
-#define  SEC_PER_MEGAYEAR   3.155e13
-#define  SEC_PER_YEAR       3.155e7
+#define  SEC_PER_MEGAYEAR   3.1556736e13
+#define  SEC_PER_YEAR       3.1556736e7
 
 #define N_BINS 30
 #define MIN_STARS_FOR_SN 1e-8
 #define MIN_STARFORMATION 1e-10
+#define N_AGE_BINS 30
 
 struct GALAXY_OUTPUT  
 {
@@ -44,13 +46,15 @@ struct GALAXY_OUTPUT
   int   HaloIndex;
   int SimulationHaloIndex;
   int   TreeIndex;
-    
+  long long   RootID;
+//  int RootSnapNum;
+
   int   SnapNum;
   long long CentralGalaxyIndex;
   float CentralMvir;
 
   int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=disk instability; 4=disrupt to ICS
-  int   mergeIntoID;
+  long long   mergeIntoID;
   int   mergeIntoSnapNum;
   float   dT;
 
@@ -146,6 +150,95 @@ struct GALAXY_OUTPUT
 };
 
 
+struct GALAXY_OUTPUT_LARGE // new for age dimension
+{
+  int   Type;
+  long long   GalaxyIndex;
+  int   HaloIndex;
+  int SimulationHaloIndex;
+  int   TreeIndex;
+  long long RootID;
+//  int RootSnapNum;
+    
+  int   SnapNum;
+  long long CentralGalaxyIndex;
+  float CentralMvir;
+
+  int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=no longer used; 4=disrupt to ICS
+  long long   mergeIntoID;
+  int   mergeIntoSnapNum;
+  float   dT;
+
+  // properties of subhalo at the last time this galaxy was a central galaaxy 
+  float Pos[3];
+  float Vel[3];
+  float Spin[3];
+  int   Len;
+    int LenMax;
+  float Mvir;
+  float Rvir;
+  float Vvir;
+  float Vmax;
+  float VelDisp;
+    
+  // Radius of each annulus boundary
+  float DiscRadii[N_BINS+1];
+
+  // baryonic reservoirs 
+  float ColdGas;
+  float StellarMass;
+  float ClassicalBulgeMass[N_AGE_BINS];
+  float SecularBulgeMass[N_AGE_BINS];
+  float HotGas;
+  float EjectedMass;
+  float BlackHoleMass;
+  float ICS[N_AGE_BINS];
+  float DiscGas[N_BINS];
+  float DiscStars[N_BINS][N_AGE_BINS];
+  float SpinStars[3];
+  float SpinGas[3];
+  float SpinClassicalBulge[3];
+  float StarsFromH2;
+  float StarsInstability;
+  float StarsMergeBurst;
+  float DiscHI[N_BINS];
+  float DiscH2[N_BINS];
+  float DiscSFR[N_BINS];
+    
+  // metals
+  float MetalsColdGas;
+  float MetalsStellarMass;
+  float ClassicalMetalsBulgeMass[N_AGE_BINS];
+  float SecularMetalsBulgeMass[N_AGE_BINS];
+  float MetalsHotGas;
+  float MetalsEjectedMass;
+  float MetalsICS[N_AGE_BINS];
+  float DiscGasMetals[N_BINS];
+  float DiscStarsMetals[N_BINS][N_AGE_BINS];
+
+  // to calculate magnitudes
+  float SfrFromH2;
+  float SfrInstab;
+  float SfrMerge;
+  float SfrDiskZ;
+  float SfrBulgeZ;
+  
+  // misc 
+  float DiskScaleRadius;
+  float CoolScaleRadius;
+  float StellarDiscScaleRadius;
+  float Cooling;
+  float Heating;
+  float LastMajorMerger;
+  float LastMinorMerger;
+  float OutflowRate;
+
+  //infall properties
+  float infallMvir;
+  float infallVvir;
+  float infallVmax;
+};
+
 struct GALAXY
 {
   int   Type;
@@ -155,10 +248,13 @@ struct GALAXY
   int   SnapNum;
   int   CentralGal;
   double CentralMvir;
+  double HaloScaleRadius;
 
   int   mergeType;  //0=none; 1=minor merger; 2=major merger; 3=disk instability; 4=disrupt to ICS
   int   mergeIntoID;
   int   mergeIntoSnapNum;
+  int mergeIntoGalaxyNr;
+  int RootID;
   double   dT;
 
   // properties of subhalo at the last time this galaxy was a central galaxy 
@@ -172,8 +268,13 @@ struct GALAXY
   double Vvir;
   double Vmax;
     
-  // Radius of each annulus boundary
+  // Radius and potential energy of each annulus boundary
   double DiscRadii[N_BINS+1];
+  double Potential[N_BINS+1];
+    
+  // Potential energy for hot and ejected gas components
+  double HotGasPotential;
+  double EjectedPotential;
 
   // baryonic reservoirs 
   double ColdGas;
@@ -259,6 +360,17 @@ struct GALAXY
   double infallMvir;
   double infallVvir;
   double infallVmax;
+    
+    //properties for age binning of stars -- only used if flag in parameter file is on
+    double ClassicalBulgeMassAge[N_AGE_BINS];
+    double SecularBulgeMassAge[N_AGE_BINS];
+    double ClassicalMetalsBulgeMassAge[N_AGE_BINS];
+    double SecularMetalsBulgeMassAge[N_AGE_BINS];
+    double DiscStarsAge[N_BINS][N_AGE_BINS];
+    double DiscStarsMetalsAge[N_BINS][N_AGE_BINS];
+    double ICS_Age[N_AGE_BINS];
+    double MetalsICS_Age[N_AGE_BINS];
+    
 }
 *Gal, *HaloGal;
 
@@ -269,6 +381,8 @@ struct halo_aux_data   // auxiliary halo data
   int HaloFlag;
   int NGalaxies;
   int FirstGalaxy;
+  int RootIndex;
+  int RootFound;
 }
 *HaloAux;
 
@@ -309,6 +423,7 @@ extern double Omega;
 extern double OmegaLambda;
 extern double PartMass;
 extern double Hubble_h;
+extern double BoxLen;
 extern double EnergySNcode, EnergySN;
 extern double EtaSNcode, EtaSN;
 
@@ -330,6 +445,8 @@ extern int    HeatedToCentral;
 extern int    ReincorpotationModel;
 extern int    CoolingExponentialRadiusOn;
 extern int    MvirDefinition;
+extern int    AgeStructOut;
+extern int    DelayedFeedbackOn;
 
 // recipe parameters 
 extern double RecycleFraction;
@@ -344,7 +461,9 @@ extern double SfrEfficiency;
 extern double FeedbackReheatingEpsilon;
 extern double FeedbackGasSigma;
 extern double FeedbackExponent;
-extern double FeedbackEjectionRatio;
+extern double FeedbackEjectionEfficiency;
+extern double FeedbackReheatCoupling;
+extern double FeedbackEjectCoupling;
 extern double RadioModeEfficiency;
 extern double QuasarModeEfficiency;
 extern double BlackHoleGrowthRate;
@@ -362,6 +481,7 @@ extern double Reionization_zr;
 extern double ThresholdSatDisruption;
 extern double AlphaBurst;
 extern double BetaBurst;
+extern double Ratio_Ia_II;
 
 extern double UnitLength_in_cm,
   UnitTime_in_s,
@@ -393,8 +513,11 @@ extern int TreeID;
 extern int FileNum;
 
 double DiscBinEdge[N_BINS+1];
+double AgeBinEdge[N_AGE_BINS+1];
 int RetroCount, ProCount;
-double FeedbackEjectionEfficiency;
+double FinalRecycleFraction;
+double SNperMassFormed;
+double HalfBoxLen;
 
 #ifdef MINIMIZE_IO
 extern char *ptr_treedata, *ptr_galaxydata, *ptr_galsnapdata[ABSOLUTEMAXSNAPS];

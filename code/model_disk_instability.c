@@ -9,7 +9,7 @@
 #include "core_proto.h"
 
 
-void check_disk_instability(int p, int centralgal, double dt, int step)
+void check_disk_instability(int p, int centralgal, double dt, int step, double time)
 {
 	// New treatment of instabilities based on the Toomre Q parameter
 	double Q_star, Q_gas, V_rot, Q_gas_min, Q_star_min, Q_tot, W, Q_stable;
@@ -17,11 +17,13 @@ void check_disk_instability(int p, int centralgal, double dt, int step)
     double r_inner, r_outer, r_av, Kappa, sigma_R, c_s;
 	double NewStars[N_BINS], NewStarsMetals[N_BINS], SNgas[N_BINS], angle, DiscGasSum, DiscStarSum;
     double old_spin[3], SNgas_copy[N_BINS], SNgas_proj[N_BINS], cos_angle;
-	int i, s;
+    double ann_frac, frac_down, frac_up;
+	int i, s, k;
     int first, first_gas, first_star;
 	
     double star_init = Gal[p].StellarMass;
-    
+    double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
+
     DiscStarSum = get_disc_stars(p);
     DiscGasSum = get_disc_gas(p);
     check_channel_stars(p);
@@ -155,12 +157,20 @@ void check_disk_instability(int p, int centralgal, double dt, int step)
             }
 		}
         
-        Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / G / (Gal[p].DiscGas[i]-SNgas[i]);
-        if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, SNgas = %e", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], SNgas[i]);
-        assert(Q_gas>0);
-        if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min = %e, %e\n", Q_gas, Q_gas_min);
-        assert(Q_gas >= 0.99*Q_gas_min);
-        assert(Q_gas >= 0.99*QTotMin);
+        if(SNgas[i]>Gal[p].DiscGas[i])
+        {
+            SNgas[i] = 1.0*Gal[p].DiscGas[i];
+            Q_gas = 1e5; // arbitrarily large
+        }
+        else
+        {
+            Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / G / (Gal[p].DiscGas[i]-SNgas[i]);
+            if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, SNgas = %e", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], SNgas[i]);
+            assert(Q_gas>0);
+            if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min = %e, %e\n", Q_gas, Q_gas_min);
+            assert(Q_gas >= 0.99*Q_gas_min);
+            assert(Q_gas >= 0.99*QTotMin);
+        }
 	}
 	
 	gas_sink += Gal[p].BlackHoleMass; // Because this was set as -BHMass at the start, this is actually the increase in BH mass from the instab.
@@ -182,7 +192,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step)
         }
 
         for(i=0; i<3; i++) old_spin[i] = Gal[p].SpinStars[i];
-		combine_stellar_discs(p, NewStars, NewStarsMetals);
+		combine_stellar_discs(p, NewStars, NewStarsMetals, time);
         cos_angle = Gal[p].SpinStars[0]*old_spin[0] + Gal[p].SpinStars[1]*old_spin[1] + Gal[p].SpinStars[2]*old_spin[2];
         project_disc(SNgas_copy, cos_angle, p, SNgas_proj);
         
@@ -261,11 +271,24 @@ void check_disk_instability(int p, int centralgal, double dt, int step)
             
             if(unstable_stars>1e-10)
             {
+                ann_frac = unstable_stars / Gal[p].DiscStars[i]; // fraction of mass left in each unstable annulus
                 metallicity = get_metallicity(Gal[p].DiscStars[i], Gal[p].DiscStarsMetals[i]);
                 assert(Gal[p].DiscStarsMetals[i]<=Gal[p].DiscStars[i]);
                 Gal[p].DiscStars[i] -= unstable_stars;
                 Gal[p].DiscStarsMetals[i] = metallicity * Gal[p].DiscStars[i];
                 Gal[p].TotSinkStar[i] += unstable_stars;
+                
+                // Deal with stellar-age populations when stars migrate
+                if(AgeStructOut>0)
+                {
+                    for(k=0; k<N_AGE_BINS; k++)
+                    {
+                        unstable_stars_age[k] = ann_frac * Gal[p].DiscStarsAge[i][k]; // build array to know which age bins to move mass to in adjacent annuli
+                        unstable_metals_age[k] = ann_frac * Gal[p].DiscStarsMetalsAge[i][k];
+                        Gal[p].DiscStarsAge[i][k] -= unstable_stars_age[k];
+                        Gal[p].DiscStarsMetalsAge[i][k] -= unstable_metals_age[k];
+                    }
+                }
                 
                 
                 if(i==N_BINS-1)
@@ -273,6 +296,16 @@ void check_disk_instability(int p, int centralgal, double dt, int step)
                     Gal[p].DiscStars[i-1] += unstable_stars;
                     Gal[p].DiscStarsMetals[i-1] += metallicity * unstable_stars;
                     assert(Gal[p].DiscStarsMetals[i-1] <= Gal[p].DiscStars[i-1]);
+                    
+                    if(AgeStructOut>0)
+                    {
+                        for(k=0; k<N_AGE_BINS; k++)
+                        {
+                            Gal[p].DiscStarsAge[i-1][k] += unstable_stars_age[k];
+                            Gal[p].DiscStarsMetalsAge[i-1][k] += unstable_metals_age[k];
+                        }
+                    }
+                    
                 }
                 else if(r_inner > 0.2*Gal[p].StellarDiscScaleRadius || DiskInstabilityOn<2) // Conserve angular momentum while moving stars to restore stability
                 {
@@ -287,6 +320,17 @@ void check_disk_instability(int p, int centralgal, double dt, int step)
                         Gal[p].DiscStars[i-1] += m_down;
                         Gal[p].DiscStarsMetals[i-1] += metallicity * m_down;
                         assert(Gal[p].DiscStarsMetals[i-1]<=Gal[p].DiscStars[i-1]);
+                        
+                        if(AgeStructOut>0)
+                        {
+                            frac_down = m_down / unstable_stars;
+                            for(k=0; k<N_AGE_BINS; k++)
+                            {
+                                Gal[p].DiscStarsAge[i-1][k] += unstable_stars_age[k] * frac_down;
+                                Gal[p].DiscStarsMetalsAge[i-1][k] += unstable_metals_age[k] * frac_down;
+                            }
+                        }
+                        
                     }
                     else
                     {
@@ -300,11 +344,32 @@ void check_disk_instability(int p, int centralgal, double dt, int step)
                         Gal[p].SecularBulgeMass += m_down;
                         Gal[p].SecularMetalsBulgeMass += metallicity * m_down;
                         
+                        if(AgeStructOut>0)
+                        {
+                            frac_down = m_down / unstable_stars;
+                            for(k=0; k<N_AGE_BINS; k++)
+                            {
+                                Gal[p].SecularBulgeMassAge[k] += unstable_stars_age[k] * frac_down;
+                                Gal[p].SecularMetalsBulgeMassAge[k] += unstable_metals_age[k] * frac_down;
+                            }
+                        }
+                        
                     }
                     
                     Gal[p].DiscStars[i+1] += m_up;
                     Gal[p].DiscStarsMetals[i+1] += metallicity * m_up;
                     assert(Gal[p].DiscStarsMetals[i+1]<=Gal[p].DiscStars[i+1]);
+                    
+                    if(AgeStructOut>0)
+                    {
+                        frac_up = m_up / unstable_stars;
+                        for(k=0; k<N_AGE_BINS; k++)
+                        {
+                            Gal[p].DiscStarsAge[i+1][k] += unstable_stars_age[k] * frac_up;
+                            Gal[p].DiscStarsMetalsAge[i+1][k] += unstable_metals_age[k] * frac_up;
+                        }
+                    }
+                    
                 }
                 else // Transfer unstable stars directly into the pseudobulge.  The annuli are already within it!
                 {
@@ -313,6 +378,15 @@ void check_disk_instability(int p, int centralgal, double dt, int step)
                         Gal[p].SpinSecularBulge[s] = (Gal[p].SpinSecularBulge[s]*Gal[p].SecularBulgeMass + Gal[p].SpinStars[s]*unstable_stars*j_lose) / (Gal[p].SecularBulgeMass + unstable_stars);
                     Gal[p].SecularBulgeMass += unstable_stars;
                     Gal[p].SecularMetalsBulgeMass += metallicity * unstable_stars;
+                    
+                    if(AgeStructOut>0)
+                    {
+                        for(k=0; k<N_AGE_BINS; k++)
+                        {
+                            Gal[p].SecularBulgeMassAge[k] += unstable_stars_age[k];
+                            Gal[p].SecularMetalsBulgeMassAge[k] += unstable_metals_age[k];
+                        }
+                    }
 
                 }
 
@@ -336,7 +410,27 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 
     double ejected_sum = 0.0;
     double j_lose, j_gain, m_up, m_down;
-        
+    double feedback_mass[3]; 
+    
+    // these 2 terms only used when SupernovaRecipeOn>=3
+    double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot;
+    if(HeatedToCentral>0)
+    {
+        satellite_specific_energy = get_satellite_potential(p, centralgal);
+        j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
+        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*j_hot/Gal[centralgal].Rvir));
+        hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
+    }
+    else
+    {
+        satellite_specific_energy = 0.0;
+        j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(2*j_hot/Gal[p].Rvir));
+        hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
+    }
+    ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
+
+  
 	// Let gas sink -- one may well want to change this formula
     gas_sink = GasSinkRate * unstable_gas;
     
@@ -356,10 +450,10 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
     }
     else // Conserve angular momentum while moving gas to restore stability
     {
-        j_gain = (DiscBinEdge[i+2]-DiscBinEdge[i])/2.0;
+        j_gain = (DiscBinEdge[i+2]-DiscBinEdge[i])*0.5;
         if(i==0)
         {
-            j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i])/2.0;
+            j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i])*0.5;
             m_up = j_lose / (j_gain + j_lose) * gas_sink;
             m_down = m_up * j_gain / j_lose;
             Gal[p].BlackHoleMass += m_down;
@@ -369,7 +463,7 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
         }
         else
         {
-            j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i-1])/2.0;
+            j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i-1])*0.5;
             m_up = j_lose / (j_gain + j_lose) * gas_sink;
             m_down = m_up * j_gain / j_lose;
             Gal[p].DiscGas[i-1] += m_down;
@@ -387,62 +481,11 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 	stars = unstable_gas - gas_sink;
 	if(Gal[p].DiscGas[i] > 0.0 && stars > 0.0) // Quasar feedback could blow out the unstable gas
 	{
-		if(SupernovaRecipeOn>0)
-		{
-			area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-            
-            if(SupernovaRecipeOn == 1)
-            {
-                Sigma_0gas = FeedbackGasSigma * (SOLAR_MASS / UnitMass_in_g) / sqr(CM_PER_MPC/1e6 / UnitLength_in_cm);
-                reheated_mass = FeedbackReheatingEpsilon * stars * pow(Sigma_0gas / (Gal[p].DiscGas[i]/area), FeedbackExponent);
-                
-                if(reheated_mass < MIN_STARFORMATION)
-                reheated_mass = 0.0;
-            }
-            else if(SupernovaRecipeOn == 2)
-                reheated_mass = FeedbackReheatingEpsilon * stars;
-            else
-                reheated_mass = 0.0;
-            assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
-
-			// Can't use more cold gas than is available, so balance SF and feedback
-		    if((stars + reheated_mass) > gas_sf && (stars + reheated_mass) > 0.0)
-		    {
-		    	fac = gas_sf / (stars + reheated_mass);
-		    	stars *= fac;
-		    	reheated_mass *= fac;
-                assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
-
-		    }
-		
-			if(stars<MIN_STARS_FOR_SN)
-		    {
-				if(gas_sf >= MIN_STARS_FOR_SN)
-				{
-		    		stars = MIN_STARS_FOR_SN;
-					reheated_mass = gas_sf - stars; // Previously had (1-RecycleFration)* in front of stars, which would have ensured all the unstable gas was removed in some way, but this would be inconsistent with what's done for the case that stars>MIN_STARS_FOR_SN.
-                    assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
-
-				}
-				else
-				{
-					stars = gas_sf;
-					reheated_mass = 0.0;
-				}
-				ejected_mass = 0.0;
-		    }
-			else
-			{
-                ejected_mass = (FeedbackEjectionEfficiency * (EtaSNcode * EnergySNcode) / (V_rot * V_rot) - FeedbackReheatingEpsilon) * stars;
-			    if(ejected_mass < MIN_STARFORMATION)
-			        ejected_mass = 0.0;
-			}
-		}
-		else
-		{
-			reheated_mass = 0.0;// not a great treatment right now
-			ejected_mass = 0.0;
-		}
+        area = M_PI * (r_outer*r_outer - r_inner*r_inner);
+        calculate_feedback_masses(p, stars, i, centralgal, area, gas_sf, hot_specific_energy, ejected_specific_energy, feedback_mass);
+        reheated_mass = feedback_mass[0];
+        ejected_mass = feedback_mass[1];
+        stars = feedback_mass[2];
 				
         ejected_sum += ejected_mass; // this is pointless with the way it's coded right now -- annuli are not being summed over
         
@@ -451,16 +494,18 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 		if(reheated_mass > Gal[p].DiscGas[i] && reheated_mass < 1.01*Gal[p].DiscGas[i])
 		  reheated_mass = Gal[p].DiscGas[i];
 		
-		metallicity_new = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
+        if(SupernovaRecipeOn>0 && stars>=MIN_STARS_FOR_SN)
+        {
+            double new_metals = Yield * stars*(1-metallicity) * RecycleFraction/FinalRecycleFraction;
+            Gal[p].DiscGasMetals[i] += new_metals;
+            Gal[p].MetalsColdGas += new_metals;
+        }
+        
+        metallicity_new = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
 		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
 
 	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i);
 
-        if(SupernovaRecipeOn>0 && stars>=MIN_STARS_FOR_SN)
-        {
-			Gal[p].DiscGasMetals[i] += Yield * stars*(1-metallicity);
-	    	Gal[p].MetalsColdGas += Yield * stars*(1-metallicity);
-		}
 	}
     
     update_from_ejection(p, centralgal, ejected_sum);

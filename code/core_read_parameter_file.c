@@ -104,6 +104,10 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "Hubble_h");
   addr[nt] = &Hubble_h;
   id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "BoxLen");
+    addr[nt] = &BoxLen;
+    id[nt++] = DOUBLE;
 
   strcpy(tag[nt], "ReionizationOn");
   addr[nt] = &ReionizationOn;
@@ -157,6 +161,14 @@ void read_parameter_file(char *fname)
   addr[nt] = &MvirDefinition;
   id[nt++] = INT;
 
+  strcpy(tag[nt], "AgeStructOut");
+  addr[nt] = &AgeStructOut;
+  id[nt++] = INT;
+
+  strcpy(tag[nt], "DelayedFeedbackOn");
+  addr[nt] = &DelayedFeedbackOn;
+  id[nt++] = INT;
+
   strcpy(tag[nt], "BaryonFrac");
   addr[nt] = &BaryonFrac;
   id[nt++] = DOUBLE;
@@ -205,10 +217,22 @@ void read_parameter_file(char *fname)
     addr[nt] = &FeedbackExponent;
     id[nt++] = DOUBLE;
     
-  strcpy(tag[nt], "FeedbackEjectionRatio");
-  addr[nt] = &FeedbackEjectionRatio;
+  strcpy(tag[nt], "FeedbackEjectionEfficiency");
+  addr[nt] = &FeedbackEjectionEfficiency;
   id[nt++] = DOUBLE;
 
+    strcpy(tag[nt], "FeedbackReheatCoupling");
+    addr[nt] = &FeedbackReheatCoupling;
+    id[nt++] = DOUBLE;
+
+    strcpy(tag[nt], "FeedbackEjectCoupling");
+    addr[nt] = &FeedbackEjectCoupling;
+    id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "Ratio_Ia_II");
+    addr[nt] = &Ratio_Ia_II;
+    id[nt++] = DOUBLE;
+    
   strcpy(tag[nt], "BlackHoleGrowthRate");
   addr[nt] = &BlackHoleGrowthRate;
   id[nt++] = DOUBLE;

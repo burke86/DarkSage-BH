@@ -15,7 +15,7 @@
 
 void init_galaxy(int p, int halonr)
 {
-    int j, step;
+    int j, k, step;
     double SpinMag;
     
     if(halonr != Halo[halonr].FirstHaloInFOFgroup)
@@ -38,6 +38,8 @@ void init_galaxy(int p, int halonr)
     Gal[p].mergeType = 0;
     Gal[p].mergeIntoID = -1;
     Gal[p].mergeIntoSnapNum = -1;
+    Gal[p].mergeIntoGalaxyNr = -1;
+    Gal[p].RootID = -1;
     Gal[p].dT = -1.0;
     
     for(j = 0; j < 3; j++)
@@ -146,6 +148,24 @@ void init_galaxy(int p, int halonr)
     Gal[p].infallVvir = -1.0;
     Gal[p].infallVmax = -1.0;
     
+    for(k=0; k<N_AGE_BINS; k++)
+    {
+        Gal[p].ClassicalBulgeMassAge[k] = 0.0;
+        Gal[p].SecularBulgeMassAge[k] = 0.0;
+        Gal[p].ClassicalMetalsBulgeMassAge[k] = 0.0;
+        Gal[p].SecularMetalsBulgeMassAge[k] = 0.0;
+        Gal[p].ICS_Age[k] = 0.0;
+        Gal[p].MetalsICS_Age[k] = 0.0;
+        
+        for(j=0; j<N_BINS; j++)
+        {
+            Gal[p].DiscStarsAge[j][k] = 0.0;
+            Gal[p].DiscStarsMetalsAge[j][k] = 0.0;
+        }
+    }
+
+    Gal[p].HaloScaleRadius = pow(10.0, 0.52 + (-0.101 + 0.026*ZZ[Gal[p].SnapNum])*log10(Gal[p].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12)) ); // Initialisation based on Dutton and Maccio (2014). Gets updated as part of update_disc_radii()
+    
 }
 
 
@@ -183,8 +203,8 @@ double get_metallicity(double gas, double metals)
 {
     double metallicity;
     
-//    if(metals>gas)
-//    printf("get_metallicity report: metals, gas/stars = %e, %e\n", metals, gas);
+    if(metals>gas)
+    printf("get_metallicity report: metals, gas/stars = %e, %e\n", metals, gas);
     
     if(gas > 0.0 && metals > 0.0)
     {
@@ -199,6 +219,14 @@ double get_metallicity(double gas, double metals)
     
 }
 
+
+double dmin(double x, double y)
+{
+    if(x < y)
+        return x;
+    else
+        return y;
+}
 
 
 double dmax(double x, double y)
@@ -346,25 +374,45 @@ double get_disc_gas(int p)
 
 double get_disc_stars(int p)
 {
-    double DiscStarSum, DiscAndBulge, dumped_mass;
-    int l;
+    double DiscStarSum, DiscAndBulge, AgeSum; //, dumped_mass
+    int l, k;
     
     DiscStarSum = 0.0;
-    dumped_mass = 0.0;
+//    dumped_mass = 0.0;
     for(l=N_BINS-1; l>=0; l--)
     {
-        if(Gal[p].DiscStars[l] < 1e-11) // This would be less than a single star in an annulus.  Not likely.
+        if(Gal[p].DiscStars[l]<1e-11) // This would be less than a single star in an annulus.  Not likely.
         {
-            dumped_mass += Gal[p].DiscStars[l];
+//            dumped_mass += Gal[p].DiscStars[l];
             Gal[p].DiscStars[l] = 0.0;
             Gal[p].DiscStarsMetals[l] = 0.0;
+            
+            if(AgeStructOut>0)
+            {
+                for(k=0; k<N_AGE_BINS; k++)
+                {
+                    Gal[p].DiscStarsAge[l][k] = 0.0;
+                    Gal[p].DiscStarsMetalsAge[l][k] = 0.0;
+                }
+            }
+        }
+        else if(AgeStructOut>0)
+        {
+            AgeSum = 0.0;
+            for(k=0; k<N_AGE_BINS; k++) AgeSum += Gal[p].DiscStarsAge[l][k];
+            if(AgeSum>1.001*Gal[p].DiscStars[l] || AgeSum<0.999*Gal[p].DiscStars[l])
+            {
+                printf("get_disc_stars age report: l, AgeSum, Gal[p].DiscStars[l]: %i, %e, %e\n", l, AgeSum, Gal[p].DiscStars[l]);
+                assert(AgeSum<=1.01*Gal[p].DiscStars[l] && AgeSum>=0.99*Gal[p].DiscStars[l]);
+                Gal[p].DiscStars[l] = 1.0*AgeSum;
+            }
         }
         DiscStarSum += Gal[p].DiscStars[l];
     }
     
     DiscAndBulge = DiscStarSum + Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass;
     
-    if(DiscAndBulge>1.001*Gal[p].StellarMass || DiscAndBulge<Gal[p].StellarMass/1.001)
+    if(DiscAndBulge>1.001*Gal[p].StellarMass || DiscAndBulge<0.999*Gal[p].StellarMass)
     {
 //        printf("get_disc_stars report: DiscAndBulge, StellarMass, dumped_mass = %e, %e, %e\n", DiscAndBulge, Gal[p].StellarMass, dumped_mass);
         Gal[p].StellarMass = DiscAndBulge; // Prevent small errors from blowing up
@@ -372,6 +420,16 @@ double get_disc_stars(int p)
         {
             for(l=0; l<N_BINS; l++)
                 Gal[p].DiscStars[l] = 0.0;
+                Gal[p].DiscStarsMetals[l] = 0.0;
+            
+                if(AgeStructOut>0)
+                {
+                    for(k=0; k<N_AGE_BINS; k++)
+                    {
+                        Gal[p].DiscStarsAge[l][k] = 0.0;
+                        Gal[p].DiscStarsMetalsAge[l][k] = 0.0;
+                    }
+                }
             DiscStarSum = 0.0;
             Gal[p].StellarMass = Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass;
         }
@@ -382,6 +440,8 @@ double get_disc_stars(int p)
 
 void check_channel_stars(int p)
 {
+    if(DelayedFeedbackOn>=1) return;
+    
     double ChannelFrac;
     
     if(Gal[p].StellarMass>0.0)
@@ -397,6 +457,25 @@ void check_channel_stars(int p)
         Gal[p].StarsFromH2 = 0.0;
         Gal[p].StarsInstability = 0.0;
         Gal[p].StarsMergeBurst = 0.0;
+    }
+    
+    // Check the age breakdown of bulges
+    if(AgeStructOut>0 && Gal[p].StellarMass>0.0)
+    {
+        int k;
+        double SecularSum=0.0, ClassicalSum=0.0;
+        for(k=0; k<N_AGE_BINS; k++)
+        {
+            SecularSum += Gal[p].SecularBulgeMassAge[k];
+            ClassicalSum += Gal[p].ClassicalBulgeMassAge[k];
+        }
+        
+        if(SecularSum>1.01*Gal[p].SecularBulgeMass || SecularSum<0.99*Gal[p].SecularBulgeMass)
+            printf("Secular bulge mass not consistent with age bins: SecularSum, Gal[p].SecularBulgeMass = %e, %e\n", SecularSum, Gal[p].SecularBulgeMass);
+
+        if(ClassicalSum>1.01*Gal[p].ClassicalBulgeMass || ClassicalSum<0.99*Gal[p].ClassicalBulgeMass)
+            printf("Classical bulge mass not consistent with age bins: ClassicalSum, Gal[p].ClassicalBulgeMass = %e, %e\n", ClassicalSum, Gal[p].ClassicalBulgeMass);
+        
     }
 }
 
@@ -426,7 +505,7 @@ void check_ejected(int p)
     if(!(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass))
     {
 //        printf("ejected mass, metals = %e, %e\n", Gal[p].EjectedMass, Gal[p].MetalsEjectedMass);
-        if(Gal[p].EjectedMass <= 1e-10 || Gal[p].MetalsEjectedMass <= 1e-10)
+        if(Gal[p].EjectedMass <= 1e-10 || Gal[p].MetalsEjectedMass <= 1e-10*BIG_BANG_METALLICITY)
         {
             Gal[p].EjectedMass = 0.0;
             Gal[p].MetalsEjectedMass = 0.0;
@@ -452,6 +531,8 @@ void update_disc_radii(int p)
     double f_support, BTT, v_max;
     double v2_spherical, v2_sdisc, v2_gdisc;
     
+    const double inv_Rvir = 1.0/Gal[p].Rvir;
+    
     update_stellardisc_scaleradius(p); // need this at the start, as disc scale radii are part of this calculation
     update_gasdisc_scaleradius(p);
     
@@ -473,16 +554,17 @@ void update_disc_radii(int p)
     else
         c = 1.0*c_DM; // Should only happen for satellite-satellite mergers, where X cannot be trusted
     r_2 = Gal[p].Rvir / c; // Di Cintio et al 2014b
+    Gal[p].HaloScaleRadius = r_2; // NEW ADDITION IN 2021
     rho_const = M_DM_tot / (log((Gal[p].Rvir+r_2)/r_2) - Gal[p].Rvir/(Gal[p].Rvir+r_2));
     assert(rho_const>=0.0);
     // ===========================================================
     
     // Determine distribution for bulge and ICS ==================
     a_SB = 0.2 * Gal[p].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
-    M_SB_inf = Gal[p].SecularBulgeMass * sqr((Gal[p].Rvir+a_SB)/Gal[p].Rvir);
+    M_SB_inf = Gal[p].SecularBulgeMass * sqr((Gal[p].Rvir+a_SB)*inv_Rvir);
     
     a_CB = pow(10.0, (log10(Gal[p].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
-    M_CB_inf = Gal[p].ClassicalBulgeMass * sqr((Gal[p].Rvir+a_CB)/Gal[p].Rvir);
+    M_CB_inf = Gal[p].ClassicalBulgeMass * sqr((Gal[p].Rvir+a_CB)*inv_Rvir);
     
     a_ICS = 0.0;
     if(Gal[p].ClassicalBulgeMass>0.0)
@@ -493,7 +575,7 @@ void update_disc_radii(int p)
     {
         printf("Issue with ICS size, ICS = %e\n", Gal[p].ICS);
     }
-    M_ICS_inf = Gal[p].ICS * sqr((Gal[p].Rvir+a_ICS)/Gal[p].Rvir);
+    M_ICS_inf = Gal[p].ICS * sqr((Gal[p].Rvir+a_ICS)*inv_Rvir);
     // ===========================================================
     
     M_D = 0.0;
@@ -513,22 +595,24 @@ void update_disc_radii(int p)
     
     if(Gal[p].Mvir>0.0 && BTT<1.0)
     {
-        const double hot_fraction = Gal[p].HotGas/Gal[p].Rvir;
+        const double hot_fraction = Gal[p].HotGas*inv_Rvir;
         const double exponent_support = -3.0*(1.0-BTT)/Gal[p].StellarDiscScaleRadius;
         const int NUM_R_BINS=51;
         
         // set up array of radii and j from which to interpolate
-        double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS];
+        double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS], analytic_fsupport[NUM_R_BINS], analytic_potential[NUM_R_BINS];
         analytic_j[0] = 0.0;
         analytic_r[0] = 0.0;
+        analytic_potential[NUM_R_BINS-1] = 0.0; // consider making this -G*Gal[p].Mvir/Gal[p].Rvir, which would aassume that analytic_r was always <Rvir.  This assumption likely wouldn't be strictly true.  In a way, it doesn't matter, provided potentials are always used for taking differences (what else would they be useful for?)
         double r_jmax = 10.0*DiscBinEdge[N_BINS]/Gal[p].Vvir;
+        if(r_jmax<Gal[p].Rvir) r_jmax = 1.0*Gal[p].Rvir;
 //        if(baryon_fraction>1.0) r_jmax *= (100*baryon_fraction);
         double r = r_jmax;
         const double inv_ExponentBin = 1.0/ExponentBin;
         const double c_sdisc = Gal[p].Rvir / Gal[p].StellarDiscScaleRadius;
         const double c_gdisc = Gal[p].Rvir / Gal[p].GasDiscScaleRadius;
-        const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) / Gal[p].Rvir;
-        const double GM_gdisc_r = G * Gal[p].ColdGas / Gal[p].Rvir;
+        const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) * inv_Rvir;
+        const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
         double vrot, rrat;
         M_DM = 1.0; // random initialisation to trigger if statement
         
@@ -556,14 +640,21 @@ void update_disc_radii(int p)
             M_int = M_DM + M_CB + M_SB + M_ICS + M_hot + Gal[p].BlackHoleMass;
 
             v2_spherical = G * M_int / r;
-            v2_sdisc = GM_sdisc_r * v2_disc_cterm(r, c_sdisc);
-            v2_gdisc = GM_gdisc_r * v2_disc_cterm(r, c_gdisc);
+            v2_sdisc = GM_sdisc_r * v2_disc_cterm(r*inv_Rvir, c_sdisc);
+            v2_gdisc = GM_gdisc_r * v2_disc_cterm(r*inv_Rvir, c_gdisc);
             
             f_support = 1.0 - exp(exponent_support*r); // Fraction of support in rotation
+            if(f_support<1e-5) f_support = 1e-5; // Minimum safety net
+            analytic_fsupport[i] = f_support; // needed later for calculating stored potential
             vrot = sqrt(f_support * (v2_spherical+v2_sdisc+v2_gdisc));
        
             analytic_j[i] = vrot * r;
-            if(i<NUM_R_BINS-1) assert(analytic_j[i]<analytic_j[i+1]);
+            if(i<NUM_R_BINS-1)
+            {
+                assert(analytic_j[i]<analytic_j[i+1]);
+                analytic_potential[i] = analytic_potential[i+1] - (analytic_r[i+1]-analytic_r[i]) * 0.5 * (sqr(analytic_j[i+1])/(analytic_fsupport[i+1]*cube(analytic_r[i+1])) + sqr(vrot)/(f_support*r)); // numerically integrating from "infinity" (the largest analytic_r) down to zero, step by step
+            }
+            
             if((i==NUM_R_BINS-1) && analytic_j[i]<DiscBinEdge[N_BINS]) // Need to expand range for interpolation!
             {
                 r *= 10.0; 
@@ -573,20 +664,27 @@ void update_disc_radii(int p)
                 r *= inv_ExponentBin;
    
         }
+        analytic_potential[0] = analytic_potential[1]; // assumes the potential flattens at the centre, as internal mass goes to zero as radius goes to zero
+
+
         
         gsl_interp_accel *acc = gsl_interp_accel_alloc();
 //        printf("i=%i\,", i);
         if(i>0) // reducing bins to avoid numerical issues with oversampling centre
         {
             const int NUM_R_BINS_REDUCED = NUM_R_BINS - i;
-            double analytic_j_reduced[NUM_R_BINS_REDUCED], analytic_r_reduced[NUM_R_BINS_REDUCED];
+            double analytic_j_reduced[NUM_R_BINS_REDUCED], analytic_r_reduced[NUM_R_BINS_REDUCED], analytic_potential_reduced[NUM_R_BINS_REDUCED];
             for(k=0; k<NUM_R_BINS_REDUCED; k++)
             {
                 analytic_j_reduced[k] = 1.0*analytic_j[k+i];
                 analytic_r_reduced[k] = 1.0*analytic_r[k+i];
+                analytic_potential_reduced[k] = 1.0*analytic_potential[k+i];
             }
             gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS_REDUCED);
             gsl_spline_init(spline, analytic_j_reduced, analytic_r_reduced, NUM_R_BINS_REDUCED);
+
+            gsl_spline *spline2 = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS_REDUCED);
+            gsl_spline_init(spline2, analytic_r_reduced, analytic_potential_reduced, NUM_R_BINS_REDUCED);
             
             for(k=1; k<N_BINS+1; k++)
             {
@@ -594,9 +692,13 @@ void update_disc_radii(int p)
                 assert(DiscBinEdge[k] >= analytic_j_reduced[0]);
                 assert(DiscBinEdge[k] <= analytic_j_reduced[NUM_R_BINS_REDUCED-1]);
                 Gal[p].DiscRadii[k] = gsl_spline_eval(spline, DiscBinEdge[k], acc);
+                Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
             }
-
+            Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
+            Gal[p].EjectedPotential = gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc);
+            
             gsl_spline_free (spline);
+            gsl_spline_free (spline2);
             gsl_interp_accel_free (acc);
 
         }
@@ -604,22 +706,49 @@ void update_disc_radii(int p)
         {
             gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS);
             gsl_spline_init(spline, analytic_j, analytic_r, NUM_R_BINS);
+
+            gsl_spline *spline2 = gsl_spline_alloc(gsl_interp_cspline, NUM_R_BINS);
+            gsl_spline_init(spline2, analytic_r, analytic_potential, NUM_R_BINS);
             
             for(k=1; k<N_BINS+1; k++)
             {
                 assert(DiscBinEdge[k] >= analytic_j[0]);
                 assert(DiscBinEdge[k] <= analytic_j[NUM_R_BINS-1]);
                 Gal[p].DiscRadii[k] = gsl_spline_eval(spline, DiscBinEdge[k], acc);
+                Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
             }
+            
+            Gal[p].HotGasPotential = dmax(analytic_potential[0], gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc));
+            Gal[p].EjectedPotential = dmax(Gal[p].HotGasPotential*0.9999, gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which is should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
+            
+//            if(Gal[p].EjectedPotential < Gal[p].HotGasPotential)
+//                for(k=0; k<NUM_R_BINS; k++) printf("r, Potential = %e, %e\n", analytic_r[k], analytic_potential[k]);
 
+            
             gsl_spline_free (spline);
+            gsl_spline_free (spline2);
             gsl_interp_accel_free (acc);
-
         }
+
     }
+    
+    // calculate potential energy as a function of radius (in the disc plane)
+//    double potential_sum = 0.0;
+//    i = NUM_R_BINS-1;
+//    for(k=N_BINS; k>=0; k--)
+//    {
+//        while(analytic_r[i])
+//            potential_sum -= 
+//    }
+    
+    if(Gal[p].Potential[0]<=0) Gal[p].Potential[0] = Gal[p].Potential[1];
+    
     
     update_stellardisc_scaleradius(p);
     // if other functionality is added for gas disc scale radius, update it here too
+    
+    
+    
 }
 
 
@@ -706,4 +835,291 @@ void update_gasdisc_scaleradius(int p)
 //        printf("BUG: GasDiscScaleRadius reassigned from %e to DiskScale Radius\n", Gal[p].GasDiscScaleRadius);
         Gal[p].GasDiscScaleRadius = 1.0 * Gal[p].DiskScaleRadius; // Some functions still need a number for the scale radius even if there isn't any gas actually in the disc.
     }
+}
+
+
+double NFW_potential(int p, double r)
+{
+    double radius_sum = Gal[p].Rvir + Gal[p].HaloScaleRadius;
+    double pot_energy = -Gal[p].Mvir * log(1.0 + r/Gal[p].HaloScaleRadius) / (r * (log(radius_sum/Gal[p].HaloScaleRadius) - Gal[p].Rvir/radius_sum) );
+    assert(pot_energy<=0);
+    return pot_energy;
+}
+
+
+int get_stellar_age_bin_index(double time)
+{
+    int k_now;
+    for(k_now=0; k_now<N_AGE_BINS; k_now++)
+    {
+        if(time<=AgeBinEdge[k_now+1])
+            break; // calculate which time bin 
+    }
+    return k_now;
+}
+
+
+void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_output)
+{
+    double m0, m1;//, piecewise_int, frac_already_lost, norm_multiplier;
+    
+    // note the swapping of labels 0 and 1, as min time is max mass and vice versa. Note that mass is in solar masses, not Dark Sage internal units!!  m0 and m1 refer to the range of initial star masses over which the IMF is integrated.
+    
+    assert(t1>t0); // no point running this otherwise
+    
+    m0 = 1.0 / pow(t1 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
+    
+    // built-in assumption that subsolar stars don't cause any outflows of gas or feedback
+    if(m0>50.0) 
+    {
+        stellar_output[0] = 0.0;
+        stellar_output[1] = 0.0;
+        return;
+    }
+    
+//    if(m0<0.1)
+//        m0 = 0.1;
+    if(m0<1.0) 
+        m0 = 1.0; 
+    
+    if(t0>0)
+    {
+        m1 = 1.0 / pow(t0 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
+        if(m1>50.0) m1 = 50.0; // built-in assumption that stars > 50 solar collapse rapidly to black holes without returning gas to the ISM or causing feedback
+        if(m1<1.0)
+        {
+            stellar_output[0] = 0.0;
+            stellar_output[1] = 0.0;
+            return;
+        }
+    }
+    else
+        m1 = 50.0;
+    
+    if(!(m1>m0))
+        printf("m0, m1, t0, t1 = %e, %e, %e, %e\n", m0, m1, t0, t1);
+    assert(m1>m0);
+    
+    double denom = (integrate_m_IMF(0.1,m1) + integrate_mremnant_IMF(m1,100.0));
+    stellar_output[0] = (integrate_m_IMF(m0,m1) - integrate_mremnant_IMF(m0,m1)) / denom;
+    stellar_output[1] = get_numSN_perMass(m0,m1) / (denom * SOLAR_MASS * Hubble_h) * UnitMass_in_g; // convert to internal units (inverse mass)
+    return;
+}
+
+
+double integrate_m_IMF(double m0, double m1)
+{
+    // Definite integral of m*IMF between m0 and m1. Mass unit is solar (not the Dark Sage internal mass unit).
+    if(m1<1)
+        printf("Have not added functionality for integrate_m_IMF to take m1<1 yet! Either it is time to add this to the code, or there is a bug causing this to happen.");
+    assert(m1>=1);
+    
+    if(m1>100)
+        m1 = 100.0;
+    
+    if(m0<1)
+    {
+        if(m0>0.1)
+            printf("Have not added functionality for integrate_m_IMF to take 0.1<m0<1 yet!  Resetting to 0.1. Either it is time to add this to the code, or there is a bug causing this to happen: m0=%e\n", m0);
+        return 0.405 - 0.7945925666666667 * (pow(m1, -0.3) - 1.0);
+    }
+    else
+        return -0.7945925666666667 * (pow(m1, -0.3) - pow(m0, -0.3));
+}
+
+double indef_integral_mremnant_IMF(double m, int piece)
+{
+    // analytic indefinite integral of mremnant*IMF. Mass unit is solar (not the Dark Sage internal mass unit).    
+    
+    if(m>=50 && piece==4)
+        return -0.7945925666666667 * pow(m, -0.3);
+    else if(m>=1 && m<=7 && piece==1)
+        return -0.08141517683076922*pow(m,-1.3) - 0.0667457756*pow(m,-0.3);
+    else if(m>=7 && m<=8 && piece==2)
+        return -0.07683098894615384*pow(m,-1.3) - 0.08661058976666666*pow(m,-0.3);
+    else if(m>=8 && m<=50 && piece==3)
+        return -0.2567145215384615*pow(m,-1.3);
+    else if(m<1)
+        printf("Have not added functionality for indef_integral_mremnant_IMF to take m<1 yet! Either it is time to add this to the code, or there is a bug causing this to happen.");
+    else
+        printf("Improper use of indef_integral_mremnant_IMF()!");
+}
+
+double integrate_mremnant_IMF(double m0, double m1)
+{
+    double piecewise_int = 0.0;
+    // another if statement here for when m0<1?  Or would this never come up?
+    if(m0<1.0) piecewise_int += integrate_m_IMF(dmax(0.1,m0), dmin(1.0,m1));
+    if(m1<=1.0) return piecewise_int;
+    if(m0<7.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(7.0,m1),1) - indef_integral_mremnant_IMF(dmax(1.0,m0),1));
+    if(m1<=7.0) return piecewise_int;
+    if(m0<8.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(8.0,m1),2) - indef_integral_mremnant_IMF(dmax(7.0,m0),2));
+    if(m1<=8.0) return piecewise_int;
+    if(m0<50.0) piecewise_int += (indef_integral_mremnant_IMF(dmin(50.0,m1),3) - indef_integral_mremnant_IMF(dmax(8.0,m0),3));
+    if(m1<=50.0) return piecewise_int;
+    piecewise_int += integrate_m_IMF(dmax(50.0,m0), dmin(100.0,m1));
+    return piecewise_int;
+}
+
+
+double get_numSN_perMass(double m0, double m1)
+{
+    // Intergrate the IMF between mass range to calculate the number of supernovae in that time per unit remaining mass of the stellar population from which they originate
+    
+    // starts the same as get_recycle_fraction
+    double piecewise_int;
+    if(m0<1.0) m0 = 1.0;
+    if(m1>50.0) m1 = 50.0;
+    assert(m1>m0);
+    
+    piecewise_int = 0.0;
+    if(m0<8.0) piecewise_int += (0.01194933634822933 * Ratio_Ia_II * (pow(dmax(1.0,m0),-1.3) - pow(dmin(8.0,m1),-1.3)) ) ;
+    if(m1<=8.0) return piecewise_int;
+    piecewise_int += (0.18336751538461538 * (pow(dmax(8.0,m0),-1.3) - pow(dmin(50.0,m1),-1.3)) );
+    return piecewise_int;
+    
+}
+
+
+// Not sure this is acutally useful with my design!
+//double m_returned(double m_initial)
+//{
+//    // calculate the mass returned to the ISM from a star of initial mass m_initial.  Assumes both input and output are in solar masses (not Dark Sage internal mass units).
+//    if(m_initial>=1 && m_initial<=7)
+//        return 0.444 + 0.084 * m_initial;
+//    else if(m_initial>7 && m_initial<8)
+//        return 0.419 + 0.109*m_initial;
+//    else if(m_initial>=8 && m_initial<=50)
+//        return 1.4;
+//    else
+//        return 0.0;
+//}
+
+
+double get_satellite_potential(int p, int centralgal)
+{
+    if(p==centralgal) return 0.0; // not a satellite in this case
+    
+    double r = get_satellite_radius(p, centralgal);
+    double Potential, frac_low, HotRad;
+    int i;
+    
+    HotRad = 0.5*Gal[centralgal].Rvir;
+    
+    if(r >= Gal[centralgal].Rvir)
+        return Gal[centralgal].EjectedPotential;
+    
+    else if(r <= Gal[centralgal].DiscRadii[1])
+        return Gal[centralgal].Potential[1]; // First 2 Potential entries should be the same
+        
+    else if(r < Gal[centralgal].DiscRadii[N_BINS-1])
+    {
+//            printf("Interp with N: r, DiscRadii0, DiscRadiiLast, Potential0, PotentialLast = %e, %e, %e, %e, %e\n", r, Gal[centralgal].DiscRadii[0], Gal[centralgal].DiscRadii[N_BINS], Gal[centralgal].Potential[0], Gal[centralgal].Potential[N_BINS]);
+//            for(i=1; i<N_BINS; i++) printf("i, Radius, Potential = %i, %e, %e\n", i, Gal[centralgal].DiscRadii[i], Gal[centralgal].Potential[i]);
+        
+        // interpolate satellite's potential using its position and the central's potential profile
+        gsl_interp_accel *acc = gsl_interp_accel_alloc();
+        gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, N_BINS);
+        gsl_spline_init(spline, Gal[centralgal].DiscRadii, Gal[centralgal].Potential, N_BINS);
+        Potential = gsl_spline_eval(spline, r, acc);
+        gsl_spline_free (spline);
+        gsl_interp_accel_free (acc);
+        return Potential;
+    }
+    
+    else if(r < Gal[centralgal].DiscRadii[N_BINS])
+    {
+        // implicitly assuming that r is closer to at least 2 of DiscRadii[N_BINS], DiscRadii[N_BINS-1] and 0.5*Rvir than Rvir (this will still work if that isn't true, it just wouldn't be as accurate an interpolation as it might have otherwise been in that case)
+        
+        if(r >= HotRad && HotRad >= Gal[centralgal].DiscRadii[N_BINS-1])
+        {
+            frac_low = (r - HotRad) / (Gal[centralgal].DiscRadii[N_BINS] - HotRad);
+            return frac_low*Gal[centralgal].Potential[N_BINS] + (1-frac_low)*Gal[centralgal].HotGasPotential;
+        }
+        else if(r < HotRad && HotRad < Gal[centralgal].DiscRadii[N_BINS])
+        {
+            frac_low = (r - Gal[centralgal].DiscRadii[N_BINS-1]) / (HotRad - Gal[centralgal].DiscRadii[N_BINS-1]);
+            return frac_low*Gal[centralgal].HotGasPotential + (1-frac_low)*Gal[centralgal].Potential[N_BINS-1];
+        }
+        else
+        {
+            frac_low = (r - Gal[centralgal].DiscRadii[N_BINS-1]) / (Gal[centralgal].DiscRadii[N_BINS] - Gal[centralgal].DiscRadii[N_BINS-1]);
+            return frac_low*Gal[centralgal].Potential[N_BINS] + (1-frac_low)*Gal[centralgal].Potential[N_BINS-1];
+        }
+    }
+    else
+    {
+        if(r < HotRad)
+        {
+            frac_low = (r - Gal[centralgal].DiscRadii[N_BINS]) / (HotRad - Gal[centralgal].DiscRadii[N_BINS]);
+            return frac_low*Gal[centralgal].HotGasPotential + (1-frac_low)*Gal[centralgal].Potential[N_BINS];
+        }
+        else if(HotRad >= Gal[centralgal].DiscRadii[N_BINS])
+        {
+            frac_low = (r - HotRad) / HotRad; // Assumption here that Rvir-HotRad = HotRad, i.e. HotRad = Rvir/2 (which is currently hard-coded)
+            return frac_low*Gal[centralgal].EjectedPotential + (1-frac_low)*Gal[centralgal].HotGasPotential;
+        }
+        else
+        {
+            frac_low = (r - Gal[centralgal].DiscRadii[N_BINS]) / (Gal[centralgal].Rvir - Gal[centralgal].DiscRadii[N_BINS]);
+            return frac_low*Gal[centralgal].EjectedPotential + (1-frac_low)*Gal[centralgal].Potential[N_BINS];
+        }
+
+    }
+    
+    
+    
+//    else // I probably don't need to call an interpolation function here, but not obvious that doing the interpolation manually would be any faster
+//    {
+//        if(Gal[centralgal].DiscRadii[N_BINS] < 0.5*Gal[centralgal].Rvir)
+//        {
+//            printf("Interp with 3\n");
+//            double radius_arr[3], potential_arr[3];
+//            radius_arr[0] = 1.0*Gal[centralgal].DiscRadii[N_BINS];
+//            radius_arr[1] = 0.5*Gal[centralgal].Rvir;
+//            radius_arr[2] = 1.0*Gal[centralgal].Rvir;
+//            potential_arr[0] = 1.0*Gal[centralgal].Potential[N_BINS];
+//            potential_arr[1] = 1.0*Gal[centralgal].HotGasPotential;
+//            potential_arr[2] = 1.0*Gal[centralgal].EjectedPotential;
+//            
+//            gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, 3);
+//            gsl_spline_init(spline, radius_arr, potential_arr, 3);
+//            Potential = gsl_spline_eval(spline, r, acc);
+//            gsl_spline_free (spline);
+//            gsl_interp_accel_free (acc);
+//            return Potential;
+//            
+//        }
+//        else
+//        {
+//            printf("Interp with 2\n");
+//            double radius_arr[2], potential_arr[2];
+//            radius_arr[0] = 1.0*Gal[centralgal].DiscRadii[N_BINS];
+//            radius_arr[1] = 1.0*Gal[centralgal].Rvir;
+//            potential_arr[0] = 1.0*Gal[centralgal].Potential[N_BINS];
+//            potential_arr[1] = 1.0*Gal[centralgal].EjectedPotential;
+//            
+//            gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, 2);
+//            gsl_spline_init(spline, radius_arr, potential_arr, 2);
+//            Potential = gsl_spline_eval(spline, r, acc);
+//            gsl_spline_free (spline);
+//            gsl_interp_accel_free (acc);
+//            return Potential;
+//        }
+//    }
+    
+}
+
+double get_satellite_radius(int p, int centralgal)
+{
+    int i;
+    double dx;
+    double r2 = 0.0;
+    for(i=0; i<3; i++)
+    {
+        dx = fabs(Gal[p].Pos[i] - Gal[centralgal].Pos[i]);
+        if(dx>HalfBoxLen) dx -= BoxLen;
+        r2 += sqr(dx);
+    }
+    return sqrt(r2) * AA[Gal[p].SnapNum]; // returns in physical units, not comoving
 }

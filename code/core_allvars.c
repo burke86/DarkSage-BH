@@ -47,6 +47,7 @@ double Omega;
 double OmegaLambda;
 double Hubble_h;
 double PartMass;
+double BoxLen;
 double EnergySNcode, EnergySN;
 double EtaSNcode, EtaSN;
 
@@ -65,6 +66,8 @@ int HeatedToCentral;
 int ReincorpotationModel;
 int CoolingExponentialRadiusOn;
 int MvirDefinition;
+int AgeStructOut;
+int DelayedFeedbackOn;
 
 // binning information
 double FirstBin;
@@ -83,7 +86,9 @@ double SfrEfficiency;
 double FeedbackReheatingEpsilon;
 double FeedbackGasSigma;
 double FeedbackExponent;
-double FeedbackEjectionRatio;
+double FeedbackEjectionEfficiency;
+double FeedbackReheatCoupling;
+double FeedbackEjectCoupling;
 double RadioModeEfficiency;
 double QuasarModeEfficiency;
 double BlackHoleGrowthRate;
@@ -101,6 +106,8 @@ double Reionization_zr;
 double ThresholdSatDisruption;
 double AlphaBurst;
 double BetaBurst;
+double Ratio_Ia_II;
+double HalfBoxLen;
 
 // more misc 
 double UnitLength_in_cm,

@@ -105,14 +105,12 @@ double time_to_present(double z)
   gsl_function F;
   gsl_integration_workspace *workspace;
   double time, result, abserr;
+    size_t neval;
 
   workspace = gsl_integration_workspace_alloc(WORKSIZE);
-  F.function = &integrand_time_to_present;
-
-  gsl_integration_qag(&F, 1.0 / (z + 1), 1.0, 1.0 / Hubble,
-    1.0e-8, WORKSIZE, GSL_INTEG_GAUSS21, workspace, &result, &abserr);
-
-  time = 1 / Hubble * result;
+  F.function = &integrand_time_to_present;    
+    gsl_integration_qag(&F, 1.0/(1.0+z), 1.0, 0.01 / Hubble, 1.0e-9, WORKSIZE, GSL_INTEG_GAUSS21, workspace, &result, &abserr);
+  time = result / Hubble;
 
   gsl_integration_workspace_free(workspace);
 
@@ -129,4 +127,27 @@ double integrand_time_to_present(double a, void * params)
 }
 
 
-
+// The below works just as well without the need for GSL
+//double time_to_present(double z)
+//{
+//    int Nstep = 100000;
+//    double z_step = z/Nstep;
+//    
+//    double Omega_k = 1.0 - Omega - OmegaLambda;
+//    
+//    int i;
+//    double integral = 0.0;
+//    double integrand;
+//    double z_i = 0.0;
+//    
+//    for(i=0; i<=Nstep; i++)
+//    {
+//        integrand = 1.0 / ((1+z_i)*sqrt(Omega*cube(1+z_i) + Omega_k*sqr(1+z_i) + OmegaLambda));
+//        if(i==0 || i==Nstep) integrand *= 0.5;
+//        integral += integrand;
+//        z_i += z_step;
+//    }
+//    integral *= z_step;
+//    
+//    return integral/Hubble;
+//}
