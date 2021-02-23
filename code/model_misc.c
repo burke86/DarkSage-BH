@@ -505,7 +505,7 @@ void check_ejected(int p)
     if(!(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass))
     {
 //        printf("ejected mass, metals = %e, %e\n", Gal[p].EjectedMass, Gal[p].MetalsEjectedMass);
-        if(Gal[p].EjectedMass <= 1e-10 || Gal[p].MetalsEjectedMass <= 1e-10)
+        if(Gal[p].EjectedMass <= 1e-10 || Gal[p].MetalsEjectedMass <= 1e-10*BIG_BANG_METALLICITY)
         {
             Gal[p].EjectedMass = 0.0;
             Gal[p].MetalsEjectedMass = 0.0;

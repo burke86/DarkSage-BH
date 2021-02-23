@@ -484,7 +484,10 @@ void add_infall_to_hot(int centralgal, double infallingGas)
 
   // add (subtract) the ambient (enriched) infalling gas to the central galaxy hot component 
   if(infallingGas > 0.0)
+  {
     Gal[centralgal].HotGas += infallingGas;
+    Gal[centralgal].MetalsHotGas += BIG_BANG_METALLICITY * infallingGas; // some primordial metals come with it
+  }
 
   metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);

@@ -325,7 +325,7 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
 		coolingGasBinSum += coolingGasBin;
 	  }
 	
-	  assert(coolingGasBinSum <= 1.01*coolingGas && coolingGasBinSum >= coolingGas/1.01);
+	  assert(coolingGasBinSum <= 1.01*coolingGas && coolingGasBinSum >= coolingGas*0.99);
 
       Gal[p].ColdGas += coolingGas;
       Gal[p].MetalsColdGas += metallicity * coolingGas;

@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/24e/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/24f/
 
 FirstFile                   0
 LastFile                    7
@@ -107,7 +107,7 @@ CoolingScaleConst           1.0
 
 RadioModeEfficiency         0.001
 QuasarModeEfficiency        0.01962
-BlackHoleGrowthRate         0.008
+BlackHoleGrowthRate         0.015
 
 
 %%%= For H2prescription=0 =%%%
@@ -118,11 +118,11 @@ H2FractionExponent          0.92   ;Also controls the H2/HI ratio calculation. (
 
 %%%= For H2prescription=1 =%%%
 ClumpFactor                 1.0     ; Controls the clump factor which affects H2/HI. (1.0 for Fu+13)
-ClumpExponent               0.3     ; Controls the clump factor which affects H2/HI. (0.7 for Fu+13)
+ClumpExponent               0.7     ; Controls the clump factor which affects H2/HI. (0.7 for Fu+13)
 %%%= ==================== =%%%
 
 
-RadiusWeight                0.2     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
+RadiusWeight                0.05     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
 
 QTotMin                     1.0    ;threshold Toomre Q value for instabilities
 GasSinkRate                 0.5

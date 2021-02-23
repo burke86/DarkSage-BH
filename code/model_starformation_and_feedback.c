@@ -823,7 +823,7 @@ void update_HI_H2(int p)
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
     double P_0 = 5.93e-12 / UnitMass_in_g * UnitLength_in_cm * UnitTime_in_s * UnitTime_in_s;
     
-    if(Gal[p].Vvir>0.0)
+    if(Gal[p].Vvir>0.0 && Gal[p].ColdGas>0.0)
     {
         for(i=0; i<N_BINS; i++)
         {
