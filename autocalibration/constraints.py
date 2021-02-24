@@ -93,7 +93,7 @@ class Constraint(object):
         fields = ['StellarMass', 'DiscHI', 'LenMax']
         # hard coding stuff here that should be generalised
         files = [4]
-        G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, fields=fields) 
+        G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, Nage=30, fields=fields) 
         h0 = 0.6777
         vol = (1000./h0)**3 * (1.0*len(files)/1000.)
         

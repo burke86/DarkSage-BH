@@ -4,19 +4,29 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def galdtype_darksage(Nannuli=30):
+def galdtype_darksage(Nannuli=30,Nage=1):
     floattype = np.float32
+    
+    # Account for whether age bins are used for stars or not
+    if Nage>1:
+        disc_arr_dim = (Nannuli,Nage)
+        bulge_arr_type = (floattype, Nage)
+    else:
+        disc_arr_dim = Nannuli
+        bulge_arr_type = floattype
+
     Galdesc_full = [
                     ('Type'                         , np.int32),
                     ('GalaxyIndex'                  , np.int64),
                     ('HaloIndex'                    , np.int32),
                     ('SimulationHaloIndex'          , np.int32),
                     ('TreeIndex'                    , np.int32),
+                    ('RootGalaxyIndex'              , np.int64),
                     ('SnapNum'                      , np.int32),
                     ('CentralGalaxyIndex'           , np.int64),
                     ('CentralMvir'                  , floattype),
                     ('mergeType'                    , np.int32),
-                    ('mergeIntoID'                  , np.int32),
+                    ('mergeIntoID'                  , np.int64),
                     ('mergeIntoSnapNum'             , np.int32),
                     ('dT'                           , floattype),
                     ('Pos'                          , (floattype, 3)),
@@ -32,18 +42,18 @@ def galdtype_darksage(Nannuli=30):
                     ('DiscRadii'                    , (floattype, Nannuli+1)), 
                     ('ColdGas'                      , floattype),
                     ('StellarMass'                  , floattype),
-                    ('MergerBulgeMass'              , floattype),
-                    ('InstabilityBulgeMass'          , floattype),
+                    ('MergerBulgeMass'              , bulge_arr_type),
+                    ('InstabilityBulgeMass'         , bulge_arr_type),
                     ('HotGas'                       , floattype),
                     ('EjectedMass'                  , floattype),
                     ('BlackHoleMass'                , floattype),
-                    ('IntraClusterStars'            , floattype),
+                    ('IntraClusterStars'            , bulge_arr_type),
                     ('DiscGas'                      , (floattype, Nannuli)),
-                    ('DiscStars'                    , (floattype, Nannuli)),
+                    ('DiscStars'                    , (floattype, disc_arr_dim)),
                     ('SpinStars'                    , (floattype, 3)),
                     ('SpinGas'                      , (floattype, 3)),
                     ('SpinClassicalBulge'           , (floattype, 3)),
-                    ('StarsInSitu'                  , floattype),
+                    ('StarsFromH2'                  , floattype),
                     ('StarsInstability'             , floattype),
                     ('StarsMergeBurst'              , floattype),
                     ('DiscHI'                       , (floattype, Nannuli)),
@@ -51,13 +61,13 @@ def galdtype_darksage(Nannuli=30):
                     ('DiscSFR'                      , (floattype, Nannuli)), 
                     ('MetalsColdGas'                , floattype),
                     ('MetalsStellarMass'            , floattype),
-                    ('ClassicalMetalsBulgeMass'     , floattype),
-                    ('SecularMetalsBulgeMass'       , floattype),
+                    ('MetalsMergerBulgeMass'        , bulge_arr_type),
+                    ('MetalsInstabilityBulgeMass'   , bulge_arr_type),
                     ('MetalsHotGas'                 , floattype),
                     ('MetalsEjectedMass'            , floattype),
-                    ('MetalsIntraClusterStars'      , floattype),
+                    ('MetalsIntraClusterStars'      , bulge_arr_type),
                     ('DiscGasMetals'                , (floattype, Nannuli)),
-                    ('DiscStarsMetals'              , (floattype, Nannuli)),
+                    ('DiscStarsMetals'              , (floattype, disc_arr_dim)),
                     ('SfrFromH2'                    , floattype),
                     ('SfrInstab'                    , floattype),
                     ('SfrMergeBurst'                , floattype),
@@ -75,19 +85,19 @@ def galdtype_darksage(Nannuli=30):
                     ('infallVvir'                   , floattype),
                     ('infallVmax'                   , floattype)
                     ]
-    names = [Galdesc_full[i][0] for i in xrange(len(Galdesc_full))]
-    formats = [Galdesc_full[i][1] for i in xrange(len(Galdesc_full))]
+    names = [Galdesc_full[i][0] for i in range(len(Galdesc_full))]
+    formats = [Galdesc_full[i][1] for i in range(len(Galdesc_full))]
     Galdesc = np.dtype({'names':names, 'formats':formats}, align=True)
     return Galdesc
 
 
 
-def darksage_out_single(fname, fields=[], Nannuli=30):
+def darksage_out_single(fname, fields=[], Nannuli=30, Nage=1):
     # Read a single Dark Sage output file, returning all the galaxy data
     # fname is the full name for the file to read, including its path
     # fields is the list of fields you want to read in.  If empty, will read all fields.
     
-    Galdesc = galdtype_darksage(Nannuli)
+    Galdesc = galdtype_darksage(Nannuli, Nage)
     if len(fields)==0: fields=list(Galdesc.names)
     
     fin = open(fname, 'rb')  # Open the file
@@ -96,30 +106,46 @@ def darksage_out_single(fname, fields=[], Nannuli=30):
     GalsPerTree = np.fromfile(fin, np.dtype((np.int32, Ntrees)),1) # Read the number of gals in each tree
     G = np.fromfile(fin, Galdesc, NtotGals) # Read all the galaxy data
     G = G[fields]
+    fin.close()
     return G 
 
 
-
-def darksage_snap(fpre, filelist, fields=[], Nannuli=30):
+def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
     # Read full Dark Sage snapshot, going through each file and compiling into 1 array
     # fpre is the name of the file up until the _ before the file number
     # filelist contains all the file numbers you want to read in
     
-    Galdesc = galdtype_darksage()
-    Glist = []
-    Ngal = np.array([],dtype=np.int32)
-    print 'reading file', filelist[0]
-    G = darksage_out_single(fpre+'_'+str(filelist[0]), fields, Nannuli)
+    Galdesc = galdtype_darksage(Nannuli, Nage)
+    if len(fields)==0: fields=list(Galdesc.names)
+    NtotGalsSum = 0
     
-    for i in filelist[1:]:
-        print 'reading file', i
-        G1 = darksage_out_single(fpre+'_'+str(i), fields)
-        G = np.append(G, G1)
+    # First calculate the total number of galaxies that will fill the array
+    for i in filelist:
+        fin = open(fpre+'_'+str(i), 'rb')
+        Ntrees = np.fromfile(fin,np.dtype(np.int32),1)  # Read number of trees in file
+        NtotGals = np.fromfile(fin,np.dtype(np.int32),1)[0]
+        NtotGalsSum += NtotGals
+        fin.close()
+
+    G = np.empty(NtotGalsSum, dtype=Galdesc)[fields] # Intialise the galaxy array
+    NtotGalsSum = 0 # reset for next loop
+
+    # Loop through files to fill in galaxy array
+    for i in filelist:
+#        print('reading file {0}'.format(i))
+        fin = open(fpre+'_'+str(i), 'rb')
+        Ntrees = np.fromfile(fin,np.dtype(np.int32),1)  # Read number of trees in file
+        NtotGals = np.fromfile(fin,np.dtype(np.int32),1)[0]  # Read number of gals in file.
+        GalsPerTree = np.fromfile(fin, np.dtype((np.int32, Ntrees)),1) # Read the number of gals in each tree
+        G1 = np.fromfile(fin, Galdesc, NtotGals) # Read all the galaxy data
+        fin.close()
+        G[NtotGalsSum:NtotGalsSum+NtotGals] = G1[fields]
+        NtotGalsSum += NtotGals
+
     return G
 
 
-
-def massfunction(mass, Lbox, range=[8,12.5], c='k', lw=2, ls='-', label='', ax=None, zo=2, return_data=False):
+def massfunction(mass, Lbox, range=[8,12.5], c='k', lw=2, ls='-', label='', ax=None, zo=2):
     masslog = np.log10(mass[(mass>0)*np.isfinite(mass)])
     N, edges = np.histogram(masslog, bins=np.arange(range[0],range[1]+0.1,0.1))
     binwidth = edges[1]-edges[0]
@@ -129,11 +155,9 @@ def massfunction(mass, Lbox, range=[8,12.5], c='k', lw=2, ls='-', label='', ax=N
     if ax is None: ax = plt.gca()
     
     if len(label)>0:
-        ax.plot(x, y, c+ls, linewidth=lw, label=label, zorder=zo)
+        ax.plot(x, y, ls, linewidth=lw, label=label, zorder=zo, color=c)
     else:
-        ax.plot(x, y, c+ls, linewidth=lw, zorder=zo)
-
-    if return_data: return x, y
+        ax.plot(x, y, ls, linewidth=lw, zorder=zo, color=c)
 
 
 def schechter(phistar, Mstar, alpha, Mlog=False, range=[7,12], Npoints=2000, logM=None):
@@ -144,8 +168,8 @@ def schechter(phistar, Mstar, alpha, Mlog=False, range=[7,12], Npoints=2000, log
     return Phi, logM
 
 
-def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1, B=True, W=True):
-    Bdata = np.array([
+def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1):
+    B = np.array([
                   [7.05, 1.3531e-01, 6.0741e-02],
                   [7.15, 1.3474e-01, 6.0109e-02],
                   [7.25, 2.0971e-01, 7.7965e-02],
@@ -198,11 +222,8 @@ def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1, B=True, W=True):
                   [11.95, 7.4764e-06, 7.4764e-06]
                   ], dtype=np.float32)
     if ax is None: ax = plt.gca()
-    
-    
-    if B:
-        ax.fill_between(Bdata[:,0]+np.log10(0.7**2)-np.log10(h**2), (Bdata[:,1]+Bdata[:,2])*h**3, (Bdata[:,1]-Bdata[:,2])*h**3, facecolor='purple', alpha=0.2, zorder=zo)
-        ax.plot([1,1], [1,2], color='purple', linewidth=8, alpha=0.3, label=r'Baldry et al.~(2008)') # Just for the legend
+    ax.fill_between(B[:,0]+np.log10(0.7**2)-np.log10(h**2), (B[:,1]+B[:,2])*h**3, (B[:,1]-B[:,2])*h**3, facecolor='purple', alpha=0.2, zorder=zo)
+    ax.plot([1,1], [1,2], color='purple', linewidth=8, alpha=0.3, label=r'Baldry et al.~(2008)') # Just for the legend
 
     W17_data = np.array([[1.200e+01, 1.929e-05, 2.623e-05, 2.912e-05, 0.000e+00, 0.000e+00, 1.467e-05],
                      [1.185e+01, 2.448e-05, 1.783e-05, 2.178e-05, 1.973e-05, 2.280e-05, 4.893e-05],
@@ -250,14 +271,12 @@ def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1, B=True, W=True):
                      [5.550e+00, 3.742e-02, 3.572e-02, 4.519e-02, 1.257e-02, 1.567e-02, 2.418e-02],
                      [5.400e+00, 1.581e-02, 2.140e-02, 5.194e-02, 1.040e-02, 1.432e-02, 2.597e-02],
                      [5.250e+00, 6.482e-03, 6.445e-03, 6.068e-03, 0.000e+00, 0.000e+00, 6.446e-06]])
-                     
-    if W:
-        ax.fill_between(W17_data[:,0]+2*np.log10(0.7/h), (W17_data[:,1]+W17_data[:,3])*(h/0.7)**3, (W17_data[:,1]- W17_data[:,2])*(h/0.7)**3,color='goldenrod', alpha=0.3, zorder=zo)
-        ax.plot(W17_data[:,0]+2*np.log10(0.7/h), W17_data[:,1]*(h/0.7)**3, '-', color='goldenrod', lw=2, zorder=zo)
-        ax.plot([0,1], [0,1], '-', color='goldenrod', lw=8, alpha=0.3, label=r'Wright et al.~(2017)') # Just for legend
+    ax.fill_between(W17_data[:,0]+2*np.log10(0.7/h), (W17_data[:,1]+W17_data[:,3])*(h/0.7)**3, (W17_data[:,1]- W17_data[:,2])*(h/0.7)**3,color='goldenrod', alpha=0.3, zorder=zo)
+    ax.plot(W17_data[:,0]+2*np.log10(0.7/h), W17_data[:,1]*(h/0.7)**3, '-', color='goldenrod', lw=2, zorder=zo)
+    ax.plot([0,1], [0,1], '-', color='goldenrod', lw=8, alpha=0.3, label=r'Wright et al.~(2017)') # Just for legend
 
 
-def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=None, Z=True, M=False, B=False, J=True):
+def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=None, Z=True, M=False, B=False):
     Zwaan = np.array([[6.933,   -0.333],
                       [7.057,   -0.490],
                       [7.209,   -0.698],
@@ -326,36 +345,6 @@ def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=No
       
     HI_x = Zwaan[:,0] - 2*np.log10(h)
     HI_y = 10**Zwaan[:,1] * h**3
-    
-    Jones_data = np.array([[6.49655, -1.29050, -1.50559, -1.11453],
-                            [6.71034, -1.05587, -1.21229, -0.938547],
-                            [6.90345, -1.36872, -1.54469, -1.29050],
-                            [7.09655, -1.36872, -1.42737, -1.31006],
-                            [7.29655, -1.25140, -1.32961, -1.21229],
-                            [7.48276, -1.29050, -1.34916, -1.23184],
-                            [7.70345, -1.40782, -1.46648, -1.36872],
-                            [7.91034, -1.46648, -1.56425, -1.42737],
-                            [8.11034, -1.52514, -1.54469, -1.46648],
-                            [8.29655, -1.58380, -1.62291, -1.52514],
-                            [8.50345, -1.62291, -1.66201, -1.60335],
-                            [8.70345, -1.70112, -1.74022, -1.64246],
-                            [8.89655, -1.77933, -1.81844, -1.75978],
-                            [9.10345, -1.77933, -1.81844, -1.75978],
-                            [9.30345, -1.91620, -1.97486, -1.89665],
-                            [9.49655, -2.01397, -2.09218, -1.99441],
-                            [9.70345, -2.18994, -2.26816, -2.13128],
-                            [9.90345, -2.36592, -2.40503, -2.3072],
-                            [10.0966, -2.60056, -2.63966, -2.58101],
-                            [10.2897, -3.06983, -3.12849, -3.05028],
-                            [10.4966, -3.73464, -3.83240, -3.69553],
-                            [10.6966, -4.63408, -4.77095, -4.51676],
-                            [10.9034, -5.80726, -6.35475, -5.55307]])
-
-    Jones_x = Jones_data[:,0] + 2*np.log10(0.7/h)
-    Jones_mid = Jones_data[:,1] + 3*np.log10(h/0.7)
-    Jones_high = Jones_data[:,3] + 3*np.log10(h/0.7)
-    Jones_low = Jones_data[:,2] + 3*np.log10(h/0.7)
-    
 
     Boselli_const_XCO = np.array([[7.39189, -3.06989, -3.32527, -2.86828],
                                 [7.78378, -2.45161, -2.54570, -2.37097],
@@ -374,33 +363,21 @@ def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=No
                               [9.59838, -2.72043, -2.92204, -2.62634], 
                               [9.98922, -3.67473, -5.98656, -3.31183]])
     
-    if ax is None: ax = plt.gca()      
-    
-    if HI and Z: 
-        ax.plot(HI_x, HI_y, '-', color='g', lw=8, alpha=0.4, label=r'Zwaan et al.~(2005)')
-    
-    if HI and M: 
-        ax.fill_between(Martin_x, 10**Martin_high, 10**Martin_low, color='c', alpha=0.4)
-        ax.plot([0,1], [1,1], 'c-', lw=8, alpha=0.4, label=r'Martin et al.~(2010)')
+    if ax is None: ax = plt.gca()         
+    if HI and Z: ax.plot(HI_x, HI_y, '-', color='g', lw=8, alpha=0.4, label=r'Zwaan et al.~(2005)')
+    if HI and M: ax.fill_between(Martin_x, 10**Martin_high, 10**Martin_low, color='c', alpha=0.4)
+    if HI and M: ax.plot([0,1], [1,1], 'c-', lw=8, alpha=0.4, label=r'Martin et al.~(2010)')
 
-    if HI and J:
-        ax.fill_between(Jones_x, 10**Jones_high, 10**Jones_low, color='chocolate', alpha=0.4)
-        ax.plot([0,1], [1,1], '-', color='chocolate', lw=8, alpha=0.4, label=r'Jones et al.~(2018)')
+    if H2 and K: ax.fill_between(Keres_M, 10**Keres_high, 10**Keres_low, color='teal', alpha=0.4)
+    if H2 and K: ax.plot([0,1], [1,1], '-', color='teal', lw=8, alpha=0.4, label=r'Keres et al.~(2003)')
 
-
-    if H2 and K: 
-        ax.fill_between(Keres_M, 10**Keres_high, 10**Keres_low, color='teal', alpha=0.4)
-        ax.plot([0,1], [1,1], '-', color='teal', lw=8, alpha=0.4, label=r'Keres et al.~(2003)')
-
-    if H2 and OR: 
-        ax.fill_between(ObrRaw_M, 10**ObrRaw_high, 10**ObrRaw_low, color='darkcyan', alpha=0.4)
-        ax.plot([0,1], [1,1], '-', color='darkcyan', lw=8, alpha=0.4, label=r'Obreschkow \& Rawlings (2009)')
+    if H2 and OR: ax.fill_between(ObrRaw_M, 10**ObrRaw_high, 10**ObrRaw_low, color='darkcyan', alpha=0.4)
+    if H2 and OR: ax.plot([0,1], [1,1], '-', color='darkcyan', lw=8, alpha=0.4, label=r'Obreschkow \& Rawlings (2009)')
                         
-    if H2 and B: 
-        ax.fill_between(Boselli_const_XCO[:,0]+2*np.log10(0.7/h), 10**Boselli_const_XCO[:,2]*(h/0.7)**3/0.4, 10**Boselli_const_XCO[:,3]*(h/0.7)**3/0.4, color='orange', alpha=0.4)
-        ax.plot([0,1], [1,1], '-', color='orange', lw=8, alpha=0.4, label=r'Boselli et al.~(2014), const.~$X_{\rm CO}$')
-        ax.fill_between(Boselli_var_XCO[:,0]+2*np.log10(0.7/h), 10**Boselli_var_XCO[:,2]*(h/0.7)**3/0.4, 10**Boselli_var_XCO[:,3]*(h/0.7)**3/0.4, color='violet', alpha=0.4)
-        ax.plot([0,1], [1,1], '-', color='violet', lw=8, alpha=0.4, label=r'Boselli et al.~(2014), var.~$X_{\rm CO}$')
+    if H2 and B: ax.fill_between(Boselli_const_XCO[:,0]+2*np.log10(0.7/h), 10**Boselli_const_XCO[:,2]*(h/0.7)**3/0.4, 10**Boselli_const_XCO[:,3]*(h/0.7)**3/0.4, color='orange', alpha=0.4)
+    if H2 and B: ax.plot([0,1], [1,1], '-', color='orange', lw=8, alpha=0.4, label=r'Boselli et al.~(2014), const.~$X_{\rm CO}$')
+    if H2 and B: ax.fill_between(Boselli_var_XCO[:,0]+2*np.log10(0.7/h), 10**Boselli_var_XCO[:,2]*(h/0.7)**3/0.4, 10**Boselli_var_XCO[:,3]*(h/0.7)**3/0.4, color='violet', alpha=0.4)
+    if H2 and B: ax.plot([0,1], [1,1], '-', color='violet', lw=8, alpha=0.4, label=r'Boselli et al.~(2014), var.~$X_{\rm CO}$')
 
     ax.set_xlabel(r'$\log_{10}(M_{\mathrm{H}\,\huge\textsc{i}}\ \mathrm{or}\ M_{\mathrm{H}_2}\ [\mathrm{M}_{\bigodot}])$')
     ax.set_ylabel(r'$\Phi\ [\mathrm{Mpc}^{-3}\ \mathrm{dex}^{-1}]$')
@@ -408,7 +385,7 @@ def HIH2_massfunction_obsdata(h=0.678, HI=True, H2=True, K=True, OR=False, ax=No
 
 
 
-def savepng(filename, xsize=1024, ysize=None, fig=None, transparent=False):
+def savepng(filename, xsize=1024, ysize=None, fig=None, transparent=False, compact=False):
     # Save a figure as a PNG with a normalised size / aspect ratio
     xpix = 2560
     ypix = 1440
@@ -422,6 +399,7 @@ def savepng(filename, xsize=1024, ysize=None, fig=None, transparent=False):
     if fig is None: fig = plt.gcf()
     fig.set_size_inches(xinplot,yinplot)
     fig.set_dpi(mydpi)
+    if compact: fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)
     
     filename = str(filename)
     if filename[-4:] != '.png':
@@ -464,7 +442,7 @@ def hist_Nmin(x, bins, Nmin, hard_bins=np.array([])):
         elif np.all(~((bins[ii] <= 1.01*hard_bins) * (bins[ii] >= 0.99*hard_bins))):
             bins = np.delete(bins,ii)
         else:
-            print 'hard_bins prevented routines.hist_Nmin() from enforcing Nmin.  Try using wider input bins.'
+            print('hard_bins prevented routines.hist_Nmin() from enforcing Nmin.  Try using wider input bins.')
             Nhist, bins = np.histogram(x, bins)
             break
         Nhist, bins = np.histogram(x, bins)
@@ -496,7 +474,7 @@ def meanbins(x, y, xmeans, tol=0.02, itmax=100):
     return bins, mean_x, mean_y
 
 
-def percentiles(x, y, low=0.16, med=0.5, high=0.84, bins=20, addMean=False, xrange=None, yrange=None, Nmin=10, weights=None, hard_bins=np.array([]), outBins=False):
+def percentiles(x, y, low=0.16, med=0.5, high=0.84, bins=20, addMean=False, xrange=None, yrange=None, Nmin=10, hard_bins=np.array([]), outBins=False):
     # Given some values to go on x and y axes, bin them along x and return the percentile ranges
     f = np.isfinite(x)*np.isfinite(y)
     if xrange is not None: f = (x>=xrange[0])*(x<=xrange[1])*f
@@ -515,10 +493,7 @@ def percentiles(x, y, low=0.16, med=0.5, high=0.84, bins=20, addMean=False, xran
     for i in range(Nbins):
         f = (x>=bins[i])*(x<bins[i+1])
         if len(f[f])>2:
-            if weights is None:
-                [y_low[i], y_med[i], y_high[i]] = np.percentile(y[f], [100*low, 100*med, 100*high], interpolation='linear')
-            else:
-                [y_low[i], y_med[i], y_high[i]] = weighted_percentile(y[f], [low, med, high], weights[f])
+            [y_low[i], y_med[i], y_high[i]] = np.percentile(y[f], [100*low, 100*med, 100*high], interpolation='linear')
             x_av[i] = np.mean(x[f])
             N[i] = len(x[f])
             if addMean: y_mean[i] = np.mean(y[f])
@@ -835,3 +810,25 @@ def SFRD_obs(h, alpha=0.3, ax=None, plus=0):
     ax.errorbar(ObsRedshift+plus, ObsSFR, yerr=[yErrLo, yErrHi], xerr=[xErrLo, xErrHi], color='purple', lw=2.0, alpha=alpha, ls='none', label=r'Somerville et al.~(2001)', ms=0)
     ax.errorbar(z+plus, SFRD, yerr=[SFRD_err_high, SFRD_err_low], xerr=z_err, color='cyan', lw=2.0, alpha=alpha, ls='none', label=r'Madau \& Dickinson (2014)', ms=0)
     ax.errorbar((D18[:,1]+D18[:,2])/2.+plus, D18[:,3]+np.log10(h/0.7), yerr=np.sum(D18[:,5:],axis=1), xerr=(D18[:,1]-D18[:,2])/2., color='goldenrod', lw=2.0, alpha=alpha, ls='none', label=r'Driver et al.~(2018)', ms=0)
+
+
+def z2tL(z, h=0.6774, Omega_M=0.3089, Omega_Lambda=0.6911, Omega_R=0, nele=100000):
+    # Convert redshift z to look-backtime time tL.
+    # nele is the number if elements used in the numerical integration
+    
+    if z<=0: return 0. # not designed for blueshifts!
+    
+    H_0 = 100*h
+    Omega_k = 1 - Omega_R - Omega_M - Omega_Lambda # Curvature density as found from the radiation, matter and dark energy energy densities.
+    Mpc_km = 3.08567758e19 # Number of km in 1 Mpc
+    yr_s = 60*60*24*365.24 # Number of seconds in a year
+
+    # Create the z-array that is to be integrated over and matching integrand
+    zprime = np.linspace(0, z, nele)
+    integrand = 1./((1+zprime)*np.sqrt(Omega_R*(1+zprime)**4 + Omega_M*(1+zprime)**3 + Omega_k*(1+zprime)**2 + Omega_Lambda))
+
+    # Numerically integrate trapezoidally
+    integrated = 0.5 * np.sum(np.diff(zprime)*(integrand[:-1] + integrand[1:]))
+    tL = np.divide(integrated*Mpc_km, H_0*yr_s*1e9)
+
+    return tL # Gives look-back time in Gyr
