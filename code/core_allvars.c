@@ -68,6 +68,7 @@ int CoolingExponentialRadiusOn;
 int MvirDefinition;
 int AgeStructOut;
 int DelayedFeedbackOn;
+int HotGasProfileType;
 
 // binning information
 double FirstBin;

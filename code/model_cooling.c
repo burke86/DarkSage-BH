@@ -12,7 +12,7 @@
 
 double cooling_recipe(int gal, double dt)
 {
-  double tcool, x, logZ, lambda, rcool, rho_rcool, rho0, temp, coolingGas;
+  double tcool, x, logZ, lambda, rcool, rho_rcool, rho0, temp, coolingGas, c_beta, cb_term;
 
   if(Gal[gal].HotGas > 0.0 && Gal[gal].Vvir > 0.0)
   {
@@ -22,7 +22,7 @@ double cooling_recipe(int gal, double dt)
     if(Gal[gal].MetalsHotGas > 0)
       logZ = log10(Gal[gal].MetalsHotGas / Gal[gal].HotGas);
     else
-      logZ = -10.0;
+      logZ = log10(BIG_BANG_METALLICITY);
 
     lambda = get_metaldependent_cooling_rate(log10(temp), logZ);
     x = PROTONMASS * BOLTZMANN * temp / lambda;        // now this has units sec g/cm^3  
@@ -30,8 +30,19 @@ double cooling_recipe(int gal, double dt)
     rho_rcool = x / tcool * 0.885;  // 0.885 = 3/2 * mu, mu=0.59 for a fully ionized gas
 
     // an isothermal density profile for the hot gas is assumed here 
-    rho0 = Gal[gal].HotGas / (4 * M_PI * Gal[gal].Rvir);
-    rcool = sqrt(rho0 / rho_rcool);
+    if(HotGasProfileType==0)
+    {
+        rho0 = Gal[gal].HotGas / (4 * M_PI * Gal[gal].Rvir);
+        rcool = sqrt(rho0 / rho_rcool);
+        cb_term = 1.0;
+    }
+    else
+    {
+        c_beta = 0.20*exp(-1.5*ZZ[Gal[gal].SnapNum]) - 0.039*ZZ[Gal[gal].SnapNum] + 0.28;
+        cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
+        rho0 = Gal[gal].HotGas / (4 * M_PI * sqr(c_beta) * cube(Gal[gal].Rvir)) * cb_term;
+        rcool = c_beta * Gal[gal].Rvir * sqrt(rho0/rho_rcool - 1.0);
+    }
 
     if(rcool > Gal[gal].Rvir)
     {
@@ -42,9 +53,11 @@ double cooling_recipe(int gal, double dt)
     else
     {
       // hot phase regime 
-      coolingGas = (Gal[gal].HotGas / Gal[gal].Rvir) * (rcool / (2.0 * tcool)) * dt;
-      Gal[gal].CoolScaleRadius = pow(10, CoolingScaleSlope*log10(1.414*Gal[gal].DiskScaleRadius/Gal[gal].Rvir) - CoolingScaleConst) * Gal[gal].Rvir; // Stevens et al. (2017)
+      coolingGas = (Gal[gal].HotGas / Gal[gal].Rvir) * (rcool / (2.0 * tcool)) * cb_term * dt;
+        Gal[gal].CoolScaleRadius = pow(10, CoolingScaleSlope*log10(1.414*Gal[gal].DiskScaleRadius/Gal[gal].Rvir) - CoolingScaleConst) * Gal[gal].Rvir; // Stevens et al. (2017)
     }
+      
+      
       
       
     if(coolingGas > Gal[gal].HotGas)
@@ -199,7 +212,7 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
 	metallicity = get_metallicity(Gal[p].HotGas, Gal[p].MetalsHotGas);
 	assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
 	
-	// Get ang mom of cooling gas in its native orientations
+	// Get ang mom of cooling gas in its native orientation
 	J_cool = 2.0 * coolingGas * Gal[p].Vvir * Gal[p].CoolScaleRadius;
 	
 	if(Gal[p].ColdGas > 0.0)

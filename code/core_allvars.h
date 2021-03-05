@@ -447,6 +447,7 @@ extern int    CoolingExponentialRadiusOn;
 extern int    MvirDefinition;
 extern int    AgeStructOut;
 extern int    DelayedFeedbackOn;
+extern int    HotGasProfileType;
 
 // recipe parameters 
 extern double RecycleFraction;

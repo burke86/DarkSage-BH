@@ -169,6 +169,10 @@ void read_parameter_file(char *fname)
   addr[nt] = &DelayedFeedbackOn;
   id[nt++] = INT;
 
+  strcpy(tag[nt], "HotGasProfileType");
+  addr[nt] = &HotGasProfileType;
+  id[nt++] = INT;
+
   strcpy(tag[nt], "BaryonFrac");
   addr[nt] = &BaryonFrac;
   id[nt++] = DOUBLE;

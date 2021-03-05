@@ -595,9 +595,14 @@ void update_disc_radii(int p)
     
     if(Gal[p].Mvir>0.0 && BTT<1.0)
     {
-        const double hot_fraction = Gal[p].HotGas*inv_Rvir;
+        const double hot_fraction = Gal[p].HotGas * inv_Rvir; // when assuming a singular isothermal sphere
         const double exponent_support = -3.0*(1.0-BTT)/Gal[p].StellarDiscScaleRadius;
         const int NUM_R_BINS=51;
+
+        // when assuming a beta profile
+        const double c_beta = 0.20*exp(-1.5*ZZ[Gal[p].SnapNum]) - 0.039*ZZ[Gal[p].SnapNum] + 0.28;
+        const double hot_stuff = Gal[p].HotGas / (1.0 - c_beta * atan(1.0/c_beta));
+
         
         // set up array of radii and j from which to interpolate
         double analytic_j[NUM_R_BINS], analytic_r[NUM_R_BINS], analytic_fsupport[NUM_R_BINS], analytic_potential[NUM_R_BINS];
@@ -613,7 +618,7 @@ void update_disc_radii(int p)
         const double c_gdisc = Gal[p].Rvir / Gal[p].GasDiscScaleRadius;
         const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) * inv_Rvir;
         const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
-        double vrot, rrat;
+        double vrot, rrat, RonRvir;
         M_DM = 1.0; // random initialisation to trigger if statement
         
         for(i=NUM_R_BINS-1; i>0; i--)
@@ -628,6 +633,8 @@ void update_disc_radii(int p)
                 break;  
             }
             
+            RonRvir = r * inv_Rvir;
+            
             // M_DM profile can momentarily dip negative at centre. Just setting all DM to be zero from that point inward
             if(M_DM>0.0)
                 M_DM = rho_const * (log(rrat+1) - rrat/(rrat+1));
@@ -636,12 +643,15 @@ void update_disc_radii(int p)
             M_SB = M_SB_inf * sqr(r/(r + a_SB));
             M_CB = M_CB_inf * sqr(r/(r + a_CB));
             M_ICS = M_ICS_inf * sqr(r/(r + a_ICS));
-            M_hot = hot_fraction * r;
+            if(HotGasProfileType==0)
+                M_hot = hot_fraction * r;
+            else
+                M_hot = hot_stuff * (RonRvir - c_beta * atan(RonRvir/c_beta));
             M_int = M_DM + M_CB + M_SB + M_ICS + M_hot + Gal[p].BlackHoleMass;
 
             v2_spherical = G * M_int / r;
-            v2_sdisc = GM_sdisc_r * v2_disc_cterm(r*inv_Rvir, c_sdisc);
-            v2_gdisc = GM_gdisc_r * v2_disc_cterm(r*inv_Rvir, c_gdisc);
+            v2_sdisc = GM_sdisc_r * v2_disc_cterm(RonRvir, c_sdisc);
+            v2_gdisc = GM_gdisc_r * v2_disc_cterm(RonRvir, c_gdisc);
             
             f_support = 1.0 - exp(exponent_support*r); // Fraction of support in rotation
             if(f_support<1e-5) f_support = 1e-5; // Minimum safety net

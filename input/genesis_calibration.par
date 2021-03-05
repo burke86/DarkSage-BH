@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/24h/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/24p/
 
 FirstFile                   0
 LastFile                    7
@@ -59,6 +59,7 @@ CoolingExponentialRadiusOn  0       ;0: cooling gas is exponential with j (origi
 MvirDefinition              2       ;Mass definition in the treefiles used for Mvir (default for Millennium should be 2, i.e. M200c)
 AgeStructOut                1       ;Include age structure in output (0 for no, 1 for yes). WARNING: Slows code and increases size of output significantly!! Recommended for a single snapshot only.
 DelayedFeedbackOn           1       ; Abandon the instantaneous recycling approximation and use the age bins to impose a semi-instantaneous, semi-delayed feedback and metal enrichment treatment (requires N_AGE_BINS to be non-zero, ideally >20).  1 for on, 0 for off.
+HotGasProfileType           1       ;0: Hot gas assumed to follow a singular isothermal sphere.  1: Hot gas assumed to follow a beta profile of the form described in Stevens et al. (2017)
 
 
 %----------------------------------------------------------
@@ -82,7 +83,7 @@ ExponentBin                 1.4     ; The factor in spec ang mom between bins
 %----- Parameters of physical model -------
 %------------------------------------------
 
-SfrEfficiency               0.9832
+SfrEfficiency               0.69129969
 
 %%%= For SupernovaRecipeOn=1 =%%%
 FeedbackReheatingEpsilon    4.3567
@@ -94,8 +95,8 @@ FeedbackEjectionEfficiency  0.71841983
 
 
 %%%= For SupernovaRecipeOn=3or4 =%%%
-FeedbackReheatCoupling      0.5     ; very similar to FeedbackReheatingEpsilon but designated a different name for the sake of switching between feedback modes when the best-fit parameters are not identical
-FeedbackEjectCoupling       0.25
+FeedbackReheatCoupling      0.63631014     ; very similar to FeedbackReheatingEpsilon but designated a different name for the sake of switching between feedback modes when the best-fit parameters are not identical
+FeedbackEjectCoupling       0.48234443
 Ratio_Ia_II                 0.2     ; number ratio of Type Ia (binary accretion) to Type II (core collapse) supernovae. Affects the total number of supernovae (and therefore total feedback energy) per unit mass of stars formed.
 %%%= ========================== =%%%
 
@@ -103,10 +104,10 @@ Ratio_Ia_II                 0.2     ; number ratio of Type Ia (binary accretion)
 ReIncorporationFactor        0.15    ; For ReincorpotationModel=0
 
 CoolingScaleSlope           0.23    ; cf. eq. 18 of Stevens et al. (2017)
-CoolingScaleConst           1.0
+CoolingScaleConst           1.26
 
-RadioModeEfficiency         0.001
-QuasarModeEfficiency        0.01962
+RadioModeEfficiency         0.01806336
+QuasarModeEfficiency        0.08941435
 BlackHoleGrowthRate         0.015
 
 
@@ -125,7 +126,7 @@ ClumpExponent               0.7     ; Controls the clump factor which affects H2
 RadiusWeight                0.05     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
 
 QTotMin                     1.0    ;threshold Toomre Q value for instabilities
-GasSinkRate                 0.8
+GasSinkRate                 0.12685992
 ThetaThresh                 10.0   ;threshold angle for gas and stellar discs to be coplanar
 
 DegPerTdyn                  5.0    ;degrees the gas disc precesses to come in line with stars per dynamical time
