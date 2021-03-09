@@ -348,9 +348,12 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       // Preventing cooling when there's no angular momentum, as the code isn't built to handle that.  This only cropped up for Vishnu haloes with 2 particles, which clearly weren't interesting/physical.  Haloes always have some spin otherwise.
       if(!(Gal[p].SpinHot[0]==0 && Gal[p].SpinHot[1]==0 && Gal[p].SpinHot[2]==0))
         {
+            assert(Gal[p].HotGas>=0);
           coolingGas = cooling_recipe(p, dt);
+            assert(Gal[p].HotGas>=0);
           Gal[p].AccretedGasMass += coolingGas;
           cool_gas_onto_galaxy(p, coolingGas);
+            assert(Gal[p].HotGas>=0);
         }
 
       // Update radii of the annuli

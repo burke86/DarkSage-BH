@@ -164,7 +164,11 @@ void init_galaxy(int p, int halonr)
         }
     }
 
+//    update_disc_radii(p);
     Gal[p].HaloScaleRadius = pow(10.0, 0.52 + (-0.101 + 0.026*ZZ[Gal[p].SnapNum])*log10(Gal[p].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12)) ); // Initialisation based on Dutton and Maccio (2014). Gets updated as part of update_disc_radii()
+    
+    Gal[p].EjectedPotential = 0.0;
+    Gal[p].HotGasPotential = NFW_potential(p, 0.5*Gal[p].Rvir);
     
 }
 
@@ -600,8 +604,15 @@ void update_disc_radii(int p)
         const int NUM_R_BINS=51;
 
         // when assuming a beta profile
-        const double c_beta = 0.20*exp(-1.5*ZZ[Gal[p].SnapNum]) - 0.039*ZZ[Gal[p].SnapNum] + 0.28;
-        const double hot_stuff = Gal[p].HotGas / (1.0 - c_beta * atan(1.0/c_beta));
+        const double c_beta = dmax(MIN_C_BETA, 0.20*exp(-1.5*ZZ[Gal[p].SnapNum]) - 0.039*ZZ[Gal[p].SnapNum] + 0.28);
+        const double cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
+        const double hot_stuff = Gal[p].HotGas * cb_term;
+        if(!(c_beta>=0))
+        {
+            printf("c_beta, Z, SnapNum = %e, %e, %i\n", c_beta, ZZ[Gal[p].SnapNum], Gal[p].SnapNum);
+        }
+        assert(c_beta>=0);
+        assert(hot_stuff>=0);
 
         
         // set up array of radii and j from which to interpolate
@@ -618,7 +629,7 @@ void update_disc_radii(int p)
         const double c_gdisc = Gal[p].Rvir / Gal[p].GasDiscScaleRadius;
         const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) * inv_Rvir;
         const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
-        double vrot, rrat, RonRvir;
+        double vrot, rrat, RonRvir, AvHotPotential;
         M_DM = 1.0; // random initialisation to trigger if statement
         
         for(i=NUM_R_BINS-1; i>0; i--)
@@ -704,7 +715,17 @@ void update_disc_radii(int p)
                 Gal[p].DiscRadii[k] = gsl_spline_eval(spline, DiscBinEdge[k], acc);
                 Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
             }
-            Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
+            
+            AvHotPotential = 0.0;
+            for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
+            {
+                AvHotPotential += 0.5*(analytic_potential_reduced[k] + analytic_potential_reduced[k+1]) * cb_term * ((analytic_r_reduced[k+1]*inv_Rvir - c_beta*atan(analytic_r_reduced[k+1]*inv_Rvir/c_beta)) - (analytic_r_reduced[k]*inv_Rvir - c_beta*atan(analytic_r_reduced[k]*inv_Rvir/c_beta)));
+                assert(AvHotPotential<=0);
+                if(analytic_r_reduced[k+1] > Gal[p].Rvir) break;
+            }
+            
+//            Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
+            Gal[p].HotGasPotential = AvHotPotential;
             Gal[p].EjectedPotential = gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc);
             
             gsl_spline_free (spline);
@@ -728,8 +749,18 @@ void update_disc_radii(int p)
                 Gal[p].Potential[k] = gsl_spline_eval(spline2, Gal[p].DiscRadii[k], acc);
             }
             
-            Gal[p].HotGasPotential = dmax(analytic_potential[0], gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc));
-            Gal[p].EjectedPotential = dmax(Gal[p].HotGasPotential*0.9999, gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which is should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
+            AvHotPotential = 0.0;
+            for(k=0; k<NUM_R_BINS-1; k++)
+            {
+                AvHotPotential += 0.5*(analytic_potential[k] + analytic_potential[k+1]) * cb_term * ((analytic_r[k+1]*inv_Rvir - c_beta*atan(analytic_r[k+1]*inv_Rvir/c_beta)) - (analytic_r[k]*inv_Rvir - c_beta*atan(analytic_r[k]*inv_Rvir/c_beta)));
+                assert(AvHotPotential<=0);
+                if(analytic_r[k+1] > Gal[p].Rvir) break;
+            }
+            Gal[p].HotGasPotential = AvHotPotential;
+            
+            
+//            Gal[p].HotGasPotential = dmax(analytic_potential[0], gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc));
+            Gal[p].EjectedPotential = dmax(0.9999*Gal[p].HotGasPotential, gsl_spline_eval(spline2, Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which is should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
             
 //            if(Gal[p].EjectedPotential < Gal[p].HotGasPotential)
 //                for(k=0; k<NUM_R_BINS; k++) printf("r, Potential = %e, %e\n", analytic_r[k], analytic_potential[k]);
@@ -751,12 +782,20 @@ void update_disc_radii(int p)
 //            potential_sum -= 
 //    }
     
-    if(Gal[p].Potential[0]<=0) Gal[p].Potential[0] = Gal[p].Potential[1];
+    if(Gal[p].Potential[0]>=0) Gal[p].Potential[0] = Gal[p].Potential[1];
     
     
     update_stellardisc_scaleradius(p);
     // if other functionality is added for gas disc scale radius, update it here too
     
+    
+    if(Gal[p].HotGasPotential>=0)
+    {
+        printf("i = %i\n", i);
+        printf("k = %i\n", k);
+        printf("BTT = %e\n", BTT);
+    }
+    assert(Gal[p].HotGasPotential<0);
     
     
 }

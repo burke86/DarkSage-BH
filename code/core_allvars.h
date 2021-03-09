@@ -30,6 +30,7 @@ do {                                                                \
 #define  PROTONMASS  1.6726e-24
 #define  HUBBLE      3.2407789e-18   /* in h/sec */
 #define  BIG_BANG_METALLICITY 1e-10  /* metallicity from Big Bang nucleosynthesis (basically all Lithium) */
+#define  MIN_C_BETA  0.05
 
 #define  SEC_PER_MEGAYEAR   3.1556736e13
 #define  SEC_PER_YEAR       3.1556736e7

@@ -38,10 +38,13 @@ double cooling_recipe(int gal, double dt)
     }
     else
     {
-        c_beta = 0.20*exp(-1.5*ZZ[Gal[gal].SnapNum]) - 0.039*ZZ[Gal[gal].SnapNum] + 0.28;
+        c_beta = dmax(MIN_C_BETA, 0.20*exp(-1.5*ZZ[Gal[gal].SnapNum]) - 0.039*ZZ[Gal[gal].SnapNum] + 0.28);
         cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
         rho0 = Gal[gal].HotGas / (4 * M_PI * sqr(c_beta) * cube(Gal[gal].Rvir)) * cb_term;
-        rcool = c_beta * Gal[gal].Rvir * sqrt(rho0/rho_rcool - 1.0);
+        if(rho0>rho_rcool)
+            rcool = c_beta * Gal[gal].Rvir * sqrt(rho0/rho_rcool - 1.0);
+        else
+            rcool = 0.0; // densities not high enough anywhere in this case
     }
 
     if(rcool > Gal[gal].Rvir)
@@ -59,7 +62,6 @@ double cooling_recipe(int gal, double dt)
       
       
       
-      
     if(coolingGas > Gal[gal].HotGas)
       coolingGas = Gal[gal].HotGas;
     else if(coolingGas < 0.0)
@@ -73,6 +75,19 @@ double cooling_recipe(int gal, double dt)
   }
   else
     coolingGas = 0.0;
+    
+    if(!(coolingGas >= 0.0))
+    {
+        printf("\ncoolingGas = %e\n", coolingGas);
+        printf("HotGas = %e\n", Gal[gal].HotGas);
+        printf("Rvir = %e\n", Gal[gal].Rvir);
+        printf("rcool = %e\n", rcool);
+        printf("tcool = %e\n", tcool);
+        printf("c_beta = %e\n", c_beta);
+        printf("cb_term = %e\n", cb_term);
+        printf("rho_rcool = %e\n", rho_rcool);
+        printf("rho0/rho_rcool = %e\n", rho0/rho_rcool);
+    }
     
   assert(coolingGas >= 0.0);
   return coolingGas;
