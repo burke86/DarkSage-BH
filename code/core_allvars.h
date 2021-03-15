@@ -356,6 +356,8 @@ struct GALAXY
   double LastMajorMerger;
   double LastMinorMerger;
   double OutflowRate;
+    double c_beta;
+    double R2_hot_av;
 
   //infall properties
   double infallMvir;

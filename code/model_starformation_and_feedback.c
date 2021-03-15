@@ -29,14 +29,14 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   {
       satellite_specific_energy = get_satellite_potential(p, centralgal);
       j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-      hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*j_hot/Gal[centralgal].Rvir));
+      hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
       hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
   }
   else
   {
       satellite_specific_energy = 0.0;
       j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-      hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(2*j_hot/Gal[p].Rvir));
+      hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
       hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
   }
   ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
@@ -902,14 +902,14 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     {
         satellite_specific_energy = get_satellite_potential(p, centralgal);
         j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*j_hot/Gal[centralgal].Rvir));
+        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
         hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
     }
     else
     {
         satellite_specific_energy = 0.0;
         j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(2*j_hot/Gal[p].Rvir));
+        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
         hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
     }
     ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;

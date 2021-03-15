@@ -743,14 +743,14 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
  {
     satellite_specific_energy = get_satellite_potential(merger_centralgal, centralgal);
     j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(2*j_hot/Gal[centralgal].Rvir));
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
     hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
  }
  else
  {
     satellite_specific_energy = 0.0;
     j_hot = 2 * Gal[merger_centralgal].Vvir * Gal[merger_centralgal].CoolScaleRadius;
-    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[merger_centralgal].Vvir) + sqr(2*j_hot/Gal[merger_centralgal].Rvir));
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[merger_centralgal].Vvir) + sqr(j_hot)/Gal[merger_centralgal].R2_hot_av);
     hot_specific_energy = Gal[merger_centralgal].HotGasPotential + hot_thermal_and_kinetic;
  }
  ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;

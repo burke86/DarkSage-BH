@@ -143,6 +143,8 @@ void init_galaxy(int p, int halonr)
     Gal[p].LastMajorMerger = -1.0;
     Gal[p].LastMinorMerger = -1.0;
     Gal[p].OutflowRate = 0.0;
+    Gal[p].c_beta = MIN_C_BETA;
+    Gal[p].R2_hot_av = Gal[p].Rvir/3.0;
     
     Gal[p].infallMvir = -1.0;  //infall properties
     Gal[p].infallVvir = -1.0;
@@ -604,7 +606,7 @@ void update_disc_radii(int p)
         const int NUM_R_BINS=51;
 
         // when assuming a beta profile
-        const double c_beta = dmax(MIN_C_BETA, 0.20*exp(-1.5*ZZ[Gal[p].SnapNum]) - 0.039*ZZ[Gal[p].SnapNum] + 0.28);
+        const double c_beta = Gal[p].c_beta;
         const double cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
         const double hot_stuff = Gal[p].HotGas * cb_term;
         if(!(c_beta>=0))

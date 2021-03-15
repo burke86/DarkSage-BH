@@ -35,16 +35,19 @@ double cooling_recipe(int gal, double dt)
         rho0 = Gal[gal].HotGas / (4 * M_PI * Gal[gal].Rvir);
         rcool = sqrt(rho0 / rho_rcool);
         cb_term = 1.0;
+        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir) / 3.0;
     }
     else
     {
-        c_beta = dmax(MIN_C_BETA, 0.20*exp(-1.5*ZZ[Gal[gal].SnapNum]) - 0.039*ZZ[Gal[gal].SnapNum] + 0.28);
-        cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
-        rho0 = Gal[gal].HotGas / (4 * M_PI * sqr(c_beta) * cube(Gal[gal].Rvir)) * cb_term;
+        Gal[gal].c_beta = dmax(MIN_C_BETA, 0.20*exp(-1.5*ZZ[Gal[gal].SnapNum]) - 0.039*ZZ[Gal[gal].SnapNum] + 0.28);
+        cb_term = 1.0/(1.0 - Gal[gal].c_beta * atan(1.0/Gal[gal].c_beta));
+        rho0 = Gal[gal].HotGas / (4 * M_PI * sqr(Gal[gal].c_beta) * cube(Gal[gal].Rvir)) * cb_term;
         if(rho0>rho_rcool)
-            rcool = c_beta * Gal[gal].Rvir * sqrt(rho0/rho_rcool - 1.0);
+            rcool = Gal[gal].c_beta * Gal[gal].Rvir * sqrt(rho0/rho_rcool - 1.0);
         else
             rcool = 0.0; // densities not high enough anywhere in this case
+
+        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir) * (cube(Gal[gal].c_beta) * atan(1.0/Gal[gal].c_beta) - sqr(Gal[gal].c_beta) + 1.0/3.0 ) * cb_term;
     }
 
     if(rcool > Gal[gal].Rvir)
@@ -70,6 +73,7 @@ double cooling_recipe(int gal, double dt)
     if(AGNrecipeOn > 0 && coolingGas > 0.0)
 		coolingGas = do_AGN_heating(coolingGas, gal, dt, x, rcool);
 
+      // this is no longer an accurate representation of the actual energy change in the gas as it cools...
     if (coolingGas > 0.0)
       Gal[gal].Cooling += 0.5 * coolingGas * Gal[gal].Vvir * Gal[gal].Vvir;
   }
@@ -83,7 +87,7 @@ double cooling_recipe(int gal, double dt)
         printf("Rvir = %e\n", Gal[gal].Rvir);
         printf("rcool = %e\n", rcool);
         printf("tcool = %e\n", tcool);
-        printf("c_beta = %e\n", c_beta);
+        printf("c_beta = %e\n", Gal[gal].c_beta);
         printf("cb_term = %e\n", cb_term);
         printf("rho_rcool = %e\n", rho_rcool);
         printf("rho0/rho_rcool = %e\n", rho0/rho_rcool);
@@ -115,7 +119,7 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     if(AGNrecipeOn == 2)
     {
       // Bondi-Hoyle accretion recipe
-      AGNrate = (2.5 * M_PI * G) * (0.375 * 0.6 * x) * Gal[p].BlackHoleMass * RadioModeEfficiency;
+      AGNrate = 0.553125 * M_PI * G * x * Gal[p].BlackHoleMass * RadioModeEfficiency; // 15/16 * mu = 0.553125 (where mu=0.59)
     }
     else if(AGNrecipeOn == 3)
     {
@@ -158,12 +162,12 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     // cooling mass that can be suppresed from AGN heating 
     AGNheating = AGNcoeff * AGNaccreted;
 
-    // limit heating to cooling rate 
-    if(AGNheating > coolingGas)
-    {
-      AGNaccreted = coolingGas / AGNcoeff;
-      AGNheating = coolingGas;
-    }
+//    // limit heating to cooling rate 
+//    if(AGNheating > coolingGas)
+//    {
+//      AGNaccreted = coolingGas / AGNcoeff;
+//      AGNheating = coolingGas;
+//    }
 
     // accreted mass onto black hole
     metallicity = get_metallicity(Gal[p].HotGas, Gal[p].MetalsHotGas);
@@ -173,17 +177,17 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     Gal[p].HotGas -= AGNaccreted;
     Gal[p].MetalsHotGas -= metallicity * AGNaccreted;
 
-		// update the heating radius as needed
-		if(Gal[p].r_heat < rcool && coolingGas > 0.0)
-		{
-            r_heat_new = (AGNheating / coolingGas) * rcool;
-			
-			if(r_heat_new > Gal[p].r_heat)
-				Gal[p].r_heat = r_heat_new;
-		}
+    // update the heating radius as needed
+    if(coolingGas > 0.0)
+    {
+        r_heat_new = (AGNheating / coolingGas) * rcool;
+        
+        if(r_heat_new > Gal[p].r_heat)
+            Gal[p].r_heat = r_heat_new;
+    }
 
-		if (AGNheating > 0.0)
-			Gal[p].Heating += 0.5 * AGNheating * Gal[p].Vvir * Gal[p].Vvir;
+    if (AGNheating > 0.0)
+        Gal[p].Heating += 0.5 * AGNheating * Gal[p].Vvir * Gal[p].Vvir;
   }
 
   return coolingGas;
