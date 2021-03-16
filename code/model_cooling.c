@@ -16,6 +16,7 @@ double cooling_recipe(int gal, double dt)
 
   if(Gal[gal].HotGas > 0.0 && Gal[gal].Vvir > 0.0)
   {
+      // Many terms in this function that don't change between sub-time-steps.  Should be able to optimize by separating them out and calculating only once for the whole time-step.
     tcool = Gal[gal].Rvir / Gal[gal].Vvir;
     temp = 35.9 * Gal[gal].Vvir * Gal[gal].Vvir;         // in Kelvin 
 
@@ -29,15 +30,14 @@ double cooling_recipe(int gal, double dt)
     x /= (UnitDensity_in_cgs * UnitTime_in_s);         // now in internal units 
     rho_rcool = x / tcool * 0.885;  // 0.885 = 3/2 * mu, mu=0.59 for a fully ionized gas
 
-    // an isothermal density profile for the hot gas is assumed here 
-    if(HotGasProfileType==0)
+    if(HotGasProfileType==0) // isothermal density profile for the hot gas is assumed here 
     {
         rho0 = Gal[gal].HotGas / (4 * M_PI * Gal[gal].Rvir);
         rcool = sqrt(rho0 / rho_rcool);
         cb_term = 1.0;
-        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir) / 3.0;
+        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir) * 0.3333333333;
     }
-    else
+    else // beta profile assumed here instead
     {
         Gal[gal].c_beta = dmax(MIN_C_BETA, 0.20*exp(-1.5*ZZ[Gal[gal].SnapNum]) - 0.039*ZZ[Gal[gal].SnapNum] + 0.28);
         cb_term = 1.0/(1.0 - Gal[gal].c_beta * atan(1.0/Gal[gal].c_beta));
@@ -47,7 +47,7 @@ double cooling_recipe(int gal, double dt)
         else
             rcool = 0.0; // densities not high enough anywhere in this case
 
-        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir) * (cube(Gal[gal].c_beta) * atan(1.0/Gal[gal].c_beta) - sqr(Gal[gal].c_beta) + 1.0/3.0 ) * cb_term;
+        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir) * (cube(Gal[gal].c_beta) * atan(1.0/Gal[gal].c_beta) - sqr(Gal[gal].c_beta) + 0.3333333333 ) * cb_term;
     }
 
     if(rcool > Gal[gal].Rvir)
@@ -70,12 +70,64 @@ double cooling_recipe(int gal, double dt)
     else if(coolingGas < 0.0)
       coolingGas = 0.0;
 
-    if(AGNrecipeOn > 0 && coolingGas > 0.0)
-		coolingGas = do_AGN_heating(coolingGas, gal, dt, x, rcool);
+      // calculate average specific energy difference between hot and cold gas
+      double cold_specific_energy, hot_specific_energy, v_av, pot_av, rfrac1, rfrac2, jfrac1, jfrac2, j_hot, specific_energy_change, massfrac;
+      cold_specific_energy = 0.0;
+      double massfrac_sum = 0.0;
+      int i;
+      for(i=0; i<N_BINS; i++)
+      {
+          if(i>0)
+              v_av = 0.5*(DiscBinEdge[i]/Gal[gal].DiscRadii[i] + DiscBinEdge[i+1]/Gal[gal].DiscRadii[i+1]);
+          else
+              v_av = 0.5*DiscBinEdge[1]/Gal[gal].DiscRadii[1];
+
+          pot_av = 0.5*(Gal[gal].Potential[i] + Gal[gal].Potential[i+1]);
+          
+          if(CoolingExponentialRadiusOn)
+          {
+              rfrac1 = Gal[gal].DiscRadii[i] / Gal[gal].CoolScaleRadius;
+              rfrac2 = Gal[gal].DiscRadii[i+1] / Gal[gal].CoolScaleRadius;
+              massfrac = (rfrac1+1.0)*exp(-rfrac1) - (rfrac2+1.0)*exp(-rfrac2);
+          }
+          else
+          {
+              jfrac1 = DiscBinEdge[i] / (Gal[gal].Vvir * Gal[gal].CoolScaleRadius);
+              jfrac2 = DiscBinEdge[i+1] / (Gal[gal].Vvir * Gal[gal].CoolScaleRadius);
+              massfrac = (jfrac1+1.0)*exp(-jfrac1) - (jfrac2+1.0)*exp(-jfrac2);
+              massfrac_sum += massfrac;
+              assert(massfrac>=0);
+          }
+          
+//          printf("i, massfrac, pot_av, v_av = %i, %e, %e, %e\n", i, massfrac, pot_av, v_av);
+          cold_specific_energy += (massfrac * (pot_av + 0.5*sqr(v_av)));
+      }
+      j_hot = 2 * Gal[gal].Vvir * Gal[gal].CoolScaleRadius;
+      hot_specific_energy = Gal[gal].HotGasPotential + 0.5 * (sqr(Gal[gal].Vvir) + sqr(j_hot)/Gal[gal].R2_hot_av);
+      
+      specific_energy_change = hot_specific_energy - cold_specific_energy;
+      if(specific_energy_change<0.0) // this means the hot gas is actually more stable...
+      {
+          coolingGas = 0.0;
+          specific_energy_change = 0.0;
+      }
+//      if(!(specific_energy_change>0))
+//      {
+//          printf("specific_energy_change, hot_specific_energy, cold_specific_energy,  = %e, %e, %e\n", specific_energy_change, hot_specific_energy, cold_specific_energy);
+//          printf("Vvir, CoolScaleRadius, massfrac_sum = %e, %e, %e\n", Gal[gal].Vvir, Gal[gal].CoolScaleRadius, massfrac_sum);
+//          double PotSum = 0.0;
+//          for(i=0; i<N_BINS; i++) PotSum += Gal[gal].Potential[i];
+//          printf("PotSum = %e\n", PotSum);
+//          
+//      }
+//      assert(specific_energy_change>0);
+      
+    if(AGNrecipeOn > 0 && coolingGas > 0.0 && specific_energy_change>0.0)
+		coolingGas = do_AGN_heating(coolingGas, gal, dt, x, rcool, specific_energy_change);
 
       // this is no longer an accurate representation of the actual energy change in the gas as it cools...
     if (coolingGas > 0.0)
-      Gal[gal].Cooling += 0.5 * coolingGas * Gal[gal].Vvir * Gal[gal].Vvir;
+      Gal[gal].Cooling += coolingGas * specific_energy_change;
   }
   else
     coolingGas = 0.0;
@@ -100,7 +152,7 @@ double cooling_recipe(int gal, double dt)
 
 
 
-double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcool)
+double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcool, double specific_energy_change)
 {
   double AGNrate, EDDrate, AGNaccreted, AGNcoeff, AGNheating, metallicity, r_heat_new;
 
@@ -155,9 +207,9 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     if(AGNaccreted > Gal[p].HotGas)
       AGNaccreted = Gal[p].HotGas;
 
-    // coefficient to heat the cooling gas back to the virial temperature of the halo 
-    // 1.34e5 = sqrt(2*eta*c^2), eta=0.1 (standard efficiency) and c in km/s 
-    AGNcoeff = (1.34e5 / Gal[p].Vvir) * (1.34e5 / Gal[p].Vvir);
+    // coefficient to heat the cooling gas back to the energy state of the hot halo
+    // 8.98755e9 = eta*c^2, eta=0.1 (standard efficiency) and c in km/s 
+    AGNcoeff = 8.98755e9 / specific_energy_change;
 
     // cooling mass that can be suppresed from AGN heating 
     AGNheating = AGNcoeff * AGNaccreted;

@@ -105,6 +105,8 @@ void init_galaxy(int p, int halonr)
     Gal[p].FirstUnstableGas = 0;
     Gal[p].FirstUnstableStar = 0;
     
+    Gal[p].HaloScaleRadius = pow(10.0, 0.52 + (-0.101 + 0.026*ZZ[Gal[p].SnapNum])*log10(Gal[p].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12)) ); // Initialisation based on Dutton and Maccio (2014). Gets updated as part of update_disc_radii()
+    
     Gal[p].DiscRadii[0] = 0.0;
     for(j=0; j<N_BINS; j++)
     {
@@ -119,8 +121,10 @@ void init_galaxy(int p, int halonr)
         Gal[p].DiscSFR[j] = 0.0;
         Gal[p].TotSinkGas[j] = 0.0;
         Gal[p].TotSinkStar[j] = 0.0;
+        Gal[p].Potential[j+1] = NFW_potential(p, Gal[p].DiscRadii[j+1]);
     }
-    
+    Gal[p].Potential[0] = Gal[p].Potential[1];
+
     for(step = 0; step < STEPS; step++)
     {
         Gal[p].SfrFromH2[step] = 0.0;
@@ -167,7 +171,6 @@ void init_galaxy(int p, int halonr)
     }
 
 //    update_disc_radii(p);
-    Gal[p].HaloScaleRadius = pow(10.0, 0.52 + (-0.101 + 0.026*ZZ[Gal[p].SnapNum])*log10(Gal[p].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12)) ); // Initialisation based on Dutton and Maccio (2014). Gets updated as part of update_disc_radii()
     
     Gal[p].EjectedPotential = 0.0;
     Gal[p].HotGasPotential = NFW_potential(p, 0.5*Gal[p].Rvir);

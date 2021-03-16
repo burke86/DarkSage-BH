@@ -46,7 +46,7 @@ double estimate_merging_time(int prog, int mother_halo, int ngal);
 void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, double time, double dt, int step);
 double dmax(double x, double y);
 double do_reionization(int centralgal, double Zcurr);
-double do_AGN_heating(double coolingGas, int centralgal, double dt, double x, double rcool);
+double do_AGN_heating(double coolingGas, int centralgal, double dt, double x, double rcool, double specific_energy_change);
 void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_centralgal, int centralgal, double dt, int mode, int step, int k_now);
 void update_from_star_formation(int p, double stars, double metallicity, int i);
 void update_from_feedback(int p, int centralgal, double reheated_mass, double metallicity, int i);
