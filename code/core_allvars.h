@@ -352,7 +352,7 @@ struct GALAXY
   double MergTime;
   double Cooling;
   double Heating;
-  double r_heat;
+  double MaxRadioModeAccretionRate;
   double LastMajorMerger;
   double LastMinorMerger;
   double OutflowRate;

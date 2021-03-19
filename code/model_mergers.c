@@ -191,53 +191,55 @@ double grow_black_hole(int merger_centralgal, double* disc_mass_ratio)
 
 void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 { // I should probably out through the centralgal ID here
-  double quasar_energy, cold_gas_energy, hot_gas_energy, DiscGasSum, cold_gas_energy_tot;
-  int k;
+    double quasar_energy, cold_gas_energy, hot_gas_energy, DiscGasSum, cold_gas_energy_tot;
+    double annulus_radius, annulus_velocity, cold_specific_energy, ejected_specific_energy, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, hot_specific_energy, ejected_mass, ejected_metals, Delta_specific_energy;
+    int k;
 
-  check_ejected(p);
-  assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass); // Really should be centralgal I'm considering...
+    // checks -- are these still necessary?
+    check_ejected(p);
+    assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass); // Really should be centralgal I'm considering...
+    DiscGasSum = get_disc_gas(p);
+    assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
 
-  // work out total energies in quasar wind (eta*m*c^2), cold and hot gas (1/2*m*Vvir^2)
-  quasar_energy = QuasarModeEfficiency * 0.1 * BHaccrete * (C / UnitVelocity_in_cm_per_s) * (C / UnitVelocity_in_cm_per_s);
-  cold_gas_energy_tot = 0.5 * Gal[p].ColdGas * Gal[p].Vvir * Gal[p].Vvir;
+    // work out total energy in quasar wind (eta*m*c^2)
+    quasar_energy = QuasarModeEfficiency * 0.1 * BHaccrete * sqr(C / UnitVelocity_in_cm_per_s);
 
-  DiscGasSum = get_disc_gas(p);
-  assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
+    // specific energy of hot and ejected reservoirs
+    j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
+    hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic; // only interested in the hot reservoir of the galaxy that has the feedback for this prescription.  No gas is being heated into it, only potentially ejected out of it.
 
-  if(quasar_energy > cold_gas_energy_tot)
-  {
-    Gal[p].EjectedQuasarGasMass += Gal[p].ColdGas;
-      
-    if(HeatedToCentral)
+    if(HeatedToCentral>0)
     {
-        Gal[centralgal].EjectedMass += Gal[p].ColdGas;
-        Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsColdGas;
+        satellite_specific_energy = get_satellite_potential(p, centralgal);
+        j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
+        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
+        hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
+        ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
     }
     else
     {
-        Gal[p].EjectedMass += Gal[p].ColdGas;
-        Gal[p].MetalsEjectedMass += Gal[p].MetalsColdGas;
+        ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
     }
-      
-	Gal[p].ColdGas = 0.0;
-	Gal[p].MetalsColdGas = 0.0;
-	
+  
 	for(k=0; k<N_BINS; k++)
 	{
-		Gal[p].DiscGas[k] = 0.0;
-		Gal[p].DiscGasMetals[k] = 0.0;
-	}
-	
-	quasar_energy -= cold_gas_energy_tot;
-  }
-  else
-  {
-	for(k=0; k<N_BINS; k++)
-	{
-		cold_gas_energy = 0.5 * Gal[p].DiscGas[k] * Gal[p].Vvir * Gal[p].Vvir;
-		if(quasar_energy >= cold_gas_energy && cold_gas_energy > 0.0)
-		{
-            Gal[p].EjectedQuasarGasMass += Gal[p].DiscGas[k];
+        if(Gal[p].DiscGas[k]==0.0) continue;
+        
+        annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[k]) + sqr(Gal[p].DiscRadii[k+1])) );
+        annulus_velocity = 0.5 * (DiscBinEdge[k] + DiscBinEdge[k+1]) / annulus_radius;
+        cold_specific_energy = 0.5 * sqr(annulus_velocity) + 0.5*(Gal[p].Potential[k] + Gal[p].Potential[k+1]);
+        Delta_specific_energy = ejected_specific_energy - cold_specific_energy; // specific energy required to instantly eject mass
+//        if(!(Delta_specific_energy>=0)) printf("k, Delta_specific_energy, ejected_specific_energy, cold_specific_energy = %i, %e, %e, %e\n", k, Delta_specific_energy, ejected_specific_energy, cold_specific_energy);
+//        assert(Delta_specific_energy>=0);
+        
+        if(Delta_specific_energy>0)
+            ejected_mass = quasar_energy/Delta_specific_energy; // maximum mass that can be ejected from this annulus, given the remaining energy in the quasar wind
+        else
+            ejected_mass = Gal[p].DiscGas[k]; // if the ejected reservoir is a lower energy state, then there should be no problem ejecting all the gas.
+        
+        if(ejected_mass>=Gal[p].DiscGas[k]) 
+        {
             if(HeatedToCentral)
             {
                 Gal[centralgal].EjectedMass += Gal[p].DiscGas[k];
@@ -248,67 +250,96 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
                 Gal[p].EjectedMass += Gal[p].DiscGas[k];
                 Gal[p].MetalsEjectedMass += Gal[p].DiscGasMetals[k];
             }
-			Gal[p].ColdGas -= Gal[p].DiscGas[k];
-			Gal[p].MetalsColdGas -= Gal[p].DiscGasMetals[k];
-			Gal[p].DiscGas[k] = 0.0;
-			Gal[p].DiscGasMetals[k] = 0.0;
-			quasar_energy -= cold_gas_energy;
-		}
-		else if(quasar_energy > 0.0 && cold_gas_energy > 0.0)
-		{
-            Gal[p].EjectedQuasarGasMass += Gal[p].DiscGas[k] * quasar_energy/cold_gas_energy;
+            
+            if(k<N_BINS-1)
+            {
+                Gal[p].ColdGas -= Gal[p].DiscGas[k];
+                Gal[p].MetalsColdGas -= Gal[p].DiscGasMetals[k];
+            }
+            else // if it has gotten to this point, then the whole disc must have been blown out!
+            {
+                Gal[p].ColdGas = 0.0;
+                Gal[p].MetalsColdGas = 0.0;
+            }
+            
+            quasar_energy -= (Gal[p].DiscGas[k] * Delta_specific_energy);
+            Gal[p].DiscGas[k] = 0.0;
+            Gal[p].DiscGasMetals[k] = 0.0;
+        }
+        else
+        {
+            ejected_metals = ejected_mass * Gal[p].DiscGasMetals[k] / Gal[p].DiscGas[k];
+            
             if(HeatedToCentral)
             {
-                Gal[centralgal].EjectedMass += Gal[p].DiscGas[k] * quasar_energy/cold_gas_energy;
-                Gal[centralgal].MetalsEjectedMass += Gal[p].DiscGasMetals[k] * quasar_energy/cold_gas_energy;
+                Gal[centralgal].EjectedMass += ejected_mass;
+                Gal[centralgal].MetalsEjectedMass += ejected_metals;
             }
             else
             {
-                Gal[p].EjectedMass += Gal[p].DiscGas[k] * quasar_energy/cold_gas_energy;
-                Gal[p].MetalsEjectedMass += Gal[p].DiscGasMetals[k] * quasar_energy/cold_gas_energy;
+                Gal[p].EjectedMass += ejected_mass;
+                Gal[p].MetalsEjectedMass += ejected_metals;
             }
-			Gal[p].ColdGas -= Gal[p].DiscGas[k] * quasar_energy/cold_gas_energy;
-			Gal[p].MetalsColdGas -= Gal[p].DiscGasMetals[k] * quasar_energy/cold_gas_energy;
-			Gal[p].DiscGas[k] *= (1 - quasar_energy/cold_gas_energy);
-			Gal[p].DiscGasMetals[k] *= (1 - quasar_energy/cold_gas_energy);
-			assert(Gal[p].DiscGasMetals[k] <= Gal[p].DiscGas[k]);
-			quasar_energy = 0.0;
-			break;
-		}
-		else if(cold_gas_energy > 0.0 || quasar_energy < 0.0)
-		{
-			quasar_energy = 0.0;
-			break;
-		}
-	}
+            
+            Gal[p].ColdGas -= ejected_mass;
+            Gal[p].MetalsColdGas -= ejected_metals;
+            Gal[p].DiscGas[k] -= ejected_mass;
+            Gal[p].DiscGasMetals[k] -= ejected_metals;
+            quasar_energy = 0.0; // quasar energy must be exhausted if this line is reached
+            break;
+        }
+            
 
 	DiscGasSum = get_disc_gas(p);
 	assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
 	
-  }
+    }
 
-   
-  hot_gas_energy = 0.5 * Gal[p].HotGas * Gal[p].Vvir * Gal[p].Vvir;
-  
-  // compare quasar wind and cold+hot gas energies and eject hot
-  if(quasar_energy > hot_gas_energy)
-  {
-      if(HeatedToCentral)
-      {
-          Gal[centralgal].EjectedMass += Gal[p].HotGas;
-          Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsHotGas;
-      }
-      else
-      {
-          Gal[p].EjectedMass += Gal[p].HotGas;
-          Gal[p].MetalsEjectedMass += Gal[p].MetalsHotGas;
-      }
-   
-    Gal[p].HotGas = 0.0;
-    Gal[p].MetalsHotGas = 0.0;
-  }
-  check_ejected(p);
-  assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
+     
+    // any remaining energy now used to eject the hot gas
+    Delta_specific_energy = ejected_specific_energy - hot_specific_energy;
+    if(Delta_specific_energy>0)
+        ejected_mass = quasar_energy / Delta_specific_energy;
+
+
+    if(ejected_mass>=Gal[p].HotGas || Delta_specific_energy<=0)
+    { // eject the entire hot reservoir
+        if(HeatedToCentral)
+        {
+            Gal[centralgal].EjectedMass += Gal[p].HotGas;
+            Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsHotGas;
+        }
+        else
+        {
+            Gal[p].EjectedMass += Gal[p].HotGas;
+            Gal[p].MetalsEjectedMass += Gal[p].MetalsHotGas;
+        }
+     
+        Gal[p].HotGas = 0.0;
+        Gal[p].MetalsHotGas = 0.0;
+    }
+    else if(ejected_mass>0 && Gal[p].HotGas>0)
+    {
+        ejected_metals = ejected_mass * Gal[p].MetalsHotGas / Gal[p].HotGas;
+        
+        if(HeatedToCentral)
+        {
+            Gal[centralgal].EjectedMass += ejected_mass;
+            Gal[centralgal].MetalsEjectedMass += ejected_metals;
+        }
+        else
+        {
+            Gal[p].EjectedMass += ejected_mass;
+            Gal[p].MetalsEjectedMass += ejected_metals;
+        }
+        
+        Gal[p].HotGas -= ejected_mass;
+        Gal[p].MetalsHotGas -= ejected_metals;
+
+    }
+
+//  check_ejected(p);
+//  assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
 }
 
 

@@ -35,7 +35,7 @@ double cooling_recipe(int gal, double dt)
         rho0 = Gal[gal].HotGas / (4 * M_PI * Gal[gal].Rvir);
         rcool = sqrt(rho0 / rho_rcool);
         cb_term = 1.0;
-        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir) * 0.3333333333;
+        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir * 0.5);
     }
     else // beta profile assumed here instead
     {
@@ -47,7 +47,7 @@ double cooling_recipe(int gal, double dt)
         else
             rcool = 0.0; // densities not high enough anywhere in this case
 
-        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir) * (cube(Gal[gal].c_beta) * atan(1.0/Gal[gal].c_beta) - sqr(Gal[gal].c_beta) + 0.3333333333 ) * cb_term;
+        Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir * sqr(Gal[gal].c_beta) * cb_term * 0.15343);
     }
 
     if(rcool > Gal[gal].Rvir)
@@ -154,19 +154,13 @@ double cooling_recipe(int gal, double dt)
 
 double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcool, double specific_energy_change)
 {
-  double AGNrate, EDDrate, AGNaccreted, AGNcoeff, AGNheating, metallicity, r_heat_new;
+  double AGNrate, EDDrate, AGNaccreted, AGNcoeff, AGNheating, metallicity, r_heat_new, heating_mass;
 
-  // first update the cooling rate based on the past AGN heating
-  if(Gal[p].r_heat < rcool)
-	coolingGas = (1.0 - Gal[p].r_heat / rcool) * coolingGas;
-  else
-	coolingGas = 0.0;
-	
-  assert(coolingGas >= 0.0);
+    if(Gal[p].HotGas <= 0.0)
+        return 0.0;
+    
+    assert(coolingGas >= 0.0);
 
-    //
-  if(Gal[p].HotGas > 0.0)
-  {
 
     if(AGNrecipeOn == 2)
     {
@@ -177,7 +171,7 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     {
       // Cold cloud accretion: trigger: rBH > 1.0e-4 Rsonic, and accretion rate = 0.01% cooling rate 
       if(Gal[p].BlackHoleMass > 0.0001 * Gal[p].Mvir * cube(rcool/Gal[p].Rvir))
-        AGNrate = 0.0001 * coolingGas / dt;
+        AGNrate = 0.0001 * coolingGas / dt; // previously, coolingGas here was modified by "previous" heating first. Generally an unused option, so haven't investigated any consequences of this change
       else
         AGNrate = 0.0;
     }
@@ -192,13 +186,15 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
         AGNrate = RadioModeEfficiency / (UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS)
           * (Gal[p].BlackHoleMass / 0.01) * cube(Gal[p].Vvir / 200.0);
     }
-    
-    // Eddington rate 
-    EDDrate = 1.3e48 * Gal[p].BlackHoleMass / (UnitEnergy_in_cgs / UnitTime_in_s) / 9e10;
-
+      
+    // NEW WAY OF DOING RADIO MODE MEMORY
+    if(AGNrate < Gal[p].MaxRadioModeAccretionRate)
+          AGNrate = Gal[p].MaxRadioModeAccretionRate; // don't let current accretion rate be lower than in history
+      
     // accretion onto BH is always limited by the Eddington rate 
+    EDDrate = 1.4444444444e37 * Gal[p].BlackHoleMass / UnitEnergy_in_cgs * UnitTime_in_s; // 1.4444444444e37 = 1.3e48 / 9e10
     if(AGNrate > EDDrate)
-      AGNrate = EDDrate;
+        AGNrate = EDDrate;
 
     // accreted mass onto black hole 
     AGNaccreted = AGNrate * dt;
@@ -214,35 +210,43 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     // cooling mass that can be suppresed from AGN heating 
     AGNheating = AGNcoeff * AGNaccreted;
 
-//    // limit heating to cooling rate 
-//    if(AGNheating > coolingGas)
-//    {
-//      AGNaccreted = coolingGas / AGNcoeff;
-//      AGNheating = coolingGas;
-//    }
-
+    // limit heating to cooling rate 
+    // making a conscious decision to no longer update the AGN accretion rate in proportion here.  In effect, if this if-statement is triggered, the energy coupling for the radio mode temporarily decreases.
+    if(AGNheating > coolingGas)
+        AGNheating = coolingGas;
+      
+    // recalculate actual AGN accretion rate to potentially update historical maximum
+    AGNrate = AGNaccreted / dt;
+    if(AGNrate > Gal[p].MaxRadioModeAccretionRate) 
+          Gal[p].MaxRadioModeAccretionRate = AGNrate;
+      
+      
     // accreted mass onto black hole
     metallicity = get_metallicity(Gal[p].HotGas, Gal[p].MetalsHotGas);
-	assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
+    assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
     Gal[p].BlackHoleMass += AGNaccreted;
-      assert(Gal[p].BlackHoleMass>=0.0);
+    assert(Gal[p].BlackHoleMass>=0.0);
     Gal[p].HotGas -= AGNaccreted;
     Gal[p].MetalsHotGas -= metallicity * AGNaccreted;
+      
+      
+    Gal[p].Heating += AGNheating * specific_energy_change; // energy from the AGN pumped into keeping the hot gas hot
+    
+    
+//    // update the cooling rate based on new AGN-heating radius
+//    if(Gal[p].r_heat < rcool)
+//    {
+//        heating_mass = Gal[p].r_heat / rcool * coolingGas;
+//        coolingGas -= heating_mass;
+//        Gal[p].Heating += heating_mass * specific_energy_change;// changed what this field means as of 18/03/21
+//    }
+//    else
+//    {
+//        Gal[p].Heating += coolingGas * specific_energy_change;
+//        coolingGas = 0.0;
+//    }
 
-    // update the heating radius as needed
-    if(coolingGas > 0.0)
-    {
-        r_heat_new = (AGNheating / coolingGas) * rcool;
-        
-        if(r_heat_new > Gal[p].r_heat)
-            Gal[p].r_heat = r_heat_new;
-    }
-
-    if (AGNheating > 0.0)
-        Gal[p].Heating += 0.5 * AGNheating * Gal[p].Vvir * Gal[p].Vvir;
-  }
-
-  return coolingGas;
+    return coolingGas - AGNheating;
 
 }
 

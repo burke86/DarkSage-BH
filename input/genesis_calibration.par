@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/25c/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/25j/
 
 FirstFile                   0
 LastFile                    7
@@ -106,9 +106,9 @@ ReIncorporationFactor        0.15    ; For ReincorpotationModel=0
 CoolingScaleSlope           0.23    ; cf. eq. 18 of Stevens et al. (2017)
 CoolingScaleConst           1.26
 
-RadioModeEfficiency         0.01806336
-QuasarModeEfficiency        0.08941435
-BlackHoleGrowthRate         0.015
+RadioModeEfficiency         1.0
+QuasarModeEfficiency        1.0
+BlackHoleGrowthRate         0.15
 
 
 %%%= For H2prescription=0 =%%%
@@ -123,10 +123,10 @@ ClumpExponent               0.7     ; Controls the clump factor which affects H2
 %%%= ==================== =%%%
 
 
-RadiusWeight                0.05     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
+RadiusWeight                1.0     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
 
 QTotMin                     1.0    ;threshold Toomre Q value for instabilities
-GasSinkRate                 0.12685992
+GasSinkRate                 0.5
 ThetaThresh                 10.0   ;threshold angle for gas and stellar discs to be coplanar
 
 DegPerTdyn                  5.0    ;degrees the gas disc precesses to come in line with stars per dynamical time

@@ -143,12 +143,12 @@ void init_galaxy(int p, int halonr)
     Gal[p].MergTime = 999.9;
     Gal[p].Cooling = 0.0;
     Gal[p].Heating = 0.0;
-    Gal[p].r_heat = 0.0;
+    Gal[p].MaxRadioModeAccretionRate = 0.0;
     Gal[p].LastMajorMerger = -1.0;
     Gal[p].LastMinorMerger = -1.0;
     Gal[p].OutflowRate = 0.0;
     Gal[p].c_beta = MIN_C_BETA;
-    Gal[p].R2_hot_av = Gal[p].Rvir/3.0;
+    Gal[p].R2_hot_av = sqr(Gal[p].Rvir*0.5);
     
     Gal[p].infallMvir = -1.0;  //infall properties
     Gal[p].infallVvir = -1.0;
