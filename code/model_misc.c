@@ -105,7 +105,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].FirstUnstableGas = 0;
     Gal[p].FirstUnstableStar = 0;
     
-    Gal[p].HaloScaleRadius = pow(10.0, 0.52 + (-0.101 + 0.026*ZZ[Gal[p].SnapNum])*log10(Gal[p].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12)) ); // Initialisation based on Dutton and Maccio (2014). Gets updated as part of update_disc_radii()
+    Gal[p].HaloScaleRadius = pow(10.0, 0.52 + (-0.101 + 0.026*ZZ[Halo[halonr].SnapNum])*log10(Gal[p].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12)) ); // Initialisation based on Dutton and Maccio (2014). Gets updated as part of update_disc_radii()
     
     Gal[p].DiscRadii[0] = 0.0;
     for(j=0; j<N_BINS; j++)
@@ -262,7 +262,7 @@ double cube(double x)
 double exp_f(double x)
 {
     // Perform a faster (but less precise) exponential
-    x = 1.0 + x / 256.0;
+    x = 1.0 + x * 0.00390625; // 0.00390625 = 1/256
     x *= x; x *= x; x *= x; x *= x;
     x *= x; x *= x; x *= x; x *= x;
     return x;
@@ -314,17 +314,20 @@ double get_virial_radius(int halonr, int p)
 {
     // return Halo[halonr].Rvir;  // Used for Bolshoi
     
-    double zplus1, hubble_of_z_sq, rhocrit, fac;
+    double hubble_of_z_sq, rhocrit, fac;
     
-    zplus1 = 1 + ZZ[Halo[halonr].SnapNum];
-    hubble_of_z_sq =
-    Hubble * Hubble *(Omega * zplus1 * zplus1 * zplus1 + (1 - Omega - OmegaLambda) * zplus1 * zplus1 +
-                      OmegaLambda);
-    
+    hubble_of_z_sq = Hubble_sqr_z(Halo[halonr].SnapNum);
     rhocrit = 3 * hubble_of_z_sq / (8 * M_PI * G);
     fac = 1 / (200 * 4 * M_PI / 3.0 * rhocrit);
     
     return cbrt(get_virial_mass(halonr, p) * fac);
+}
+
+double Hubble_sqr_z(int snap)
+{
+    // Calculate the square of the Hubble parameter at input snapshot
+    double zplus1 = 1 + ZZ[snap];
+    return sqr(Hubble) * (Omega * cube(zplus1) + (1 - Omega - OmegaLambda) * sqr(zplus1) + OmegaLambda);
 }
 
 
@@ -553,7 +556,7 @@ void update_disc_radii(int p)
     
     X = log10(Gal[p].StellarMass/Gal[p].Mvir);
     
-    z = ZZ[Gal[p].SnapNum];
+    z = ZZ[Halo[Gal[p].HaloNr].SnapNum];
     if(z>5.0) z=5.0;
     a = 0.520 + (0.905-0.520)*exp_f(-0.617*pow(z,1.21)); // Dutton & Maccio 2014
     b = -0.101 + 0.026*z; // Dutton & Maccio 2014
@@ -614,7 +617,7 @@ void update_disc_radii(int p)
         const double hot_stuff = Gal[p].HotGas * cb_term;
         if(!(c_beta>=0))
         {
-            printf("c_beta, Z, SnapNum = %e, %e, %i\n", c_beta, ZZ[Gal[p].SnapNum], Gal[p].SnapNum);
+            printf("c_beta, z, SnapNum = %e, %e, %i\n", c_beta, z, Gal[p].SnapNum);
         }
         assert(c_beta>=0);
         assert(hot_stuff>=0);

@@ -435,9 +435,9 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 
 
   // extra miscellaneous stuff 
-  deltaT = Age[Gal[0].SnapNum] - Age[Halo[halonr].SnapNum];
   for(p = 0; p < ngal; p++)
   {
+    deltaT = Age[Gal[p].SnapNum] - Age[Halo[halonr].SnapNum];
     Gal[p].Cooling /= deltaT;
     Gal[p].Heating /= deltaT;
     Gal[p].OutflowRate /= deltaT;

@@ -13,11 +13,12 @@
 double cooling_recipe(int gal, double dt)
 {
   double tcool, x, logZ, lambda, rcool, rho_rcool, rho0, temp, coolingGas, c_beta, cb_term;
+  int snapshot = Halo[Gal[gal].HaloNr].SnapNum;
 
   if(Gal[gal].HotGas > 0.0 && Gal[gal].Vvir > 0.0)
   {
       // Many terms in this function that don't change between sub-time-steps.  Should be able to optimize by separating them out and calculating only once for the whole time-step.
-    tcool = Gal[gal].Rvir / Gal[gal].Vvir;
+    tcool = 0.1 / sqrt(Hubble_sqr_z(snapshot));
     temp = 35.9 * Gal[gal].Vvir * Gal[gal].Vvir;         // in Kelvin 
 
     if(Gal[gal].MetalsHotGas > 0)
@@ -39,7 +40,7 @@ double cooling_recipe(int gal, double dt)
     }
     else // beta profile assumed here instead
     {
-        Gal[gal].c_beta = dmax(MIN_C_BETA, 0.20*exp(-1.5*ZZ[Gal[gal].SnapNum]) - 0.039*ZZ[Gal[gal].SnapNum] + 0.28);
+        Gal[gal].c_beta = dmax(MIN_C_BETA, 0.20*exp(-1.5*ZZ[snapshot]) - 0.039*ZZ[snapshot] + 0.28);
         cb_term = 1.0/(1.0 - Gal[gal].c_beta * atan(1.0/Gal[gal].c_beta));
         rho0 = Gal[gal].HotGas / (4 * M_PI * sqr(Gal[gal].c_beta) * cube(Gal[gal].Rvir)) * cb_term;
         if(rho0>rho_rcool)

@@ -230,13 +230,14 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
         annulus_velocity = 0.5 * (DiscBinEdge[k] + DiscBinEdge[k+1]) / annulus_radius;
         cold_specific_energy = 0.5 * sqr(annulus_velocity) + 0.5*(Gal[p].Potential[k] + Gal[p].Potential[k+1]);
         Delta_specific_energy = ejected_specific_energy - cold_specific_energy; // specific energy required to instantly eject mass
-//        if(!(Delta_specific_energy>=0)) printf("k, Delta_specific_energy, ejected_specific_energy, cold_specific_energy = %i, %e, %e, %e\n", k, Delta_specific_energy, ejected_specific_energy, cold_specific_energy);
-//        assert(Delta_specific_energy>=0);
         
         if(Delta_specific_energy>0)
             ejected_mass = quasar_energy/Delta_specific_energy; // maximum mass that can be ejected from this annulus, given the remaining energy in the quasar wind
         else
+        {
+            Delta_specific_energy = 0.0;
             ejected_mass = Gal[p].DiscGas[k]; // if the ejected reservoir is a lower energy state, then there should be no problem ejecting all the gas.
+        }
         
         if(ejected_mass>=Gal[p].DiscGas[k]) 
         {
@@ -256,7 +257,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
                 Gal[p].ColdGas -= Gal[p].DiscGas[k];
                 Gal[p].MetalsColdGas -= Gal[p].DiscGasMetals[k];
             }
-            else // if it has gotten to this point, then the whole disc must have been blown out!
+            else // if it gets to this point, then the whole disc must have been blown out!
             {
                 Gal[p].ColdGas = 0.0;
                 Gal[p].MetalsColdGas = 0.0;

@@ -18,7 +18,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   double tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS];
   double infallingMass, reionization_modifier, DiscGasSum, Rsat, ExpFac;
 
-  ExpFac = AA[Gal[centralgal].SnapNum]; // Expansion factor
+  ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum]; // Expansion factor
     
   // take care of any potential numerical issues regarding hot and cold gas
   DiscGasSum = get_disc_gas(centralgal);
@@ -191,7 +191,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       double r_gal2, v_gal2, rho_IGM, Pram, Pgrav, left, right, r_try, dif;
       int i, ii;
       
-      r_gal2 = (sqr(Gal[gal].Pos[0]-Gal[centralgal].Pos[0]) + sqr(Gal[gal].Pos[1]-Gal[centralgal].Pos[1]) + sqr(Gal[gal].Pos[2]-Gal[centralgal].Pos[2])) * sqr(AA[Gal[centralgal].SnapNum]);
+      r_gal2 = (sqr(Gal[gal].Pos[0]-Gal[centralgal].Pos[0]) + sqr(Gal[gal].Pos[1]-Gal[centralgal].Pos[1]) + sqr(Gal[gal].Pos[2]-Gal[centralgal].Pos[2])) * sqr(AA[Halo[halonr].SnapNum]);
       v_gal2 = (sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]));
       rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
       Pram = rho_IGM*v_gal2;
@@ -215,7 +215,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
           if(M_DM_tot < 0.0) M_DM_tot = 0.0;
           
           X = log10(Gal[gal].StellarMass/Gal[gal].Mvir);
-          z = ZZ[Gal[gal].SnapNum];
+          z = ZZ[Halo[halonr].SnapNum];
           if(z>5.0) z=5.0;
           a = 0.520 + (0.905-0.520)*exp(-0.617*pow(z,1.21)); // Dutton & Maccio 2014
           b = -0.101 + 0.026*z; // Dutton & Maccio 2014
@@ -295,7 +295,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
 void ram_pressure_stripping(int centralgal, int gal)
 {
     double r_gal2, v_gal2, rho_IGM, Sigma_gas, area;
-    double ExpFac = AA[Gal[centralgal].SnapNum];
+    double ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum];
     double angle = acos(Gal[gal].SpinStars[0]*Gal[gal].SpinGas[0] + Gal[gal].SpinStars[1]*Gal[gal].SpinGas[1] + Gal[gal].SpinStars[2]*Gal[gal].SpinGas[2])*180.0/M_PI;
     double Sigma_disc;
     double Pram, Pgrav, Mstrip, MstripZ;

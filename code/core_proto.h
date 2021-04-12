@@ -88,6 +88,7 @@ double dmin(double x, double y);
 void delayed_feedback(int p, int k_now, int centralgal, double time, double dt);
 double get_satellite_potential(int p, int centralgal);
 double get_satellite_radius(int p, int centralgal);
+double Hubble_sqr_z(int snap);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas);
 void disrupt_satellite_to_ICS(int centralgal, int gal);

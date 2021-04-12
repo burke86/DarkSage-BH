@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/25j/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/25m/
 
 FirstFile                   0
 LastFile                    7
@@ -108,7 +108,7 @@ CoolingScaleConst           1.26
 
 RadioModeEfficiency         1.0
 QuasarModeEfficiency        1.0
-BlackHoleGrowthRate         0.15
+BlackHoleGrowthRate         0.0
 
 
 %%%= For H2prescription=0 =%%%
