@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/25m/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/25s/
 
 FirstFile                   0
 LastFile                    7
@@ -83,7 +83,7 @@ ExponentBin                 1.4     ; The factor in spec ang mom between bins
 %----- Parameters of physical model -------
 %------------------------------------------
 
-SfrEfficiency               0.69129969
+SfrEfficiency               0.0
 
 %%%= For SupernovaRecipeOn=1 =%%%
 FeedbackReheatingEpsilon    4.3567
@@ -126,7 +126,7 @@ ClumpExponent               0.7     ; Controls the clump factor which affects H2
 RadiusWeight                1.0     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
 
 QTotMin                     1.0    ;threshold Toomre Q value for instabilities
-GasSinkRate                 0.5
+GasSinkRate                 0.75
 ThetaThresh                 10.0   ;threshold angle for gas and stellar discs to be coplanar
 
 DegPerTdyn                  5.0    ;degrees the gas disc precesses to come in line with stars per dynamical time
@@ -134,8 +134,8 @@ DegPerTdyn                  5.0    ;degrees the gas disc precesses to come in li
 ThreshMajorMerger            0.3        ;major merger when mass ratio greater than this
 ThresholdSatDisruption        1.0        ;Mvir-to-baryonic mass ratio threshold for satellite merger or disruption
 
-AlphaBurst                  0.7     ;normalisation of fraction of gas consumed in a merger starburst
-BetaBurst                   0.56    ;exponent of gas consumed in a merger starburst
+AlphaBurst                  0.0     ;normalisation of fraction of gas consumed in a merger starburst
+BetaBurst                   0.0    ;exponent of gas consumed in a merger starburst. SETTING TO 0 REMOVES MERGER STARBURSTS ENTIRELY, THE NEW DEFAULT
 
 Yield                        0.02908
 RecycleFraction                0.43    ;fraction of SF mass instantaneously recycled back to cold

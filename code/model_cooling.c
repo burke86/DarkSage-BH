@@ -19,7 +19,7 @@ double cooling_recipe(int gal, double dt)
   {
       // Many terms in this function that don't change between sub-time-steps.  Should be able to optimize by separating them out and calculating only once for the whole time-step.
     tcool = 0.1 / sqrt(Hubble_sqr_z(snapshot));
-    temp = 35.9 * Gal[gal].Vvir * Gal[gal].Vvir;         // in Kelvin 
+    temp = 35.9 * Gal[gal].Vvir * Gal[gal].Vvir;         // in Kelvin.  Note that Vvir is actually Vvir_infall for satellites (the field isn't updated for satellites -- see core_build_model.c)
 
     if(Gal[gal].MetalsHotGas > 0)
       logZ = log10(Gal[gal].MetalsHotGas / Gal[gal].HotGas);

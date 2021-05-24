@@ -374,7 +374,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         }
         
 	  // stars form and then explode!
-      starformation_and_feedback(p, centralgal, dt, step, time);
+      if(SfrEfficiency>0.0) // passive H2 channel, mightn't be needed anymore!
+        starformation_and_feedback(p, centralgal, dt, step, time);
 
       // precess gas disc
       if(GasPrecessionOn && Gal[p].StellarMass>0.0 && get_disc_gas(p)>0.0)

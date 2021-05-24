@@ -79,49 +79,82 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
   
   for(i=0; i<N_BINS; i++) assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
 
-  collisional_starburst_recipe(disc_mass_ratio, merger_centralgal, centralgal, dt, 0, step, k_now);
+  if(BetaBurst>0.0) // deprecated for new default model
+    collisional_starburst_recipe(disc_mass_ratio, merger_centralgal, centralgal, dt, 0, step, k_now);
 
-  double BHaccrete = grow_black_hole(merger_centralgal, disc_mass_ratio);
-
-  if(AGNrecipeOn>0)
-	quasar_mode_wind(p, BHaccrete, centralgal);
+  if(BlackHoleGrowthRate>0.0) // deprecated for new default model
+  {
+      double BHaccrete = grow_black_hole(merger_centralgal, disc_mass_ratio);
+      if(AGNrecipeOn>0)
+        quasar_mode_wind(p, BHaccrete, centralgal);
+  }
 
   // Check whether any retrograde gas is left over
-  double unstable_gas, metallicity, stars, net_stars;
-  for(i=N_BINS-1; i>=0; i--)
-  {
-	metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-	assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-	
-	if(PostRetroGas[i] < 0.99*Gal[merger_centralgal].DiscGas[i] && Gal[merger_centralgal].DiscGas[i]-PostRetroGas[i] > 1e-10)
-	{
-		unstable_gas = Gal[merger_centralgal].DiscGas[i] - PostRetroGas[i];
-        stars = deal_with_unstable_gas(unstable_gas, merger_centralgal, i, Gal[merger_centralgal].Vvir, metallicity, centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1]);
+//  double unstable_gas, metallicity, stars, net_stars;
+//  for(i=N_BINS-1; i>=0; i--)
+//  {
+//	metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
+//	assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
+//	
+//	if(PostRetroGas[i] < 0.99*Gal[merger_centralgal].DiscGas[i] && Gal[merger_centralgal].DiscGas[i]-PostRetroGas[i] > 1e-10)
+//	{
+//		unstable_gas = Gal[merger_centralgal].DiscGas[i] - PostRetroGas[i];
+//        stars = deal_with_unstable_gas(unstable_gas, merger_centralgal, i, Gal[merger_centralgal].Vvir, metallicity, centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1]);
+//        
+//        if(stars>=MIN_STARS_FOR_SN)
+//            net_stars = (1 - RecycleFraction) * stars;
+//        else
+//            net_stars = stars;
+//        
+//        Gal[merger_centralgal].StellarMass += net_stars;
+//        Gal[merger_centralgal].MetalsStellarMass += metallicity * net_stars;
+//        Gal[merger_centralgal].StarsMergeBurst += net_stars;
+//        Gal[merger_centralgal].SfrMerge[step] += stars / dt;
+//        check_channel_stars(merger_centralgal);
+//        
+//        // Add the new stars from the retrograde starburst to the classical bulge
+//        // No longer carry any net AM into it
+//        if(net_stars>0)
+//        {
+//            Gal[merger_centralgal].ClassicalBulgeMass += net_stars;
+//            Gal[merger_centralgal].ClassicalMetalsBulgeMass += metallicity * net_stars;
+//            
+//            Gal[merger_centralgal].ClassicalBulgeMassAge[k_now] += net_stars;
+//            Gal[merger_centralgal].ClassicalMetalsBulgeMassAge[k_now] += metallicity * net_stars;
+//        }
+//
+//	}
+//  }
+    
+    // If galaxy collision was retrograde, remove artifically added angular momentum from the disc by shrinking it
+    double J_current = 0.0;
+    double J_shouldhave = 0.0;
+    double j_av;
+    for(i=N_BINS-1; i>=0; i--)
+    {
+        j_av = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]);
+        J_current = j_av * Gal[merger_centralgal].DiscGas[i];
+        J_shouldhave = j_av * PostRetroGas[i];
+    }
+    
+    // safety net 1% -- don't bother reducing disc if AM difference is so small
+    if(J_shouldhave < 0.99*J_current)
+    {
+        double NewGasDisc[N_BINS];
+        double NewGasDiscMetals[N_BINS];
         
-        if(stars>=MIN_STARS_FOR_SN)
-            net_stars = (1 - RecycleFraction) * stars;
-        else
-            net_stars = stars;
+        project_disc(Gal[p].DiscGas, J_shouldhave/J_current, p, NewGasDisc);
+        project_disc(Gal[p].DiscGasMetals, J_shouldhave/J_current, p, NewGasDiscMetals);
         
-        Gal[merger_centralgal].StellarMass += net_stars;
-        Gal[merger_centralgal].MetalsStellarMass += metallicity * net_stars;
-        Gal[merger_centralgal].StarsMergeBurst += net_stars;
-        Gal[merger_centralgal].SfrMerge[step] += stars / dt;
-        check_channel_stars(merger_centralgal);
-        
-        // Add the new stars from the retrograde starburst to the classical bulge
-        // No longer carry any net AM into it
-        if(net_stars>0)
+        for(i=N_BINS-1; i>=0; i--)
         {
-            Gal[merger_centralgal].ClassicalBulgeMass += net_stars;
-            Gal[merger_centralgal].ClassicalMetalsBulgeMass += metallicity * net_stars;
-            
-            Gal[merger_centralgal].ClassicalBulgeMassAge[k_now] += net_stars;
-            Gal[merger_centralgal].ClassicalMetalsBulgeMassAge[k_now] += metallicity * net_stars;
+            Gal[p].DiscGas[i] = NewGasDisc[i];
+            Gal[p].DiscGasMetals[i] = NewGasDiscMetals[i];
         }
-
-	}
-  }
+    }
+    
+    
+    
 
   if(mass_ratio > ThreshMajorMerger)
   {
