@@ -165,8 +165,8 @@ void walk_down(int i)
 
     mergeType = 0;
     
-    // If galaxy is along a main branch or merges into a central, StellarMass+ICS should never decrease.  If a galaxy merges into a satellite then StellarMass should never decrease (but ICS might, as that goes to the cental).
-    StellarMass = HaloGal[i].StellarMass; // This should only ever increase when walking down
+    // If galaxy is along a main branch or merges into a central, StellarMass+ICS should never decrease.  If a galaxy merges into a satellite then StellarMass should never decrease (but ICS might, as that goes to the central).
+    StellarMass = HaloGal[i].StellarMass; // This can only decrease a small amount while walking down if delayed feedback is on
     ICS = HaloGal[i].ICS;
     
     for(p=i; p<NumGals; p++)
@@ -176,7 +176,10 @@ void walk_down(int i)
             if(mergeType==4) assert(HaloGal[p].Type==0);
             
             // This must be a fly-by or something weird.  Assume there is no appropriate root
-            if((HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS < StellarMass + ICS) || (HaloGal[p].Type==1 && HaloGal[p].StellarMass<StellarMass))
+            if((HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS < StellarMass + ICS && DelayedFeedbackOn==0) || 
+               (HaloGal[p].Type==1 && HaloGal[p].StellarMass<StellarMass && DelayedFeedbackOn==0) ||
+               (HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS < FinalRecycleFraction*(StellarMass + ICS)) ||
+               (HaloGal[p].Type==1 && HaloGal[p].StellarMass < FinalRecycleFraction*StellarMass))
             {
                 printf("i, p, NumGals = %i, %i, %i\n", i, p, NumGals);
                 printf("GalaxyNr, SnapNum, Type, mergeType = %i, %i, %i, %i\n", GalaxyNr, SnapNum, HaloGal[p].Type, mergeType);
