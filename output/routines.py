@@ -808,7 +808,7 @@ def SFRD_obs(h, alpha=0.3, ax=None, plus=0):
 
     if ax is None: ax = plt.gca()
     ax.errorbar(ObsRedshift+plus, ObsSFR, yerr=[yErrLo, yErrHi], xerr=[xErrLo, xErrHi], color='purple', lw=2.0, alpha=alpha, ls='none', label=r'Somerville et al.~(2001)', ms=0)
-    ax.errorbar(z+plus, SFRD, yerr=[SFRD_err_high, SFRD_err_low], xerr=z_err, color='cyan', lw=2.0, alpha=alpha, ls='none', label=r'Madau \& Dickinson (2014)', ms=0)
+    ax.errorbar(z+plus, SFRD, yerr=[SFRD_err_low, SFRD_err_high], xerr=z_err, color='cyan', lw=2.0, alpha=alpha, ls='none', label=r'Madau \& Dickinson (2014)', ms=0)
     ax.errorbar((D18[:,1]+D18[:,2])/2.+plus, D18[:,3]+np.log10(h/0.7), yerr=np.sum(D18[:,5:],axis=1), xerr=(D18[:,1]-D18[:,2])/2., color='goldenrod', lw=2.0, alpha=alpha, ls='none', label=r'Driver et al.~(2018)', ms=0)
 
 

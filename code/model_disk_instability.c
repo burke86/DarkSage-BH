@@ -408,12 +408,11 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
     if(unstable_gas > Gal[p].DiscGas[i])
         unstable_gas = Gal[p].DiscGas[i];
 
-    double ejected_sum = 0.0;
     double j_lose, j_gain, m_up, m_down;
-    double feedback_mass[3]; 
+    double feedback_mass[4]; 
     
     // these 2 terms only used when SupernovaRecipeOn>=3
-    double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot;
+    double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
     
     if(HeatedToCentral>0)
     {
@@ -487,9 +486,11 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
         reheated_mass = feedback_mass[0];
         ejected_mass = feedback_mass[1];
         stars = feedback_mass[2];
-				
-        ejected_sum += ejected_mass; // this is pointless with the way it's coded right now -- annuli are not being summed over
+        ejected_cold_mass = feedback_mass[3];
         
+        if(ejected_cold_mass<0.0) printf("ejected_cold_mass = %e\n", ejected_cold_mass);
+        assert(ejected_cold_mass>=0);
+				        
 	    update_from_star_formation(p, stars, metallicity, i);
 	
 		if(reheated_mass > Gal[p].DiscGas[i] && reheated_mass < 1.01*Gal[p].DiscGas[i])
@@ -505,11 +506,12 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
         metallicity_new = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
 		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
 
-	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i);
+	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i, ejected_cold_mass);
+        update_from_ejection(p, centralgal, ejected_mass);
 
 	}
     
-    update_from_ejection(p, centralgal, ejected_sum);
+    
 	
 	return stars;
 		

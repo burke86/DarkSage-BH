@@ -49,7 +49,7 @@ double do_reionization(int centralgal, double Zcurr);
 double do_AGN_heating(double coolingGas, int centralgal, double dt, double x, double rcool, double specific_energy_change);
 void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_centralgal, int centralgal, double dt, int mode, int step, int k_now);
 void update_from_star_formation(int p, double stars, double metallicity, int i);
-void update_from_feedback(int p, int centralgal, double reheated_mass, double metallicity, int i);
+void update_from_feedback(int p, int centralgal, double reheated_mass, double metallicity, int i, double ejected_cold_mass);
 void update_from_ejection(int p, int centralgal, double ejected_mass);
 void stars_to_bulge(int t);
 double grow_black_hole(int merger_centralgal, double* disc_mass_ratio);

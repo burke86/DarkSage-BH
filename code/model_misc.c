@@ -926,7 +926,7 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
     
     m0 = 1.0 / pow(t1 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
     
-    // built-in assumption that subsolar stars don't cause any outflows of gas or feedback
+    // built-in assumption that stars > 50 solar collapse rapidly to black holes without returning gas to the ISM or causing feedback
     if(m0>50.0) 
     {
         stellar_output[0] = 0.0;
@@ -934,15 +934,14 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
         return;
     }
     
-//    if(m0<0.1)
-//        m0 = 0.1;
+    // built-in assumption that subsolar stars don't cause any outflows of gas or feedback
     if(m0<1.0) 
         m0 = 1.0; 
     
     if(t0>0)
     {
         m1 = 1.0 / pow(t0 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
-        if(m1>50.0) m1 = 50.0; // built-in assumption that stars > 50 solar collapse rapidly to black holes without returning gas to the ISM or causing feedback
+        if(m1>50.0) m1 = 50.0; 
         if(m1<1.0)
         {
             stellar_output[0] = 0.0;

@@ -368,6 +368,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 //            printf("InstantTimeFrame = %e\n", InstantTimeFrame);
             get_RecycleFraction_and_NumSNperMass(0.0, InstantTimeFrame, StellarOutput);
             RecycleFraction = 1.0*StellarOutput[0];
+//            printf("RecycleFraction = %f", RecycleFraction);
             SNperMassFormed = 1.0*StellarOutput[1];
             
             delayed_feedback(p, k_now, centralgal, time, dt);

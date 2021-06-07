@@ -789,7 +789,7 @@ void disrupt_satellite_to_ICS(int centralgal, int gal)
 
 void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_centralgal, int centralgal, double dt, int mode, int step, int k_now)
 {
- double stars, reheated_mass, ejected_mass, fac, metallicity, CentralVvir, eburst, Sigma_0gas, area, stars_sum, metals_stars, stars_angmom;
+ double stars, reheated_mass, ejected_mass, fac, metallicity, CentralVvir, eburst, Sigma_0gas, area, stars_sum, metals_stars, stars_angmom, ejected_cold_mass;
  double r_inner, r_outer, j_bin, new_metals;
  //double NewStars[N_BINS], NewStarsMetals[N_BINS];
  int k, s;
@@ -800,7 +800,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     
  double ejected_sum = 0.0;
  double metals_stars_sum = 0.0;
- double feedback_mass[3];
+ double feedback_mass[4];
     
  // these terms only used when SupernovaRecipeOn>=3
  double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot;
@@ -859,6 +859,8 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     reheated_mass = feedback_mass[0];
     ejected_mass = feedback_mass[1];
     stars = feedback_mass[2];
+    ejected_cold_mass = feedback_mass[3];
+    assert(ejected_cold_mass>=0);
 
     ejected_sum += ejected_mass;
       
@@ -888,7 +890,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
 	metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[k], Gal[merger_centralgal].DiscGasMetals[k]);
 	assert(Gal[merger_centralgal].DiscGasMetals[k] <= Gal[merger_centralgal].DiscGas[k]);
       assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
-	update_from_feedback(merger_centralgal, centralgal, reheated_mass, metallicity, k);
+	update_from_feedback(merger_centralgal, centralgal, reheated_mass, metallicity, k, ejected_cold_mass);
  
       
     if(!(Gal[merger_centralgal].DiscGasMetals[k]<=Gal[merger_centralgal].DiscGas[k]))

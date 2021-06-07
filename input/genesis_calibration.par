@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/25s/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/25w/
 
 FirstFile                   0
 LastFile                    7
@@ -19,8 +19,8 @@ LastFile                    7
 %-> 37 42 47 54 62 72 84 101 109 119 125 131
 
 
-NumOutputs        1
--> 131
+NumOutputs        2
+-> 62 131
 
 %------------------------------------------
 %----- Simulation information  ------------
@@ -95,8 +95,8 @@ FeedbackEjectionEfficiency  0.71841983
 
 
 %%%= For SupernovaRecipeOn=3or4 =%%%
-FeedbackReheatCoupling      0.63631014     ; very similar to FeedbackReheatingEpsilon but designated a different name for the sake of switching between feedback modes when the best-fit parameters are not identical
-FeedbackEjectCoupling       0.48234443
+FeedbackReheatCoupling      1.0     ; very similar to FeedbackReheatingEpsilon but designated a different name for the sake of switching between feedback modes when the best-fit parameters are not identical
+FeedbackEjectCoupling       1.0
 Ratio_Ia_II                 0.2     ; number ratio of Type Ia (binary accretion) to Type II (core collapse) supernovae. Affects the total number of supernovae (and therefore total feedback energy) per unit mass of stars formed.
 %%%= ========================== =%%%
 
