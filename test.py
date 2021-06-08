@@ -93,7 +93,8 @@ def galdtype():
         ('Heating'                      , floattype),
         ('LastMajorMerger'              , floattype),
         ('LastMinorMerger'              , floattype),
-        ('OutflowRate'                  , floattype),
+        ('SNreheatRate'                 , floattype),
+        ('SNejectRate'                  , floattype),
         ('infallMvir'                   , floattype),
         ('infallVvir'                   , floattype),
         ('infallVmax'                   , floattype)
@@ -215,6 +216,7 @@ for field in halo_fields+['mergeType', 'mergeIntoID', 'mergeIntoSnapNum']: # red
     fields_to_check = np.delete(fields_to_check, np.where(fields_to_check==field)[0])
 for field in fields_to_check:
     cut = np.isfinite(G_test[field]) * (G_test[field]>0)
+    if len(cut[cut])==0: continue
     field_test, field_out = G_test[field][cut], G_out[field][cut]
     diff_abs = abs(field_out - field_test)
     diff_rel = diff_abs / field_test
