@@ -365,7 +365,8 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
 
   o->LastMajorMerger = g->LastMajorMerger * UnitTime_in_Megayears;
   o->LastMinorMerger = g->LastMinorMerger * UnitTime_in_Megayears;
-  o->OutflowRate = g->OutflowRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+  o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+  o->SNejectRate = g->SNejectRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
 
   //infall properties
   if(g->Type != 0)
@@ -518,8 +519,9 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
 
   o->LastMajorMerger = g->LastMajorMerger * UnitTime_in_Megayears;
   o->LastMinorMerger = g->LastMinorMerger * UnitTime_in_Megayears;
-  o->OutflowRate = g->OutflowRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
-
+    o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+    o->SNejectRate = g->SNejectRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+    
   //infall properties
   if(g->Type != 0)
   {

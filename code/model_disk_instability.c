@@ -506,6 +506,7 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
         metallicity_new = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
 		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
 
+//        assert(reheated_mass + ejected_cold_mass <= Gal[p].DiscGas[i]);
 	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i, ejected_cold_mass);
         update_from_ejection(p, centralgal, ejected_mass);
 

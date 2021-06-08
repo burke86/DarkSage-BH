@@ -142,8 +142,9 @@ struct GALAXY_OUTPUT
   float Heating;
   float LastMajorMerger;
   float LastMinorMerger;
-  float OutflowRate;
-
+  float SNreheatRate;
+  float SNejectRate;
+    
   //infall properties
   float infallMvir;
   float infallVvir;
@@ -232,8 +233,9 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float Heating;
   float LastMajorMerger;
   float LastMinorMerger;
-  float OutflowRate;
-
+    float SNreheatRate;
+    float SNejectRate;
+    
   //infall properties
   float infallMvir;
   float infallVvir;
@@ -355,7 +357,8 @@ struct GALAXY
   double MaxRadioModeAccretionRate;
   double LastMajorMerger;
   double LastMinorMerger;
-  double OutflowRate;
+    double SNreheatRate;
+    double SNejectRate;    
     double c_beta;
     double R2_hot_av;
 

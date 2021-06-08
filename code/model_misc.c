@@ -146,7 +146,8 @@ void init_galaxy(int p, int halonr)
     Gal[p].MaxRadioModeAccretionRate = 0.0;
     Gal[p].LastMajorMerger = -1.0;
     Gal[p].LastMinorMerger = -1.0;
-    Gal[p].OutflowRate = 0.0;
+    Gal[p].SNreheatRate = 0.0;
+    Gal[p].SNejectRate = 0.0;
     Gal[p].c_beta = MIN_C_BETA;
     Gal[p].R2_hot_av = sqr(Gal[p].Rvir*0.5);
     

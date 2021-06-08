@@ -160,7 +160,8 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 
           Gal[ngal].Cooling = 0.0;
           Gal[ngal].Heating = 0.0;
-          Gal[ngal].OutflowRate = 0.0;
+          Gal[ngal].SNreheatRate = 0.0;
+          Gal[ngal].SNejectRate = 0.0;
 
           for(step = 0; step < STEPS; step++)
           {
@@ -442,7 +443,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     deltaT = Age[Gal[p].SnapNum] - Age[Halo[halonr].SnapNum];
     Gal[p].Cooling /= deltaT;
     Gal[p].Heating /= deltaT;
-    Gal[p].OutflowRate /= deltaT;
+    Gal[p].SNreheatRate /= deltaT;
+    Gal[p].SNejectRate /= deltaT;
       
     if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0)
     {

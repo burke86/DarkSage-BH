@@ -80,7 +80,8 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('Heating'                      , floattype),
                     ('LastMajorMerger'              , floattype),
                     ('LastMinorMerger'              , floattype),
-                    ('OutflowRate'                  , floattype),
+                    ('SNreheatRate'                 , floattype),
+                    ('SNejectRate'                  , floattype),
                     ('infallMvir'                   , floattype),
                     ('infallVvir'                   , floattype),
                     ('infallVmax'                   , floattype)

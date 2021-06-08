@@ -189,6 +189,8 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
       if(reheated_mass > 0.0)
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass);
 
+      if(!(fabs(Gal[p].ColdGas-ColdPre) <= 1.01*fabs(Gal[p].DiscGas[i]-DiscPre) && fabs(Gal[p].ColdGas-ColdPre) >= 0.999*fabs(Gal[p].DiscGas[i]-DiscPre) && (Gal[p].ColdGas-ColdPre)*(Gal[p].DiscGas[i]-DiscPre)>=0.0))
+          printf("fabs(Gal[p].ColdGas-ColdPre), fabs(Gal[p].DiscGas[i]-DiscPre) = %e, %e\n", fabs(Gal[p].ColdGas-ColdPre), fabs(Gal[p].DiscGas[i]-DiscPre));
         assert(fabs(Gal[p].ColdGas-ColdPre) <= 1.01*fabs(Gal[p].DiscGas[i]-DiscPre) && fabs(Gal[p].ColdGas-ColdPre) >= 0.999*fabs(Gal[p].DiscGas[i]-DiscPre) && (Gal[p].ColdGas-ColdPre)*(Gal[p].DiscGas[i]-DiscPre)>=0.0);
 
 
@@ -269,9 +271,10 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
                 {
                     assert(!(eject_specific_energy<=0));
                     ejected_cold_mass = (energy_feedback - reheated_mass_old * reheat_specific_energy) / eject_specific_energy;
-                    
+                    v_wind2 = 2.0 * energy_feedback / (ejected_cold_mass + reheated_mass_old) - sqr(Gal[p].Vvir);
+
                     // presumably when the wind can't get fast enough to drive any direct ejection
-                    if(!(ejected_cold_mass>0.0))
+                    if(!(ejected_cold_mass>0.0 && v_wind2>0.0))
                     {
 //                        printf("iter, reheated_mass_old, ejected_cold_mass, v_wind, escape_velocity, annulus_velocity = %i, %e, %e, %e, %e, %e\n", iter, reheated_mass_old, ejected_cold_mass, sqrt(v_wind2), sqrt(escape_velocity2), annulus_velocity);
                         reheated_mass = energy_feedback / reheat_specific_energy;
@@ -282,7 +285,6 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
                     
                     
                     assert(ejected_cold_mass + reheated_mass_old > 0);
-                    v_wind2 = 2.0 * energy_feedback / (ejected_cold_mass + reheated_mass_old) - sqr(Gal[p].Vvir);
                     
                     assert(annulus_velocity>0);
                     assert(v_wind2>0);
@@ -465,8 +467,8 @@ void update_from_star_formation(int p, double stars, double metallicity, int i)
 void update_from_feedback(int p, int centralgal, double reheated_mass, double metallicity, int i, double ejected_cold_mass)
 {
   // Check first just to be sure
-    if(!(reheated_mass + ejected_cold_mass <= Gal[p].DiscGas[i])) printf("disc gas, reheated gas = %e, %e\n", Gal[p].DiscGas[i], reheated_mass);
-    assert(reheated_mass + ejected_cold_mass <= Gal[p].DiscGas[i]);
+//    if(!(reheated_mass + ejected_cold_mass <= Gal[p].DiscGas[i])) printf("disc gas, reheated gas = %e, %e\n", Gal[p].DiscGas[i], reheated_mass);
+//    assert(reheated_mass + ejected_cold_mass <= Gal[p].DiscGas[i]);
     assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
     assert(Gal[p].HotGas>=0);
     assert(Gal[p].MetalsHotGas>=0);
@@ -476,11 +478,23 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
     
     double reheat_eject_sum = reheated_mass + ejected_cold_mass;
 
-  if(SupernovaRecipeOn>0)
+  if(SupernovaRecipeOn>0 && reheat_eject_sum>MIN_STARFORMATION) // Imposing a minimum. Chosen as MIN_STARFORMATION for convenience.  Makes sense to be same order of magnitude though.
   {
-    Gal[p].ColdGas -= reheat_eject_sum;
-    Gal[p].DiscGas[i] -= reheat_eject_sum;
-    
+      
+    if(reheat_eject_sum < Gal[p].DiscGas[i])
+    {
+        Gal[p].DiscGas[i] -= reheat_eject_sum;
+        Gal[p].ColdGas -= reheat_eject_sum;
+        Gal[p].EjectedSNGasMass += reheat_eject_sum;
+    }
+    else
+    {
+        reheat_eject_sum = Gal[p].DiscGas[i]; // this is just about precision accuracy, nothing more
+        Gal[p].EjectedSNGasMass += Gal[p].DiscGas[i];
+        Gal[p].ColdGas -= Gal[p].DiscGas[i];
+        Gal[p].DiscGas[i] = 0.0;
+    }
+
     if(HeatedToCentral)
     {
       Gal[centralgal].HotGas += reheated_mass;
@@ -492,7 +506,6 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
       Gal[p].EjectedMass += ejected_cold_mass;
     }
 
-    Gal[p].EjectedSNGasMass += reheat_eject_sum;
 
 	if(Gal[p].DiscGas[i]>0.0)
 	{
@@ -553,7 +566,9 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
 	Gal[p].MetalsHotGas=0.0;
   }
     
-  Gal[p].OutflowRate += reheat_eject_sum;
+  Gal[p].SNreheatRate += reheated_mass;
+  Gal[p].SNejectRate += ejected_cold_mass;
+    
     assert(Gal[p].HotGas>=0);
     assert(Gal[p].MetalsHotGas>=0);
 
@@ -1214,9 +1229,10 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             {
                 assert(!(eject_specific_energy<=0));
                 ejected_cold_mass = (energy_feedback - reheated_mass_old * reheat_specific_energy) / eject_specific_energy;
-                
+                v_wind2 = 2.0 * energy_feedback / (ejected_cold_mass + reheated_mass_old) - sqr(Gal[p].Vvir);
+
                 // wind too slow for ejection
-                if(!(ejected_cold_mass>0.0))
+                if(!(ejected_cold_mass>0.0 && v_wind2>0.0))
                 {
 //                    printf("iter, reheated_mass_old, ejected_cold_mass, v_wind, escape_velocity, annulus_velocity = %i, %e, %e, %e, %e, %e\n", iter, reheated_mass_old, ejected_cold_mass, sqrt(v_wind2), sqrt(escape_velocity2), annulus_velocity);
                     reheated_mass = energy_feedback / reheat_specific_energy;
@@ -1227,7 +1243,6 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
                 
                 
                 assert(ejected_cold_mass + reheated_mass_old > 0);
-                v_wind2 = 2.0 * energy_feedback / (ejected_cold_mass + reheated_mass_old) - sqr(Gal[p].Vvir);
                 
                 assert(annulus_velocity>0);
                 assert(v_wind2>0);
@@ -1289,6 +1304,9 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         
         // apply feedback
         metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
+        
+//        if(!(reheated_mass + ejected_cold_mass <= Gal[p].DiscGas[i])) printf("reheated_mass + ejected_cold_mass, Gal[p].DiscGas[i] = %e, %e\n", reheated_mass + ejected_cold_mass, Gal[p].DiscGas[i]);
+//        assert(reheated_mass + ejected_cold_mass <= Gal[p].DiscGas[i]);
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass);
         
         // excess energy that goes into gas ejection from this annulus
@@ -1297,7 +1315,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         
     }
     
-    Gal[p].OutflowRate += reheat_eject_sum;
+    Gal[p].SNreheatRate += reheated_mass;
+    Gal[p].SNejectRate += ejected_cold_mass;
     
     if(ejected_sum < Gal[centralgal].HotGas)
         update_from_ejection(p, centralgal, ejected_sum);
