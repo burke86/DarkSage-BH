@@ -60,6 +60,9 @@ void set_units(void)
 
   // compute a few quantitites 
   RhoCrit = 3 * Hubble * Hubble / (8 * M_PI * G);
+    
+  // Reference pressure for mid-plane HI/H2 breakdown
+  P_0 = 5.93e-12 / UnitMass_in_g * UnitLength_in_cm * UnitTime_in_s * UnitTime_in_s;
 
 }
 

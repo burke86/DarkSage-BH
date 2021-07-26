@@ -175,6 +175,8 @@ void init_galaxy(int p, int halonr)
     
     Gal[p].EjectedPotential = 0.0;
     Gal[p].HotGasPotential = NFW_potential(p, 0.5*Gal[p].Rvir);
+    Gal[p].prevHotGasPotential = 0.0;
+    Gal[p].prevEjectedPotential = 0.0;
     
 }
 
@@ -220,7 +222,7 @@ double get_metallicity(double gas, double metals)
     {
         metallicity = metals / gas;
         if(metallicity < 1.0)
-            return metallicity;
+            return dmax(metallicity, BIG_BANG_METALLICITY);
         else
             return 1.0;
     }

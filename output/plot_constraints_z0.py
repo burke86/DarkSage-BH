@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/571j/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/25j/'
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/26n/'
 sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
@@ -175,7 +175,7 @@ try:
 
     # Mass--metallicity
     Z = G['MetalsColdGas']
-    lOH = 9 + np.log10(G['MetalsColdGas'] / G['ColdGas'] / 0.02)
+    lOH = 8.69 + np.log10(G['MetalsColdGas'] / G['ColdGas'] / 0.0142)
     SM_mean, lOH_high, lOH_mid, lOH_low = r.percentiles(SM, lOH, bins=bins, Nmin=Nmin)
     ax[1].plot(np.log10(SM_mean), lOH_mid, 'k--', lw=3)
     ax[1].plot(np.log10(SM_mean), lOH_low, 'k--', lw=1.5)

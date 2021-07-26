@@ -278,6 +278,8 @@ struct GALAXY
   // Potential energy for hot and ejected gas components
   double HotGasPotential;
   double EjectedPotential;
+  double prevHotGasPotential;
+  double prevEjectedPotential;
 
   // baryonic reservoirs 
   double ColdGas;
@@ -502,7 +504,8 @@ extern double UnitLength_in_cm,
   UnitTime_in_Megayears, 
   G,
   Hubble,
-  a0, ar;
+  a0, ar,
+  P_0;
 
 extern int    ListOutputSnaps[ABSOLUTEMAXSNAPS];
 

@@ -23,6 +23,8 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 	
     double star_init = Gal[p].StellarMass;
     double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
+    
+    update_HI_H2(p);
 
     DiscStarSum = get_disc_stars(p);
     DiscGasSum = get_disc_gas(p);
@@ -31,7 +33,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
     if(DiscStarSum==0.0 && DiscGasSum==0.0)
         return;
     
-    c_s = 1.1e6 / UnitVelocity_in_cm_per_s; // Speed of sound assumed for cold gas, now set to be the same as vel disp of gas at 11 km/s
+    c_s = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum]) / UnitVelocity_in_cm_per_s; // Speed of sound assumed for cold gas, now set to be the same as vel disp of gas (11 km/s @ z=0)
     
     angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
     
@@ -432,7 +434,10 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, d
 
   
 	// Let gas sink -- one may well want to change this formula
+//    gas_sink = dmin(1.0 - Gal[p].DiscH2[i]/Gal[p].DiscGas[i], GasSinkRate) * unstable_gas;
     gas_sink = GasSinkRate * unstable_gas;
+    if(!(gas_sink<=unstable_gas && gas_sink >=0.0)) printf("gas_sink, unstable_gas = %e, %e\n", gas_sink, unstable_gas);
+    assert(gas_sink<=unstable_gas && gas_sink >=0.0);
     
     if(unstable_gas - gas_sink < MIN_STARFORMATION) // Not enough unstable gas to form stars
         gas_sink = unstable_gas;

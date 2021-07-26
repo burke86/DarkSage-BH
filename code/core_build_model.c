@@ -297,6 +297,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
   // using the conservation of baryons 
 
   infallingGas = infall_recipe(centralgal, ngal, ZZ[Halo[halonr].SnapNum]);
+    
+    
  
   // Reset SFRs for each galaxy
   for(p = 0; p < ngal; p++)
@@ -451,6 +453,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         if(Gal[p].Type==0) update_disc_radii(p);
         update_HI_H2(p);
     }
+      
+    Gal[p].prevHotGasPotential = Gal[p].HotGasPotential;
   }
     
     

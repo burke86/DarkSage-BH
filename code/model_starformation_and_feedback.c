@@ -57,7 +57,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
 
   f_H2_const = 1.38e-3 * pow((CM_PER_MPC*CM_PER_MPC/1e12 / SOLAR_MASS) * (UnitMass_in_g / UnitLength_in_cm / UnitLength_in_cm), 2.0*H2FractionExponent);
-  SFE_H2 = 7.75e-4 * UnitTime_in_s / SEC_PER_MEGAYEAR; // This says if SfrEfficiency==1.0, then the true efficiency of SF from H2 is 7.75e-4 h Myr^-1
+  SFE_H2 = 4.35e-4 / Hubble_h * UnitTime_in_s / SEC_PER_MEGAYEAR; // This says if SfrEfficiency==1.0, then the time-scale for H2 consumption is 2.3 Gyr (Bigiel et al. 2011)
 
   // Initialise variables
   strdot = 0.0;
@@ -261,12 +261,12 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             if(HeatedToCentral>0 && p!=centralgal)
             {
                 v_therm2 = sqr(Gal[centralgal].Vvir);
-                escape_velocity2 = -2.0 * (get_satellite_potential(p, centralgal) + Gal[p].Potential[i]);
+                escape_velocity2 = -2.0 * (get_satellite_potential(p, centralgal) + Gal[p].Potential[i] - Gal[centralgal].EjectedPotential);
             }
             else
             {
                 v_therm2 = sqr(Gal[p].Vvir);
-                escape_velocity2 = -2.0 * Gal[p].Potential[i];
+                escape_velocity2 = 2.0 * (Gal[p].EjectedPotential - Gal[p].Potential[i]);
             }
             
             
@@ -295,7 +295,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
                     
                     assert(annulus_velocity>0);
                     assert(v_wind2>0);
-                    reheated_mass = 2.0 * ejected_cold_mass / (1 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (2 * annulus_velocity * sqrt(v_wind2)));
+                    reheated_mass =  ejected_cold_mass * ( 1.0 / (0.5 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (4 * annulus_velocity * sqrt(v_wind2)) ) - 1.0);
                     
                     // when the wind is so fast everything gets ejected
                     if(!(reheated_mass>0.0))
@@ -933,7 +933,6 @@ void update_HI_H2(int p)
     double area, f_H2, f_H2_HI, Pressure, f_sigma;
     int i;
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
-    double P_0 = 5.93e-12 / UnitMass_in_g * UnitLength_in_cm * UnitTime_in_s * UnitTime_in_s;
     
     if(Gal[p].Vvir>0.0 && Gal[p].ColdGas>0.0)
     {
@@ -970,11 +969,11 @@ void update_HI_H2(int p)
             {
                 if(angle <= ThetaThresh)
                 {
-                    f_sigma =  1.1e6/UnitVelocity_in_cm_per_s / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Ratio of gas vel dispersion to stars', assuming gas is always 11 km/s
-                    Pressure = 0.5*M_PI*G * Gal[p].DiscGas[i] * (Gal[p].DiscGas[i] + f_sigma*Gal[p].DiscStars[i]) / sqr(area);
+                    f_sigma =  (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Ratio of gas vel dispersion to stars', assuming gas is always 11 km/s
+                    Pressure = 0.5*M_PI*G * Gal[p].DiscGas[i] * (Gal[p].DiscGas[i] + f_sigma*Gal[p].DiscStars[i]) / sqr(area) * Hubble_h * Hubble_h;
                 }
                 else
-                    Pressure = 0.5*M_PI*G * sqr(Gal[p].DiscGas[i]/area);
+                    Pressure = 0.5*M_PI*G * sqr(Gal[p].DiscGas[i]/area) * Hubble_h * Hubble_h;
                 f_H2_HI = H2FractionFactor * pow(Pressure/P_0, H2FractionExponent);
 
             }
@@ -1198,7 +1197,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
                 
                 assert(annulus_velocity>0);
                 assert(v_wind2>0);
-                reheated_mass = 2.0 * ejected_cold_mass / (1 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (2 * annulus_velocity * sqrt(v_wind2)));
+                reheated_mass =  ejected_cold_mass * ( 1.0 / (0.5 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (4 * annulus_velocity * sqrt(v_wind2)) ) - 1.0);
+
 
                 // when the wind is so fast everything gets ejected
                 if(!(reheated_mass>0.0))

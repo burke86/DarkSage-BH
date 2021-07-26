@@ -117,7 +117,7 @@ double UnitLength_in_cm,
   UnitMass_in_g,
   RhoCrit,
   UnitPressure_in_cgs,
-  UnitDensity_in_cgs, UnitCoolingRate_in_cgs, UnitEnergy_in_cgs, UnitTime_in_Megayears, G, Hubble, a0, ar;
+  UnitDensity_in_cgs, UnitCoolingRate_in_cgs, UnitEnergy_in_cgs, UnitTime_in_Megayears, G, Hubble, a0, ar, P_0;
 
 int ListOutputSnaps[ABSOLUTEMAXSNAPS];
 

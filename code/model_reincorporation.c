@@ -17,7 +17,7 @@ void reincorporate_gas(int centralgal, double dt)
   // SN velocity is 630km/s, and the condition for reincorporation is that the 
   // halo has an escape velocity greater than this, i.e. V_SN/sqrt(2) = 445.48km/s
 
-  if(ReincorpotationModel!=1)
+  if(ReincorpotationModel==0)
   {
       double Vcrit = 445.48 * ReIncorporationFactor;
       assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
@@ -26,10 +26,14 @@ void reincorporate_gas(int centralgal, double dt)
       else
         reincorporated = 0.0;
   }
-  else //if(ReincorpotationModel==1)
+  else if(ReincorpotationModel==1)
   {
       double t_reinc = 1.8e4/UnitTime_in_Megayears * (Hubble_h/Gal[centralgal].Mvir);
       reincorporated = Gal[centralgal].EjectedMass / t_reinc * dt;
+  }
+  else
+  {
+      reincorporated = Gal[centralgal].EjectedMass * (Gal[centralgal].HotGasPotential - Gal[centralgal].prevHotGasPotential) / (Gal[centralgal].prevEjectedPotential - Gal[centralgal].prevHotGasPotential) / STEPS;
   }
 
     
