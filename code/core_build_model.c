@@ -137,6 +137,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
         previousMvir = Gal[ngal].Mvir;
         previousVvir = Gal[ngal].Vvir;
         previousVmax = Gal[ngal].Vmax;
+        Gal[ngal].prevRvir = Gal[ngal].Rvir;
 
         if(prog == first_occupied)
         {
@@ -334,14 +335,16 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 
       // for central galaxy only
       if(p == centralgal)
+      {
         add_infall_to_hot(centralgal, infallingGas / STEPS);
+          
+          if(!(ReIncorporationFactor <= 0.0 && ReincorpotationModel==0))
+            reincorporate_gas(p, dt);
+      }
         
       // hot-gas stripping of satellites
       else if(HotStripOn>0 && Gal[p].Type == 1 && Gal[p].HotGas > 0.0 && Gal[p].MaxStrippedGas>0.0)
             Gal[p].MaxStrippedGas = strip_from_satellite(halonr, centralgal, p, Gal[p].MaxStrippedGas);
-
-      if(ReIncorporationFactor > 0.0)
-        reincorporate_gas(p, dt);
         
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0 && (Gal[p].ColdGas+Gal[p].StellarMass)>Gal[p].HotGas)

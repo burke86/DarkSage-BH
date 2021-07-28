@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/26o/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/26p/
 
 FirstFile                   0
 LastFile                    7
@@ -101,14 +101,14 @@ Ratio_Ia_II                 0.2     ; number ratio of Type Ia (binary accretion)
 %%%= ========================== =%%%
 
 
-ReIncorporationFactor        0.15    ; For ReincorpotationModel=0
+ReIncorporationFactor        0.15    ; For ReincorpotationModel=0. Reincorporation turned off when both = 0.
 
 CoolingScaleSlope           0.23    ; cf. eq. 18 of Stevens et al. (2017)
 CoolingScaleConst           1.26
 
 RadioModeEfficiency         1.0
 QuasarModeEfficiency        1.0
-BlackHoleGrowthRate         0.0
+BlackHoleGrowthRate         0.0     ; retired, was for specific BH growth during mergers 
 
 
 %%%= For H2prescription=0 =%%%
@@ -138,7 +138,7 @@ AlphaBurst                  0.0     ;normalisation of fraction of gas consumed i
 BetaBurst                   0.0    ;exponent of gas consumed in a merger starburst. SETTING TO 0 REMOVES MERGER STARBURSTS ENTIRELY, THE NEW DEFAULT
 
 Yield                        0.02908
-RecycleFraction                0.43    ;fraction of SF mass instantaneously recycled back to cold
+RecycleFraction                0.43    ;fraction of SF mass instantaneously recycled back to cold, for DelayedFeedbackOn=0
 FracZleaveDisk                0.0        ;fraction of metals produced directly to hot component
 
 Reionization_z0                8.0        ;these parameter choices give the best fit to Genedin (2000)...

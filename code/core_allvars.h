@@ -280,6 +280,7 @@ struct GALAXY
   double EjectedPotential;
   double prevHotGasPotential;
   double prevEjectedPotential;
+  double prevRvir;
   double ReincTime;
 
   // baryonic reservoirs 
