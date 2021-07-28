@@ -416,7 +416,7 @@ void update_reinc_timescale(int p, int i, double ejected_cold_mass, double rehea
 {
     int ii, j, len_eff, j_start;
     int len_arr = 50; // number of entries in arrays used to numerically integrate potential-dependent integrand for reincorporation time
-    double v_ejec, potential_final, r_final, time_out, time_in, r_arr[len_arr], potential_arr[len_arr], r_max, Rhot, dr, denom;
+    double v_ejec, potential_final, r_final, time_out, time_in, r_arr[len_arr], potential_arr[len_arr], r_max, Rhot, dr, denom, annulus_potential;
     v_ejec = (reheated_mass/ejected_cold_mass + 1) * (pow(sqr(annulus_velocity) + v_wind2 + two_vv, 1.5) - pow(escape_velocity2, 1.5)) / (3.0 * two_vv); // average velocity of gas that escapes the halo
     
     potential_final = 0.5*sqr(v_ejec) + Gal[p].Potential[i]; // the potential energy the escaping gas has before it stops and turns around
@@ -439,7 +439,8 @@ void update_reinc_timescale(int p, int i, double ejected_cold_mass, double rehea
     // build array of radii and potential        
     j = 0;
     Rhot = sqrt(Gal[p].R2_hot_av);
-    if(Rhot < annulus_radius)
+    annulus_potential = 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]);
+    if(Rhot < annulus_radius && Gal[p].HotGasPotential < annulus_potential)
     {
         r_arr[j] = Rhot;
         potential_arr[j] = Gal[p].HotGasPotential;
@@ -447,7 +448,7 @@ void update_reinc_timescale(int p, int i, double ejected_cold_mass, double rehea
     }
 
     r_arr[j] = annulus_radius;
-    potential_arr[j] = 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]);
+    potential_arr[j] = annulus_potential;
     j_start = j;
 
     len_eff = len_arr;
@@ -461,9 +462,9 @@ void update_reinc_timescale(int p, int i, double ejected_cold_mass, double rehea
             j += 1;
             r_arr[j] = Rhot;
             potential_arr[j] = Gal[p].HotGasPotential;
+            assert(r_arr[j] > r_arr[j-1]);
         }
         
-        assert(r_arr[j] > r_arr[j-1]);
 
         if((r_final > r_arr[j]) && (r_final < Gal[p].DiscRadii[ii]) && (potential_final > potential_arr[j]) && (potential_final < Gal[p].Potential[ii]))
         {
@@ -477,6 +478,7 @@ void update_reinc_timescale(int p, int i, double ejected_cold_mass, double rehea
         j += 1;
         r_arr[j] = Gal[p].DiscRadii[ii];
         potential_arr[j] = Gal[p].Potential[ii];
+        assert(r_arr[j] > r_arr[j-1]);
     }
     
     if(len_arr == len_eff)
