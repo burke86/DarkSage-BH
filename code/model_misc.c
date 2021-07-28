@@ -177,6 +177,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].HotGasPotential = NFW_potential(p, 0.5*Gal[p].Rvir);
     Gal[p].prevHotGasPotential = 0.0;
     Gal[p].prevEjectedPotential = 0.0;
+    Gal[p].ReincTime = 0.0;
     
 }
 

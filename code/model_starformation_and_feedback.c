@@ -229,7 +229,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
     
     double reheated_mass, ejected_cold_mass, ejected_mass, strdot, fac, Sigma_0gas;
     double energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, excess_energy, eject_specific_energy, escape_velocity2;//, VV, specific_energy_ratio, a, b, c, bracket_term, discriminant; // for new feedback recipe
-    double reheated_mass_old, v_wind2, v_therm2;
+    double reheated_mass_old, v_wind2, v_therm2, two_vv;
     int iter;
     
 
@@ -295,7 +295,8 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
                     
                     assert(annulus_velocity>0);
                     assert(v_wind2>0);
-                    reheated_mass =  ejected_cold_mass * ( 1.0 / (0.5 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (4 * annulus_velocity * sqrt(v_wind2)) ) - 1.0);
+                    two_vv = 2 * annulus_velocity * sqrt(v_wind2);
+                    reheated_mass =  ejected_cold_mass * ( 1.0 / (0.5 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (2*two_vv) ) - 1.0);
                     
                     // when the wind is so fast everything gets ejected
                     if(!(reheated_mass>0.0))
@@ -403,7 +404,124 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
     feedback_mass[2] = stars;
     feedback_mass[3] = ejected_cold_mass;
     
+    
+    // calculate change in reincorporation time due to new ejected gas
+    if(ejected_cold_mass>0 && ReincorpotationModel==3)
+        update_reinc_timescale(p, i, ejected_cold_mass, reheated_mass, annulus_velocity, v_wind2, two_vv, escape_velocity2, annulus_radius);
+    
 }
+
+
+void update_reinc_timescale(int p, int i, double ejected_cold_mass, double reheated_mass, double annulus_velocity, double v_wind2, double two_vv, double escape_velocity2, double annulus_radius)
+{
+    int ii, j, len_eff, j_start;
+    int len_arr = 50; // number of entries in arrays used to numerically integrate potential-dependent integrand for reincorporation time
+    double v_ejec, potential_final, r_final, time_out, time_in, r_arr[len_arr], potential_arr[len_arr], r_max, Rhot, dr, denom;
+    v_ejec = (reheated_mass/ejected_cold_mass + 1) * (pow(sqr(annulus_velocity) + v_wind2 + two_vv, 1.5) - pow(escape_velocity2, 1.5)) / (3.0 * two_vv); // average velocity of gas that escapes the halo
+    
+    potential_final = 0.5*sqr(v_ejec) + Gal[p].Potential[i]; // the potential energy the escaping gas has before it stops and turns around
+    // extrapolate potential assuming any additional mass internal to radii greater than Rvir is negligible
+    r_final = - G * Gal[p].Mvir / potential_final;
+    
+    r_max = 10.0*Gal[p].Mvir; // maximum radius ejected gas is assumed to reach, arbitarily large
+    
+    if(potential_final >= 0.0 || r_final > r_max)
+    {
+        potential_final = 0.0;
+        r_final = r_max;
+    }
+    else if(potential_final <= Gal[p].EjectedPotential || r_final < Gal[p].Rvir)
+    {
+        potential_final = Gal[p].EjectedPotential;
+        r_final = 1.0 * Gal[p].Rvir;
+    }
+    
+    // build array of radii and potential        
+    j = 0;
+    Rhot = sqrt(Gal[p].R2_hot_av);
+    if(Rhot < annulus_radius)
+    {
+        r_arr[j] = Rhot;
+        potential_arr[j] = Gal[p].HotGasPotential;
+        j += 1;
+    }
+
+    r_arr[j] = annulus_radius;
+    potential_arr[j] = 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]);
+    j_start = j;
+
+    len_eff = len_arr;
+    for(ii=i+1; ii<=N_BINS; ii++)
+    {                
+        if(r_final<=r_arr[j])
+            break;
+        
+        if((Rhot > r_arr[j]) && (Rhot < Gal[p].DiscRadii[ii]) && (Gal[p].HotGasPotential > potential_arr[j]) && (Gal[p].HotGasPotential < Gal[p].Potential[ii]))
+        {
+            j += 1;
+            r_arr[j] = Rhot;
+            potential_arr[j] = Gal[p].HotGasPotential;
+        }
+        
+        assert(r_arr[j] > r_arr[j-1]);
+
+        if((r_final > r_arr[j]) && (r_final < Gal[p].DiscRadii[ii]) && (potential_final > potential_arr[j]) && (potential_final < Gal[p].Potential[ii]))
+        {
+            j += 1;
+            r_arr[j] = r_final;
+            potential_arr[j] = potential_final;
+            len_eff = j;
+            break;
+        }
+        
+        j += 1;
+        r_arr[j] = Gal[p].DiscRadii[ii];
+        potential_arr[j] = Gal[p].Potential[ii];
+    }
+    
+    if(len_arr == len_eff)
+    {
+        if(r_final > Gal[p].DiscRadii[N_BINS])
+        {
+            dr = (r_final - Gal[p].DiscRadii[N_BINS]) / (len_arr - 1 - j);
+            assert(dr>0);
+            for(ii=j+1; ii<len_arr; ii++)
+            {
+                r_arr[ii] = Gal[p].DiscRadii[N_BINS] + dr * (ii-j);
+                potential_arr[ii] = - G * Gal[p].Mvir / r_arr[ii];
+            }
+        }
+        else
+            len_eff = j+1;
+        
+    }
+    
+    // form integrand and numerically integrate
+    time_out = 0.0;
+    for(j=j_start; j<len_eff-1; j++)
+    {
+        denom = sqrt( -2*Gal[p].Potential[i] + potential_arr[j] + potential_arr[j+1] + sqr(v_ejec) );
+        if(!(denom>0)) break;
+        if(r_arr[j+1] < r_arr[j]) printf("j, len_eff, len_arr, r_arr[j-1, j, j+1] = %i, %i, %i, %e, %e, %e\n", j, len_eff, len_arr, r_arr[j-1], r_arr[j], r_arr[j+1]); 
+        time_out += (r_arr[j+1] - r_arr[j]) / denom;
+    }
+    if(!(time_out >= 0)) printf("time_out = %e\n", time_out);
+    assert(time_out >= 0);
+    
+    time_in = 0.0;
+    for(j=len_eff-1; j>0; j--) // should break before getting to 0 unless the potential of the annulus that the feedback took place in exceeds the hot gas potential
+    {
+        denom = sqrt( 2*potential_final - potential_arr[j] - potential_arr[j-1] );
+        if(!(denom>0)) break;
+        time_in += (r_arr[j] - r_arr[j-1]) / denom;
+        if(r_arr[j-1] <= Rhot) break;
+    }
+    assert(time_in >= 0);
+
+    // set new reincorporation time
+    Gal[p].ReincTime = (Gal[p].EjectedMass * Gal[p].ReincTime + ejected_cold_mass * (time_in+time_out)) / (Gal[p].EjectedMass + ejected_cold_mass);
+}
+
 
 
 void update_from_star_formation(int p, double stars, double metallicity, int i)
@@ -1001,7 +1119,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 {
     int k, i;
     double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, ejected_specific_energy, excess_energy, return_metal_mass, new_metals, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
-    double reheated_mass_old, v_wind2, v_therm2;
+    double reheated_mass_old, v_wind2, v_therm2, two_vv;
     int iter;
     double StellarOutput[2];
     
@@ -1197,7 +1315,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
                 
                 assert(annulus_velocity>0);
                 assert(v_wind2>0);
-                reheated_mass =  ejected_cold_mass * ( 1.0 / (0.5 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (4 * annulus_velocity * sqrt(v_wind2)) ) - 1.0);
+                two_vv = 2 * annulus_velocity * sqrt(v_wind2);
+                reheated_mass =  ejected_cold_mass * ( 1.0 / (0.5 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (2*two_vv) ) - 1.0);
 
 
                 // when the wind is so fast everything gets ejected
@@ -1238,6 +1357,10 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         }
         
         assert(reheated_mass>=0);
+        
+        // calculate change in reincorporation time due to new ejected gas
+        if(ejected_cold_mass>0 && ReincorpotationModel==3)
+            update_reinc_timescale(p, i, ejected_cold_mass, reheated_mass, annulus_velocity, v_wind2, two_vv, escape_velocity2, annulus_radius);
         
         // apply feedback
         metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);

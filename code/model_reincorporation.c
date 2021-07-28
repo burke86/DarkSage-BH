@@ -31,9 +31,13 @@ void reincorporate_gas(int centralgal, double dt)
       double t_reinc = 1.8e4/UnitTime_in_Megayears * (Hubble_h/Gal[centralgal].Mvir);
       reincorporated = Gal[centralgal].EjectedMass / t_reinc * dt;
   }
-  else
+  else if (ReincorpotationModel==2)
   {
       reincorporated = Gal[centralgal].EjectedMass * (Gal[centralgal].HotGasPotential - Gal[centralgal].prevHotGasPotential) / (Gal[centralgal].prevEjectedPotential - Gal[centralgal].prevHotGasPotential) / STEPS;
+  }
+  else
+  {
+      reincorporated = Gal[centralgal].EjectedMass * dt / Gal[centralgal].ReincTime;
   }
 
     
