@@ -276,11 +276,13 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
         {
             if(HeatedToCentral)
             {
+                if(ReincorpotationModel==3) update_reincorporation_time(centralgal, Gal[p].DiscGas[k]);
                 Gal[centralgal].EjectedMass += Gal[p].DiscGas[k];
                 Gal[centralgal].MetalsEjectedMass += Gal[p].DiscGasMetals[k];
             }
             else
             {
+                if(ReincorpotationModel==3) update_reincorporation_time(p, Gal[p].DiscGas[k]);
                 Gal[p].EjectedMass += Gal[p].DiscGas[k];
                 Gal[p].MetalsEjectedMass += Gal[p].DiscGasMetals[k];
             }
@@ -306,11 +308,13 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
             
             if(HeatedToCentral)
             {
+                if(ReincorpotationModel==3) update_reincorporation_time(centralgal, ejected_mass);
                 Gal[centralgal].EjectedMass += ejected_mass;
                 Gal[centralgal].MetalsEjectedMass += ejected_metals;
             }
             else
             {
+                if(ReincorpotationModel==3) update_reincorporation_time(p, ejected_mass);
                 Gal[p].EjectedMass += ejected_mass;
                 Gal[p].MetalsEjectedMass += ejected_metals;
             }
@@ -340,11 +344,13 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
     { // eject the entire hot reservoir
         if(HeatedToCentral)
         {
+            if(ReincorpotationModel==3) update_reincorporation_time(centralgal, Gal[p].HotGas);
             Gal[centralgal].EjectedMass += Gal[p].HotGas;
             Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsHotGas;
         }
         else
         {
+            if(ReincorpotationModel==3) update_reincorporation_time(p, Gal[p].HotGas);
             Gal[p].EjectedMass += Gal[p].HotGas;
             Gal[p].MetalsEjectedMass += Gal[p].MetalsHotGas;
         }
@@ -358,11 +364,13 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
         
         if(HeatedToCentral)
         {
+            if(ReincorpotationModel==3) update_reincorporation_time(centralgal, ejected_mass);
             Gal[centralgal].EjectedMass += ejected_mass;
             Gal[centralgal].MetalsEjectedMass += ejected_metals;
         }
         else
         {
+            if(ReincorpotationModel==3) update_reincorporation_time(p, ejected_mass);
             Gal[p].EjectedMass += ejected_mass;
             Gal[p].MetalsEjectedMass += ejected_metals;
         }

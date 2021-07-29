@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/26p/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/26r/
 
 FirstFile                   0
 LastFile                    7
@@ -19,8 +19,8 @@ LastFile                    7
 %-> 37 42 47 54 62 72 84 101 109 119 125 131
 
 
-NumOutputs        2
--> 62 131
+NumOutputs        1
+-> 131
 
 %------------------------------------------
 %----- Simulation information  ------------

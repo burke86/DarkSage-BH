@@ -43,10 +43,15 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
       tot_coldMass += Gal[i].ColdGas;
       tot_hotMass += Gal[i].HotGas;
       tot_hotMetals += Gal[i].MetalsHotGas;
+      tot_ejected += Gal[i].EjectedMass;
+      tot_ejectedMetals += Gal[i].MetalsEjectedMass;
+    }
+    else if(HeatedToCentral)
+    {
+      tot_ejected += Gal[i].EjectedMass;
+      tot_ejectedMetals += Gal[i].MetalsEjectedMass;
     }
       
-    tot_ejected += Gal[i].EjectedMass;
-    tot_ejectedMetals += Gal[i].MetalsEjectedMass;
     tot_ICS += Gal[i].ICS;
     tot_ICSMetals += Gal[i].MetalsICS;
       
@@ -62,7 +67,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
     
     if(i != centralgal)
     {
-      Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
+      if(HeatedToCentral) Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
       Gal[i].ICS = Gal[i].MetalsICS = 0.0; // satellite ICS goes to central ICS
       if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[i].ICS_Age[k] = Gal[i].MetalsICS_Age[k] = 0.0;
     }
@@ -78,8 +83,11 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   infallingMass = reionization_modifier * BaryonFrac * Gal[centralgal].Mvir - (tot_stellarMass + tot_coldMass + tot_hotMass + tot_ejected + tot_BHMass + tot_ICS);
 
   // the central galaxy keeps all the ejected mass
-  Gal[centralgal].EjectedMass = tot_ejected;
-  Gal[centralgal].MetalsEjectedMass = tot_ejectedMetals;
+  if(HeatedToCentral)
+  {
+      Gal[centralgal].EjectedMass = tot_ejected;
+      Gal[centralgal].MetalsEjectedMass = tot_ejectedMetals;
+  }
 
   // take care of any potential numerical issues regarding ejected mass
   if(Gal[centralgal].MetalsEjectedMass > Gal[centralgal].EjectedMass)

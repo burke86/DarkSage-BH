@@ -37,7 +37,7 @@ void reincorporate_gas(int centralgal, double dt)
   }
   else
   {
-      double reincTime_fac = 1 - (Gal[centralgal].Rvir - Gal[centralgal].prevRvir) / (Gal[centralgal].Rvir * STEPS) ;
+      double reincTime_fac = dmin( 1 - (Gal[centralgal].Mvir - Gal[centralgal].prevMvir) / (Gal[centralgal].Mvir * STEPS) , 1.0) ;
       Gal[centralgal].ReincTime *= reincTime_fac;  // reduce reincorporation time to account for halo growth
       reincorporated = Gal[centralgal].EjectedMass * dt / Gal[centralgal].ReincTime;
   }
@@ -66,4 +66,10 @@ void reincorporate_gas(int centralgal, double dt)
   }
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
 
+}
+
+
+void update_reincorporation_time(int p, double new_ejected_mass)
+{
+    Gal[p].ReincTime = (Gal[p].EjectedMass * Gal[p].ReincTime + new_ejected_mass * Gal[p].ReincTimeFresh) / (Gal[p].EjectedMass + new_ejected_mass);
 }

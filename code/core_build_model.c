@@ -137,7 +137,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
         previousMvir = Gal[ngal].Mvir;
         previousVvir = Gal[ngal].Vvir;
         previousVmax = Gal[ngal].Vmax;
-        Gal[ngal].prevRvir = Gal[ngal].Rvir;
+        Gal[ngal].prevMvir = Gal[ngal].Mvir;
 
         if(prog == first_occupied)
         {
