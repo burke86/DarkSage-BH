@@ -50,7 +50,7 @@ double cooling_recipe(int gal, double dt)
 
         Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir * sqr(Gal[gal].c_beta) * cb_term * 0.15343);
     }
-
+      
     if(rcool > Gal[gal].Rvir)
     {
       // infall dominated regime 

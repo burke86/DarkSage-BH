@@ -137,7 +137,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
         previousMvir = Gal[ngal].Mvir;
         previousVvir = Gal[ngal].Vvir;
         previousVmax = Gal[ngal].Vmax;
-        Gal[ngal].prevMvir = Gal[ngal].Mvir;
+        Gal[ngal].prevRvir = Gal[ngal].Rvir;
 
         if(prog == first_occupied)
         {
@@ -360,6 +360,12 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
           Gal[p].AccretedGasMass += coolingGas;
           cool_gas_onto_galaxy(p, coolingGas);
             assert(Gal[p].HotGas>=0);
+            
+            if(ReincorpotationModel==4)
+            {
+                Gal[p].ReincTimeFresh = (Gal[p].Rvir*sqrt(Gal[p].R2_hot_av) - Gal[p].R2_hot_av) / (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) ; // time=dr/v; v=j/Rhot; dr=Rvir-Rhot
+            }
+            
         }
 
       // Update radii of the annuli

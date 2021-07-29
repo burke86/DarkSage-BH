@@ -280,7 +280,7 @@ struct GALAXY
   double EjectedPotential;
   double prevHotGasPotential;
   double prevEjectedPotential;
-  double prevMvir;
+  double prevRvir;
   double ReincTime;
   double ReincTimeFresh;
 

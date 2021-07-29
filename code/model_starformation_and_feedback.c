@@ -594,13 +594,13 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
 
     if(HeatedToCentral)
     {
-      if(ReincorpotationModel==3) update_reincorporation_time(centralgal, ejected_cold_mass);
+      if(ReincorpotationModel>=3) update_reincorporation_time(centralgal, ejected_cold_mass);
       Gal[centralgal].HotGas += reheated_mass;
       Gal[centralgal].EjectedMass += ejected_cold_mass;
     }
     else
     {
-      if(ReincorpotationModel==3) update_reincorporation_time(p, ejected_cold_mass);
+      if(ReincorpotationModel>=3) update_reincorporation_time(p, ejected_cold_mass);
       Gal[p].HotGas += reheated_mass;
       Gal[p].EjectedMass += ejected_cold_mass;
     }
@@ -687,7 +687,7 @@ void update_from_ejection(int p, int centralgal, double ejected_mass)
     
         if(ejected_mass >= Gal[p].HotGas)
         {
-            if(ReincorpotationModel==3) update_reincorporation_time(centralgal, Gal[p].HotGas);
+            if(ReincorpotationModel>=3) update_reincorporation_time(centralgal, Gal[p].HotGas);
             Gal[centralgal].EjectedMass += Gal[p].HotGas;
             Gal[p].HotGas = 0.0;
             Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsHotGas;
@@ -695,7 +695,7 @@ void update_from_ejection(int p, int centralgal, double ejected_mass)
         }
         else if(ejected_mass>0 && Gal[p].HotGas>0.0)
     	{
-            if(ReincorpotationModel==3) update_reincorporation_time(centralgal, ejected_mass);
+            if(ReincorpotationModel>=3) update_reincorporation_time(centralgal, ejected_mass);
             Gal[p].HotGas -= ejected_mass;
             Gal[centralgal].EjectedMass += ejected_mass;
             Gal[p].MetalsHotGas -= metallicityHot * ejected_mass;
@@ -708,7 +708,7 @@ void update_from_ejection(int p, int centralgal, double ejected_mass)
     {
         if(ejected_mass >= Gal[p].HotGas)
         {
-            if(ReincorpotationModel==3) update_reincorporation_time(p, Gal[p].HotGas);
+            if(ReincorpotationModel>=3) update_reincorporation_time(p, Gal[p].HotGas);
             Gal[p].EjectedMass += Gal[p].HotGas;
             Gal[p].MetalsEjectedMass += Gal[p].MetalsHotGas;
             Gal[p].HotGas = 0.0;
@@ -716,7 +716,7 @@ void update_from_ejection(int p, int centralgal, double ejected_mass)
         }
         else if(ejected_mass>0 && Gal[p].HotGas>0)
         {
-            if(ReincorpotationModel==3) update_reincorporation_time(p, ejected_mass);
+            if(ReincorpotationModel>=3) update_reincorporation_time(p, ejected_mass);
             metallicityHot = get_metallicity(Gal[p].HotGas, Gal[p].MetalsHotGas);
             Gal[p].EjectedMass += ejected_mass;
             Gal[p].MetalsEjectedMass += ejected_mass * metallicityHot;
