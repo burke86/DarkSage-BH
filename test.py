@@ -184,7 +184,7 @@ for field in halo_fields:
     if not success:
         print('\nUh oh! The Dark Sage output did not match what was expected!')
         print('The properties that don\'t match should not be affected by your compiler.')
-        print('This error was sprung by the property {0}, but is likely not limited to it.'.format(field))
+        print('This error was sprung by the property `{0}`, but is likely not limited to it.'.format(field))
         print('Please report this issue if you cannot find a fast solution.')
         break
 

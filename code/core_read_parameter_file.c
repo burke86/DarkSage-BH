@@ -173,6 +173,10 @@ void read_parameter_file(char *fname)
   addr[nt] = &HotGasProfileType;
   id[nt++] = INT;
 
+  strcpy(tag[nt], "MergeTimeScaleForm");
+  addr[nt] = &MergeTimeScaleForm;
+  id[nt++] = INT;
+    
   strcpy(tag[nt], "BaryonFrac");
   addr[nt] = &BaryonFrac;
   id[nt++] = DOUBLE;

@@ -205,11 +205,6 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
               Gal[ngal].infallVmax = previousVmax;
             }
 
-            if(Gal[ngal].Type == 0 || Gal[ngal].MergTime > 999.0)
-			{
-              // here the galaxy has gone from type 1 to type 2 or otherwise doesn't have a merging time.
-              Gal[ngal].MergTime = estimate_merging_time(halonr, Halo[halonr].FirstHaloInFOFgroup, ngal);
-			}
             Gal[ngal].Type = 1;
           }
         }
@@ -301,12 +296,19 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     
     
  
-  // Reset SFRs for each galaxy
+  
   for(p = 0; p < ngal; p++)
   {
+      // Reset SFRs for each galaxy
       for(i=0; i<N_BINS; i++)
         Gal[p].DiscSFR[i] = 0.0;
+
+      // check for freshly infallen satellites that need a merger timescale calculated
+      if(Gal[p].Type == 1 && Gal[p].MergTime > 999.0)
+        Gal[p].MergTime = estimate_merging_time(halonr, p, centralgal);
+      
   }
+
     
   // we integrate things forward by using a number of intervals equal to STEPS 
   for(step = 0; step < STEPS; step++)

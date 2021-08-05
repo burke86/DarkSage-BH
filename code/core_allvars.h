@@ -459,6 +459,7 @@ extern int    MvirDefinition;
 extern int    AgeStructOut;
 extern int    DelayedFeedbackOn;
 extern int    HotGasProfileType;
+extern int    MergeTimeScaleForm;
 
 // recipe parameters 
 extern double RecycleFraction;

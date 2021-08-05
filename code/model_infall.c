@@ -199,9 +199,15 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       double r_gal2, v_gal2, rho_IGM, Pram, Pgrav, left, right, r_try, dif;
       int i, ii;
       
-      r_gal2 = (sqr(Gal[gal].Pos[0]-Gal[centralgal].Pos[0]) + sqr(Gal[gal].Pos[1]-Gal[centralgal].Pos[1]) + sqr(Gal[gal].Pos[2]-Gal[centralgal].Pos[2])) * sqr(AA[Halo[halonr].SnapNum]);
+      r_gal2 = sqr(get_satellite_radius(gal, centralgal));
       v_gal2 = (sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]));
-      rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
+      if(HotGasProfileType==0)
+          rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
+      else
+      {
+          double cb_term = 1.0/(1.0 - Gal[gal].c_beta * atan(1.0/Gal[gal].c_beta));
+          rho_IGM = Gal[centralgal].HotGas * sqr(cb_term) / ( 4 * M_PI * sqr(Gal[gal].c_beta) * cube(Gal[centralgal].Rvir) * (1 + r_gal2/sqr(Gal[gal].c_beta * Gal[centralgal].Rvir)) ); 
+      }
       Pram = rho_IGM*v_gal2;
       
       Gal[gal].Mvir = get_virial_mass(halonr, gal); // Do this need to be updated here?  When else is it updated?
@@ -211,7 +217,15 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       {
           double M_int, M_DM, M_CB, M_SB, M_hot;
           double z, a, b, c_DM, c, r_2, X, M_DM_tot, rho_const;
-          double a_CB, M_CB_inf, a_SB, M_SB_inf;
+          double a_CB, M_CB_inf, a_SB, M_SB_inf, RonRvir;
+          
+          // when assuming a singular isothermal sphere
+          const double hot_fraction = Gal[gal].HotGas / Gal[gal].Rvir; 
+          // when assuming a beta profile
+          const double c_beta = Gal[gal].c_beta;
+          const double cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
+          const double hot_stuff = Gal[gal].HotGas * cb_term;
+          
           
           // Gets rid of any ejected gas immediately if ram pressure is strong enough
           Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
@@ -247,7 +261,11 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
               M_DM = rho_const * (log((r_try+r_2)/r_2) - r_try/(r_try+r_2));
               M_SB = M_SB_inf * sqr(r_try/(r_try + a_SB));
               M_CB = M_CB_inf * sqr(r_try/(r_try + a_CB));
-              M_hot = Gal[gal].HotGas * r_try / Gal[gal].Rvir;
+              RonRvir = r_try / Gal[gal].Rvir;
+              if(HotGasProfileType==0)
+                  M_hot = hot_fraction * r_try;
+              else
+                  M_hot = hot_stuff * (RonRvir - c_beta * atan(RonRvir/c_beta));
               M_int = M_DM + M_CB + M_SB + M_hot + Gal[gal].BlackHoleMass;
               
               // Add mass from the disc
@@ -311,7 +329,14 @@ void ram_pressure_stripping(int centralgal, int gal)
     
     r_gal2 = (sqr(Gal[gal].Pos[0]-Gal[centralgal].Pos[0]) + sqr(Gal[gal].Pos[1]-Gal[centralgal].Pos[1]) + sqr(Gal[gal].Pos[2]-Gal[centralgal].Pos[2])) * sqr(ExpFac);
     v_gal2 = (sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]));
-    rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
+    
+    if(HotGasProfileType==0)
+        rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
+    else
+    {
+        double cb_term = 1.0/(1.0 - Gal[gal].c_beta * atan(1.0/Gal[gal].c_beta));
+        rho_IGM = Gal[centralgal].HotGas * sqr(cb_term) / ( 4 * M_PI * sqr(Gal[gal].c_beta) * cube(Gal[centralgal].Rvir) * (1 + r_gal2/sqr(Gal[gal].c_beta * Gal[centralgal].Rvir)) ); 
+    }
     
     for(i=0; i<N_BINS; i++)
     {

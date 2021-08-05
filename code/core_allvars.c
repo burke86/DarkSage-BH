@@ -69,6 +69,7 @@ int MvirDefinition;
 int AgeStructOut;
 int DelayedFeedbackOn;
 int HotGasProfileType;
+int MergeTimeScaleForm;
 
 // binning information
 double FirstBin;

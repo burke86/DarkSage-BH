@@ -10,28 +10,144 @@
 
 
 
-double estimate_merging_time(int sat_halo, int mother_halo, int ngal)
+double estimate_merging_time(int halonr, int gal, int centralgal)
 {
+//    printf("\nentering estimate_merging_time\n");
   double coulomb, mergtime, SatelliteMass, SatelliteRadius;
+  int i;
 
-  if(sat_halo == mother_halo) 
+//  if(sat_halo == mother_halo) 
+//  {
+//    printf("\t\tSnapNum, Type, IDs, sat radius:\t%i\t%i\t%i\t%i\t--- sat/cent have the same ID\n", 
+//      Gal[gal].SnapNum, Gal[gal].Type, sat_halo, mother_halo);
+//    return -1.0;
+//  }
+    
+    
+//    printf("\nm0\n");
+
+    
+  if(MergeTimeScaleForm==0)
   {
-    printf("\t\tSnapNum, Type, IDs, sat radius:\t%i\t%i\t%i\t%i\t--- sat/cent have the same ID\n", 
-      Gal[ngal].SnapNum, Gal[ngal].Type, sat_halo, mother_halo);
-    return -1.0;
+      coulomb = log(Gal[centralgal].Len / ((double) Gal[gal].Len) + 1);
+      SatelliteRadius = Gal[centralgal].Rvir;
+      SatelliteMass = Gal[gal].Mvir + Gal[gal].StellarMass + Gal[gal].ColdGas; // In principle, should probably not sum subhalo mass with stellar and gas, but rather take maximum of either subhalo mass and summed baryons.
+
+      if(SatelliteMass > 0.0 && coulomb > 0.0)
+        mergtime = 2.0 *
+        1.17 * sqr(SatelliteRadius) * Gal[centralgal].Vvir / (coulomb * G * SatelliteMass);
+      else
+        mergtime = -1.0;
   }
-  
-  coulomb = log(Halo[mother_halo].Len / ((double) Halo[sat_halo].Len) + 1);
+  else // using timescale of Poulton et al. (2021)
+  {
+//      printf("\nm1\n");
+      SatelliteRadius = get_satellite_radius(gal, centralgal);
+      SatelliteMass = dmax(Gal[gal].Mvir, Gal[gal].StellarMass + Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].BlackHoleMass); // 'virial mass' should always include baryons, but tidal stripping can cause this to fall below the baryon mass
+      
+      if(SatelliteMass<=0) return -1.0;
+      
+      double Rvir_host = Gal[centralgal].Rvir;
+      double Mhost;
+      
+      // calculate internal mass of halo from satellite's position
+      if(SatelliteRadius < Rvir_host)
+      {
+          double M_DM_tot, X, z, a, b, v, c_DM, c, r_2, rho_const, M_DM;
+          M_DM_tot = Gal[centralgal].Mvir - Gal[centralgal].HotGas - Gal[centralgal].ColdGas - Gal[centralgal].StellarMass - Gal[centralgal].BlackHoleMass - SatelliteMass; // doesn't properly account for mass of other satellites -- effectively treats them like dark matter
+          if(M_DM_tot > 0.0) 
+          {
+              X = log10(Gal[centralgal].StellarMass/Gal[centralgal].Mvir);
+              z = ZZ[Gal[centralgal].SnapNum];
+              if(z>5.0) z=5.0;
+              a = 0.520 + (0.905-0.520)*exp(-0.617*pow(z,1.21)); // Dutton & Maccio 2014
+              b = -0.101 + 0.026*z; // Dutton & Maccio 2014
+              c_DM = pow(10.0, a+b*log10(Gal[centralgal].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12))); // Dutton & Maccio 2014
+              c = c_DM * (1.0 + 3e-5*exp(3.4*(X+4.5))); // Di Cintio et al 2014b
+              r_2 = Gal[centralgal].Rvir / c; // Di Cintio et al 2014b
+              rho_const = M_DM_tot / (log((Gal[centralgal].Rvir+r_2)/r_2) - Gal[centralgal].Rvir/(Gal[centralgal].Rvir+r_2));
+              M_DM = rho_const * (log((SatelliteRadius+r_2)/r_2) - SatelliteRadius/(SatelliteRadius+r_2));
+          }
+          else
+              M_DM = 0.0;
+          
+          double M_hot;
+          if(HotGasProfileType==0)
+              M_hot = Gal[centralgal].HotGas * SatelliteRadius / Rvir_host;
+          else
+          {
+              const double c_beta = Gal[centralgal].c_beta;
+              const double cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
+              const double hot_stuff = Gal[centralgal].HotGas * cb_term;
+              const double RonRvir = SatelliteRadius / Rvir_host;
+              M_hot = hot_stuff * (RonRvir - c_beta * atan(RonRvir/c_beta));
+          }
+          
+          const double a_SB = 0.2 * Gal[centralgal].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
+          const double M_iBulge = Gal[centralgal].SecularBulgeMass * sqr((Rvir_host+a_SB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_SB));
+          
+          const double a_CB = pow(10.0, (log10(Gal[centralgal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
+          const double M_mBulge = Gal[centralgal].ClassicalBulgeMass * sqr((Rvir_host+a_CB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_CB));
+          
+          double a_ICS = 0.0;
+          if(Gal[gal].ClassicalBulgeMass>0.0)
+              a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
+          else if(a_SB>0.0)
+              a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)      
+          const double M_ICS = Gal[centralgal].ICS * sqr((Rvir_host+a_ICS)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_ICS));
+          
+          // Add mass from the disc
+          double M_disc = 0.0;
+          for(i=0; i<N_BINS; i++)
+          {
+              if(Gal[centralgal].DiscRadii[i+1] <= SatelliteRadius)
+                  M_disc += (Gal[centralgal].DiscGas[i] + Gal[centralgal].DiscStars[i]);
+              else
+              {
+                  M_disc += ((Gal[centralgal].DiscGas[i] + Gal[centralgal].DiscStars[i]) * sqr((SatelliteRadius - Gal[centralgal].DiscRadii[i])/(Gal[centralgal].DiscRadii[i+1]-Gal[centralgal].DiscRadii[i])));
+                  break;
+              }
+          }
+          
+          Mhost = dmin(Gal[centralgal].Mvir, M_DM + M_hot + M_disc + M_iBulge + M_mBulge + M_ICS + Gal[centralgal].BlackHoleMass);
+      }
+      else
+          Mhost = Gal[centralgal].Mvir;
+          
+      double reduced_mass = SatelliteMass * Mhost / (SatelliteMass + Mhost);
+            
+      double dr[3], dv[3];
+      double v_gal2 = 0.0;
+      for(i=0; i<3; i++)
+      {
+          dr[i] = Gal[gal].Pos[i] - Gal[centralgal].Pos[i];
+          if(dr[i]>HalfBoxLen) dr[i] -= BoxLen;
+          if(dr[i]<-HalfBoxLen) dr[i] += BoxLen;
+          dr[i] *= AA[Gal[centralgal].SnapNum]; // convert from comoving to physical distance
+          dv[i] = Gal[gal].Vel[i] - Gal[centralgal].Vel[i];
+          v_gal2 += sqr(dv[i]);
+      }
+      double sat_sam[3];
+      double L2 = 0.0;
+      sat_sam[0] = dr[1]*dv[2] - dr[2]*dv[1];
+      sat_sam[1] = dr[2]*dv[0] - dr[0]*dv[2];
+      sat_sam[2] = dr[0]*dv[1] - dr[1]*dv[0];
+      for(i=0; i<3; i++) L2 += sqr(sat_sam[i]);
+      L2 *= reduced_mass; // square of angular momentum
+      
+      const double Energy = 0.5 * reduced_mass * v_gal2 + get_satellite_potential(gal, centralgal);
 
-  SatelliteMass = get_virial_mass(sat_halo, ngal) + Gal[ngal].StellarMass + Gal[ngal].ColdGas; // In principle, should probably not sum subhalo mass with stellar and gas, but rather take maximum of either subhalo mass and summed baryons.
-  SatelliteRadius = get_virial_radius(mother_halo, ngal); // Presumably this takes the virial radius of the parent halo as the radius of infall
+      const double eccentricity = sqrt( 1 + 2*Energy*L2 / (sqr(G * Mhost * SatelliteMass) * reduced_mass) );
+      const double pericentre = L2 / ((1+eccentricity) * G * Mhost * SatelliteMass * reduced_mass);
+      
+      if(SatelliteRadius < Rvir_host)
+          mergtime = 5.5 * sqrt(Rvir_host / (G * Mhost)) * pow(SatelliteRadius, 0.8) * pow(pericentre, 0.2);
+      else
+          mergtime = 5.5 * Rvir_host / sqrt(G * Mhost) * pow(SatelliteRadius, 0.3) * pow(pericentre, 0.2);
+      
+  }
+//    printf("\nm2\n");
 
-  if(SatelliteMass > 0.0 && coulomb > 0.0)
-    mergtime = 2.0 *
-    1.17 * SatelliteRadius * SatelliteRadius * get_virial_velocity(mother_halo, ngal) / (coulomb * G * SatelliteMass);
-  else
-    mergtime = -1.0;
-  
   return mergtime;
 
 }

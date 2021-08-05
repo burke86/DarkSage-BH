@@ -271,7 +271,7 @@ def stellar_massfunction_obsdata(h=0.678, ax=None, zo=1):
                      [5.700e+00, 3.239e-02, 3.304e-02, 3.401e-02, 2.858e-02, 2.549e-02, 4.439e-01],
                      [5.550e+00, 3.742e-02, 3.572e-02, 4.519e-02, 1.257e-02, 1.567e-02, 2.418e-02],
                      [5.400e+00, 1.581e-02, 2.140e-02, 5.194e-02, 1.040e-02, 1.432e-02, 2.597e-02],
-                     [5.250e+00, 6.482e-03, 6.445e-03, 6.068e-03, 0.000e+00, 0.000e+00, 6.446e-06]])
+                     [5.250e+00, 6.482e-03, 6.445e-03, 6.068e-03, 0.000e+00, 0.000e+00, 6.446e-06]]) # doesn't include correction for under-density of GAMA regions
     ax.fill_between(W17_data[:,0]+2*np.log10(0.7/h), (W17_data[:,1]+W17_data[:,3])*(h/0.7)**3, (W17_data[:,1]- W17_data[:,2])*(h/0.7)**3,color='goldenrod', alpha=0.3, zorder=zo)
     ax.plot(W17_data[:,0]+2*np.log10(0.7/h), W17_data[:,1]*(h/0.7)**3, '-', color='goldenrod', lw=2, zorder=zo)
     ax.plot([0,1], [0,1], '-', color='goldenrod', lw=8, alpha=0.3, label=r'Wright et al.~(2017)') # Just for legend
@@ -833,3 +833,14 @@ def z2tL(z, h=0.6774, Omega_M=0.3089, Omega_Lambda=0.6911, Omega_R=0, nele=10000
     tL = np.divide(integrated*Mpc_km, H_0*yr_s*1e9)
 
     return tL # Gives look-back time in Gyr
+
+
+
+def comoving_distance(z, H_0=67.74, Omega_R=0, Omega_M=0.3089, Omega_L=0.6911):
+    # calculate co-moving distance from redshift [Mpc]
+    zprime = np.linspace(0,z,10000)
+    E = np.sqrt(Omega_R*(1+zprime)**4 + Omega_M*(1+zprime)**3 + Omega_L)
+    integrand = 1/E
+    integral = np.sum(0.5*(integrand[1:]+integrand[:-1])*np.diff(zprime))
+    c = 299792.458
+    return c/H_0 * integral
