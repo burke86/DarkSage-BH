@@ -241,10 +241,6 @@ void read_parameter_file(char *fname)
     addr[nt] = &Ratio_Ia_II;
     id[nt++] = DOUBLE;
     
-  strcpy(tag[nt], "BlackHoleGrowthRate");
-  addr[nt] = &BlackHoleGrowthRate;
-  id[nt++] = DOUBLE;
-
   strcpy(tag[nt], "RadioModeEfficiency");
   addr[nt] = &RadioModeEfficiency;
   id[nt++] = DOUBLE;
@@ -252,6 +248,14 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "QuasarModeEfficiency");
   addr[nt] = &QuasarModeEfficiency;
   id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "BlackHoleGrowthRate");
+    addr[nt] = &BlackHoleGrowthRate;
+    id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "RadiativeEfficiency");
+    addr[nt] = &RadiativeEfficiency;
+    id[nt++] = DOUBLE;
     
     strcpy(tag[nt], "H2FractionFactor");
     addr[nt] = &H2FractionFactor;

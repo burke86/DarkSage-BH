@@ -94,6 +94,7 @@ double FeedbackEjectCoupling;
 double RadioModeEfficiency;
 double QuasarModeEfficiency;
 double BlackHoleGrowthRate;
+double RadiativeEfficiency;
 double H2FractionFactor;
 double H2FractionExponent;
 double ClumpFactor;

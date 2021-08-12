@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/26y/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/27c/
 
 FirstFile                   0
 LastFile                    7
@@ -105,11 +105,12 @@ Ratio_Ia_II                 0.2     ; number ratio of Type Ia (binary accretion)
 ReIncorporationFactor        0.15    ; For ReincorpotationModel=0. Reincorporation turned off when both = 0.
 
 CoolingScaleSlope           0.23    ; cf. eq. 18 of Stevens et al. (2017)
-CoolingScaleConst           1.26
+CoolingScaleConst           1.3
 
 RadioModeEfficiency         1.0
 QuasarModeEfficiency        1.0
 BlackHoleGrowthRate         0.0     ; retired, was for specific BH growth during mergers 
+RadiativeEfficiency         0.321     ; fraction of inertia lost by material accreted onto black holes. ~0.0572 for non-spinning BHs, ~0.321 for maximally spinning BHs
 
 
 %%%= For H2prescription=0 =%%%
@@ -127,13 +128,13 @@ ClumpExponent               0.7     ; Controls the clump factor which affects H2
 RadiusWeight                1.0     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
 
 QTotMin                     1.0    ;threshold Toomre Q value for instabilities
-GasSinkRate                 0.75    ; maximum fraction of unstable gas that radially migrates rather than forming stars
+GasSinkRate                 0.6    ; maximum fraction of unstable gas that radially migrates rather than forming stars
 ThetaThresh                 10.0   ;threshold angle for gas and stellar discs to be coplanar
 
 DegPerTdyn                  5.0    ;degrees the gas disc precesses to come in line with stars per dynamical time
 
 ThreshMajorMerger            0.3        ;major merger when mass ratio greater than this
-ThresholdSatDisruption        1.0        ;Mvir-to-baryonic mass ratio threshold for satellite merger or disruption
+ThresholdSatDisruption        2.0        ;Mvir-to-baryonic mass ratio threshold for satellite merger or disruption
 
 AlphaBurst                  0.0     ;normalisation of fraction of gas consumed in a merger starburst
 BetaBurst                   0.0    ;exponent of gas consumed in a merger starburst. SETTING TO 0 REMOVES MERGER STARBURSTS ENTIRELY, THE NEW DEFAULT

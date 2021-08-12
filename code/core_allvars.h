@@ -480,6 +480,7 @@ extern double FeedbackEjectCoupling;
 extern double RadioModeEfficiency;
 extern double QuasarModeEfficiency;
 extern double BlackHoleGrowthRate;
+extern double RadiativeEfficiency;
 extern double H2FractionFactor;
 extern double H2FractionExponent;
 extern double ClumpFactor;

@@ -331,7 +331,7 @@ double grow_black_hole(int merger_centralgal, double* disc_mass_ratio)
 	}
   }
 
-  Gal[merger_centralgal].BlackHoleMass += BHaccrete_tot;
+  Gal[merger_centralgal].BlackHoleMass += ((1.0 - RadiativeEfficiency) * BHaccrete_tot); // the intertial mass lost by that accreted is not captured by the BH
     assert(Gal[merger_centralgal].BlackHoleMass>=0.0);
   return BHaccrete_tot;
 }
@@ -351,7 +351,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
     assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
 
     // work out total energy in quasar wind (eta*m*c^2)
-    quasar_energy = QuasarModeEfficiency * 0.1 * BHaccrete * sqr(C / UnitVelocity_in_cm_per_s);
+    quasar_energy = QuasarModeEfficiency * RadiativeEfficiency * BHaccrete * sqr(C / UnitVelocity_in_cm_per_s);
 
     // specific energy of hot and ejected reservoirs
     j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;

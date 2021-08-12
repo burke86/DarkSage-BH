@@ -205,8 +205,8 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
       AGNaccreted = Gal[p].HotGas;
 
     // coefficient to heat the cooling gas back to the energy state of the hot halo
-    // 8.98755e9 = eta*c^2, eta=0.1 (standard efficiency) and c in km/s 
-    AGNcoeff = 8.98755e9 / specific_energy_change;
+    // 8.98755e10 = c^2 (km/s)^2 
+    AGNcoeff = 8.98755e10 * RadiativeEfficiency / specific_energy_change;
 
     // cooling mass that can be suppresed from AGN heating 
     AGNheating = AGNcoeff * AGNaccreted;
@@ -225,7 +225,7 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     // accreted mass onto black hole
     metallicity = get_metallicity(Gal[p].HotGas, Gal[p].MetalsHotGas);
     assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
-    Gal[p].BlackHoleMass += AGNaccreted;
+    Gal[p].BlackHoleMass += ((1.0 - RadiativeEfficiency) * AGNaccreted); // some inertial mass lost during accretion
     assert(Gal[p].BlackHoleMass>=0.0);
     Gal[p].HotGas -= AGNaccreted;
     Gal[p].MetalsHotGas -= metallicity * AGNaccreted;
