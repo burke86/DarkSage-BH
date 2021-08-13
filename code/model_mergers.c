@@ -133,9 +133,9 @@ double estimate_merging_time(int halonr, int gal, int centralgal)
       sat_sam[1] = dr[2]*dv[0] - dr[0]*dv[2];
       sat_sam[2] = dr[0]*dv[1] - dr[1]*dv[0];
       for(i=0; i<3; i++) L2 += sqr(sat_sam[i]);
-      L2 *= reduced_mass; // square of angular momentum
+      L2 *= sqr(reduced_mass); // square of angular momentum
       
-      const double Energy = 0.5 * reduced_mass * v_gal2 + get_satellite_potential(gal, centralgal);
+      const double Energy = 0.5 * reduced_mass * v_gal2   +   SatelliteMass * get_satellite_potential(gal, centralgal);
 
       const double eccentricity = sqrt( 1 + 2*Energy*L2 / (sqr(G * Mhost * SatelliteMass) * reduced_mass) );
       const double pericentre = L2 / ((1+eccentricity) * G * Mhost * SatelliteMass * reduced_mass);
