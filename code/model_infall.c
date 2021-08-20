@@ -22,7 +22,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
     
   // take care of any potential numerical issues regarding hot and cold gas
   DiscGasSum = get_disc_gas(centralgal);
-  assert(DiscGasSum <= 1.001*Gal[centralgal].ColdGas && DiscGasSum >= Gal[centralgal].ColdGas/1.001);
+  assert(DiscGasSum <= 1.001*Gal[centralgal].ColdGas && DiscGasSum >= Gal[centralgal].ColdGas*0.999);
   assert(Gal[centralgal].HotGas == Gal[centralgal].HotGas && Gal[centralgal].HotGas >= 0);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
 

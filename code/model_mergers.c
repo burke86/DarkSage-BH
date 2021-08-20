@@ -43,76 +43,12 @@ double estimate_merging_time(int halonr, int gal, int centralgal)
   {
 //      printf("\nm1\n");
       SatelliteRadius = get_satellite_radius(gal, centralgal);
-      SatelliteMass = dmax(Gal[gal].Mvir, Gal[gal].StellarMass + Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].BlackHoleMass); // 'virial mass' should always include baryons, but tidal stripping can cause this to fall below the baryon mass
+      SatelliteMass = get_satellite_mass(gal);
       
       if(SatelliteMass<=0) return -1.0;
       
       double Rvir_host = Gal[centralgal].Rvir;
-      double Mhost;
-      
-      // calculate internal mass of halo from satellite's position
-      if(SatelliteRadius < Rvir_host)
-      {
-          double M_DM_tot, X, z, a, b, v, c_DM, c, r_2, rho_const, M_DM;
-          M_DM_tot = Gal[centralgal].Mvir - Gal[centralgal].HotGas - Gal[centralgal].ColdGas - Gal[centralgal].StellarMass - Gal[centralgal].BlackHoleMass - SatelliteMass; // doesn't properly account for mass of other satellites -- effectively treats them like dark matter
-          if(M_DM_tot > 0.0) 
-          {
-              X = log10(Gal[centralgal].StellarMass/Gal[centralgal].Mvir);
-              z = ZZ[Gal[centralgal].SnapNum];
-              if(z>5.0) z=5.0;
-              a = 0.520 + (0.905-0.520)*exp(-0.617*pow(z,1.21)); // Dutton & Maccio 2014
-              b = -0.101 + 0.026*z; // Dutton & Maccio 2014
-              c_DM = pow(10.0, a+b*log10(Gal[centralgal].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12))); // Dutton & Maccio 2014
-              c = c_DM * (1.0 + 3e-5*exp(3.4*(X+4.5))); // Di Cintio et al 2014b
-              r_2 = Gal[centralgal].Rvir / c; // Di Cintio et al 2014b
-              rho_const = M_DM_tot / (log((Gal[centralgal].Rvir+r_2)/r_2) - Gal[centralgal].Rvir/(Gal[centralgal].Rvir+r_2));
-              M_DM = rho_const * (log((SatelliteRadius+r_2)/r_2) - SatelliteRadius/(SatelliteRadius+r_2));
-          }
-          else
-              M_DM = 0.0;
-          
-          double M_hot;
-          if(HotGasProfileType==0)
-              M_hot = Gal[centralgal].HotGas * SatelliteRadius / Rvir_host;
-          else
-          {
-              const double c_beta = Gal[centralgal].c_beta;
-              const double cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
-              const double hot_stuff = Gal[centralgal].HotGas * cb_term;
-              const double RonRvir = SatelliteRadius / Rvir_host;
-              M_hot = hot_stuff * (RonRvir - c_beta * atan(RonRvir/c_beta));
-          }
-          
-          const double a_SB = 0.2 * Gal[centralgal].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
-          const double M_iBulge = Gal[centralgal].SecularBulgeMass * sqr((Rvir_host+a_SB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_SB));
-          
-          const double a_CB = pow(10.0, (log10(Gal[centralgal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
-          const double M_mBulge = Gal[centralgal].ClassicalBulgeMass * sqr((Rvir_host+a_CB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_CB));
-          
-          double a_ICS = 0.0;
-          if(Gal[gal].ClassicalBulgeMass>0.0)
-              a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
-          else if(a_SB>0.0)
-              a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)      
-          const double M_ICS = Gal[centralgal].ICS * sqr((Rvir_host+a_ICS)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_ICS));
-          
-          // Add mass from the disc
-          double M_disc = 0.0;
-          for(i=0; i<N_BINS; i++)
-          {
-              if(Gal[centralgal].DiscRadii[i+1] <= SatelliteRadius)
-                  M_disc += (Gal[centralgal].DiscGas[i] + Gal[centralgal].DiscStars[i]);
-              else
-              {
-                  M_disc += ((Gal[centralgal].DiscGas[i] + Gal[centralgal].DiscStars[i]) * sqr((SatelliteRadius - Gal[centralgal].DiscRadii[i])/(Gal[centralgal].DiscRadii[i+1]-Gal[centralgal].DiscRadii[i])));
-                  break;
-              }
-          }
-          
-          Mhost = dmin(Gal[centralgal].Mvir, M_DM + M_hot + M_disc + M_iBulge + M_mBulge + M_ICS + Gal[centralgal].BlackHoleMass);
-      }
-      else
-          Mhost = Gal[centralgal].Mvir;
+      double Mhost = get_Mhost_internal(gal, centralgal);
           
       double reduced_mass = SatelliteMass * Mhost / (SatelliteMass + Mhost);
             
@@ -539,17 +475,17 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
     dVel[s] = Gal[p].Vel[s]-Gal[t].Vel[s];
   }
 
-
+  // Satellite's specific angular momentum
+  double sat_sam[3];
+    
   if(mass_ratio<ThreshMajorMerger) // Minor mergers, combine discs by conserving angular momentum
   {
-	// Satellite's specific angular momentum
-	double sat_sam[3];
+	double sat_sam_mag, cos_angle_sat_disc, sat_sam_max, sat_sam_min;
+	int i_min, i_max, bin_num;
+      
     sat_sam[0] = dPos[1]*dVel[2] - dPos[2]*dVel[1];
     sat_sam[1] = dPos[2]*dVel[0] - dPos[0]*dVel[2];
     sat_sam[2] = dPos[0]*dVel[1] - dPos[1]*dVel[0];
-      
-	double sat_sam_mag, cos_angle_sat_disc, sat_sam_max, sat_sam_min;
-	int i_min, i_max, bin_num;
 	
     sat_sam_mag = sqrt(sat_sam[0]*sat_sam[0] + sat_sam[1]*sat_sam[1] + sat_sam[2]*sat_sam[2]);
       
@@ -643,110 +579,226 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
 	
 	DiscGasSum = get_disc_gas(p);
 	assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
+      
+    // First need to know the pos and vel of the centre of momentum to measure j relative to there
+    double dCOM_p[3], dCOM_t[3], dvCOM_p[3], dvCOM_t[3], j_t[3], j_p[3], m_t, m_p, inv_m_sum;
+    m_t = get_Mhost_internal(p, t);
+    m_p = get_satellite_mass(p);
+    double m_t_frac = m_t/(m_t+m_p);
+    double m_p_frac = 1-m_t_frac;
+    for(i=0; i<3; i++)
+    {
+     dCOM_p[i] = dPos[i] * m_t_frac;
+     dCOM_t[i] = -dPos[i] * m_p_frac;
+      
+     dvCOM_p[i] = dVel[i] * m_t_frac; 
+     dvCOM_t[i] = -dVel[i] * m_p_frac; 
+    }
+
+    j_p[0] = dCOM_p[1]*dvCOM_p[2] - dCOM_p[2]*dvCOM_p[1];
+    j_p[1] = dCOM_p[2]*dvCOM_p[0] - dCOM_p[0]*dvCOM_p[2];
+    j_p[2] = dCOM_p[0]*dvCOM_p[1] - dCOM_p[1]*dvCOM_p[0];
+    j_t[0] = dCOM_t[1]*dvCOM_t[2] - dCOM_t[2]*dvCOM_t[1];
+    j_t[1] = dCOM_t[2]*dvCOM_t[0] - dCOM_t[0]*dvCOM_t[2];
+    j_t[2] = dCOM_t[0]*dvCOM_t[1] - dCOM_t[1]*dvCOM_t[0];
 	
-	if(Gal[p].ColdGas > 0.0)
+	if(Gal[p].ColdGas > 0.0 || Gal[t].ColdGas > 0.0)
 	{
-		double new_spin_mag, cos_angle_t, cos_angle_p;
+        double new_spin_mag; //, cos_angle_t, cos_angle_p;
 		double NewSpin[3];
-		double NewDiscT[N_BINS], NewDiscP[N_BINS], NewDiscMetalsT[N_BINS], NewDiscMetalsP[N_BINS];
-	
+        double NewDisc[N_BINS], NewDiscMetals[N_BINS];
+//		double NewDiscT[N_BINS], NewDiscP[N_BINS], NewDiscMetalsT[N_BINS], NewDiscMetalsP[N_BINS];
+        
 		// Determine spin of new gaseous disc
-		for(i=0; i<3; i++) NewSpin[i] = Gal[t].SpinGas[i]*CentralGasOrig + Gal[p].SpinGas[i]*Gal[p].ColdGas;
+		for(i=0; i<3; i++) NewSpin[i] = j_t[i]*CentralGasOrig + j_p[i]*Gal[p].ColdGas;
 		new_spin_mag = sqrt(NewSpin[0]*NewSpin[0] + NewSpin[1]*NewSpin[1] + NewSpin[2]*NewSpin[2]);
 		for(i=0; i<3; i++) NewSpin[i] /= new_spin_mag;
-	
-		DiscGasSum = get_disc_gas(p);
-		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
-	
-		cos_angle_t = Gal[t].SpinGas[0]*NewSpin[0] + Gal[t].SpinGas[1]*NewSpin[1] + Gal[t].SpinGas[2]*NewSpin[2];
-		cos_angle_p = Gal[p].SpinGas[0]*NewSpin[0] + Gal[p].SpinGas[1]*NewSpin[1] + Gal[p].SpinGas[2]*NewSpin[2];
-		
-		DiscGasSum = get_disc_gas(p);
-		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
-		
-		project_disc(Gal[t].DiscGas, cos_angle_t, t, NewDiscT);		
-		project_disc(Gal[p].DiscGas, cos_angle_p, p, NewDiscP);
-		project_disc(Gal[t].DiscGasMetals, cos_angle_t, t, NewDiscMetalsT);		
-		project_disc(Gal[p].DiscGasMetals, cos_angle_p, p, NewDiscMetalsP);
         
-		for(i=0; i<N_BINS; i++)
-		{
-			Gal[p].DiscGas[i] = NewDiscP[i];
-			Gal[p].DiscGasMetals[i] = NewDiscMetalsP[i]; // Evidently I need these to prevent an error -- project_gas must actually change the DiscGas values.
-			Gal[t].DiscGas[i] = NewDiscT[i] + NewDiscP[i];
-			Gal[t].DiscGasMetals[i] = NewDiscMetalsT[i] + NewDiscMetalsP[i];
-			assert(Gal[t].DiscGasMetals[i] <= Gal[t].DiscGas[i]);
-			assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
-			
-            if(NewDiscP[i] > 0.0)
-                disc_mass_ratio[i] = NewDiscT[i] / NewDiscP[i];
+        // measure angular momentum distribution of each progenitor galaxy relative to the COM frame.  Deposit gas from each in the annulus of the new disc with the appropriate j
+        double rvec[3], vvec[3], jvec[3], perpvec[3]; // will be used to measure the radius and velocity vectors of annuluar segments relative to the COM frame
+        double rvec_init[3], vvec_init[3]; // these "intial" vectors are in the galaxy's frame
+        double r_ann, v_ann, j_seg, perp_norm;
+        
+        const int N_ann_segs = 10; // number of segments each annulus is broken into for the purposes of combining the gas discs
+        const double seg_frac = 1.0 / ((double) N_ann_segs);
+        const double angular_interval = 2*M_PI * seg_frac;
+        int g, gal;
+        
+        for(i=0; i<N_BINS; i++)
+        {
+            NewDisc[i] = 0.0;
+            NewDiscMetals[i] = 0.0;
+            PostRetroGas[i] = 0.0;
+        }
+        
+        const double pi_on_two = 0.5*M_PI;
+        
+        
+        for(g=0; g<2; g++)
+        {
+            if(g==0)
+                gal = p;
             else
-                disc_mass_ratio[i] = 0.0;
+                gal = t;
             
-			if(disc_mass_ratio[i] > 1.0)
-				disc_mass_ratio[i] = 1.0 / disc_mass_ratio[i];
+            // find a normalised perpendicular vector to that of the galaxy spin
+            perp_norm = sqrt(sqr(Gal[gal].SpinGas[2]) + sqr(Gal[gal].SpinGas[1]));
+            perpvec[0] = 0.0;
+            perpvec[1] = Gal[gal].SpinGas[2] / perp_norm;
+            perpvec[2] = -Gal[gal].SpinGas[1] / perp_norm;
             
-            assert(disc_mass_ratio[i]<=1.0 && disc_mass_ratio[i]>=0.0);
-		}
+            for(i=0; i<N_BINS; i++)
+            {
+                r_ann = sqrt(0.5*(sqr(Gal[gal].DiscRadii[i]) + sqr(Gal[gal].DiscRadii[i+1])));
+                v_ann = 0.5*(DiscBinEdge[i] + DiscBinEdge[i+1]) / r_ann;
+                
+                for(k=0; k<3; k++) 
+                {
+                    // get initial vectors in the galaxy's frame
+                    rvec_init[k] = perpvec[k] * r_ann;
+                    vvec_init[k] = perpvec[k] * v_ann;
+                }
+                // rotate initial velocity vector (should be perpendicular to both the radius vector and spin vector
+                rotate(vvec_init, Gal[gal].SpinGas, pi_on_two);
+                
+                
+                for(s=0; s<N_ann_segs; s++)
+                {
+                    for(k=0; k<3; k++) 
+                    { // initialise the vectors
+                        rvec[k] = rvec_init[k];
+                        vvec[k] = vvec_init[k];
+                    }
+                    // rotate for the current segment
+                    rotate(rvec, Gal[gal].SpinGas, s*angular_interval);
+                    rotate(vvec, Gal[gal].SpinGas, s*angular_interval);
+                    
+                    // translate to the COM frame
+                    if(gal==p)
+                    {
+                        for(k=0; k<3; k++) 
+                        {
+                            rvec[k] += dCOM_p[k];
+                            vvec[k] += dvCOM_p[k];
+                        }
+                    }
+                    else
+                    {
+                        for(k=0; k<3; k++) 
+                        {
+                            rvec[k] += dCOM_t[k];
+                            vvec[k] += dvCOM_t[k];
+                        }
+                    }
+                    
+                    // angular momentum of segment relative to COM
+                    jvec[0] = rvec[1]*vvec[2] - rvec[2]*vvec[1];
+                    jvec[1] = rvec[2]*vvec[0] - rvec[0]*vvec[2];
+                    jvec[2] = rvec[0]*vvec[1] - rvec[1]*vvec[0];
+                    
+                    j_seg = sqrt( sqr(NewSpin[0]*jvec[0]) + sqr(NewSpin[1]*jvec[1]) + sqr(NewSpin[2]*jvec[2]) ); // only accounts for component parallel to the new gas disc plane
+                    
+                    // find the annulus of the new disc that j_seg corresponds to
+                    for(k=1; k<=N_BINS; k++)
+                    {
+                        if(j_seg < DiscBinEdge[k]) break;
+                    }
+                    k -= 1;
+                    NewDisc[k] += Gal[gal].DiscGas[i] * seg_frac;
+                    NewDiscMetals[k] += Gal[gal].DiscGasMetals[i] * seg_frac;
+                    
+                    // check if projection was prograde or retrograde
+                    if(NewSpin[0]*jvec[0] + NewSpin[1]*jvec[1] + NewSpin[2]*jvec[2] > 0.0)
+                        PostRetroGas[k] +=  Gal[gal].DiscGas[i] * seg_frac;
+                    
+                }
+            }
+        }
         
-		DiscGasSum = get_disc_gas(p);
-		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
-		DiscGasSum = get_disc_gas(t);
-		assert(DiscGasSum <= 1.01*Gal[t].ColdGas && DiscGasSum >= Gal[t].ColdGas/1.01);
-		
-		// Output expected mass of each annulus after retrograde gas is dealt with
-		for(i=0; i<N_BINS; i++)
-		{
-			if(cos_angle_t < 0.0)
-				PostRetroGas[i] = NewDiscP[i] - NewDiscT[i];
-			else if(cos_angle_p < 0.0)
-				PostRetroGas[i] = NewDiscT[i] - NewDiscP[i];
-			else
-				PostRetroGas[i] = Gal[t].DiscGas[i];
-				
-			if(PostRetroGas[i] < 0.0) 
-				PostRetroGas[i] = 0.0;
-		}
+        // Update cold gas mass and spin of central (equate to NewDisc)
+        for(i=0; i<N_BINS; i++)
+        {
+            Gal[t].DiscGas[i] = NewDisc[i];
+            Gal[t].DiscGasMetals[i] = NewDiscMetals[i];
+        }
+        DiscGasSum = get_disc_gas(t); // mostly just there to make sure ColdGas and MetalsColdGas are correct
         
-        // Set the new spin direction of the gas
-        for(i=0; i<3; i++) Gal[t].SpinGas[i] = NewSpin[i];
-    }
-    else
-        for(i=0; i<N_BINS; i++) PostRetroGas[i] = Gal[t].DiscGas[i];
+        for(i=0; i<3; i++)
+            Gal[t].SpinGas[i] = NewSpin[i];
+        
+	
+//		DiscGasSum = get_disc_gas(p);
+//		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
+//
+//		cos_angle_t = Gal[t].SpinGas[0]*NewSpin[0] + Gal[t].SpinGas[1]*NewSpin[1] + Gal[t].SpinGas[2]*NewSpin[2];
+//		cos_angle_p = Gal[p].SpinGas[0]*NewSpin[0] + Gal[p].SpinGas[1]*NewSpin[1] + Gal[p].SpinGas[2]*NewSpin[2];
+//		
+//		DiscGasSum = get_disc_gas(p);
+//		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
+//		
+//		project_disc(Gal[t].DiscGas, cos_angle_t, t, NewDiscT);		
+//		project_disc(Gal[p].DiscGas, cos_angle_p, p, NewDiscP);
+//		project_disc(Gal[t].DiscGasMetals, cos_angle_t, t, NewDiscMetalsT);		
+//		project_disc(Gal[p].DiscGasMetals, cos_angle_p, p, NewDiscMetalsP);
+//        
+//		for(i=0; i<N_BINS; i++)
+//		{
+//			Gal[p].DiscGas[i] = NewDiscP[i];
+//			Gal[p].DiscGasMetals[i] = NewDiscMetalsP[i]; // Evidently I need these to prevent an error -- project_gas must actually change the DiscGas values.
+//			Gal[t].DiscGas[i] = NewDiscT[i] + NewDiscP[i];
+//			Gal[t].DiscGasMetals[i] = NewDiscMetalsT[i] + NewDiscMetalsP[i];
+//			assert(Gal[t].DiscGasMetals[i] <= Gal[t].DiscGas[i]);
+//			assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
+//			
+//            if(NewDiscP[i] > 0.0)
+//                disc_mass_ratio[i] = NewDiscT[i] / NewDiscP[i];
+//            else
+//                disc_mass_ratio[i] = 0.0;
+//            
+//			if(disc_mass_ratio[i] > 1.0)
+//				disc_mass_ratio[i] = 1.0 / disc_mass_ratio[i];
+//            
+//            assert(disc_mass_ratio[i]<=1.0 && disc_mass_ratio[i]>=0.0);
+//		}
+//        
+//		DiscGasSum = get_disc_gas(p);
+//		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
+//		DiscGasSum = get_disc_gas(t);
+//		assert(DiscGasSum <= 1.01*Gal[t].ColdGas && DiscGasSum >= Gal[t].ColdGas/1.01);
+//		
+//		// Output expected mass of each annulus after retrograde gas is dealt with
+//		for(i=0; i<N_BINS; i++)
+//		{
+//			if(cos_angle_t < 0.0)
+//				PostRetroGas[i] = NewDiscP[i] - NewDiscT[i];
+//			else if(cos_angle_p < 0.0)
+//				PostRetroGas[i] = NewDiscT[i] - NewDiscP[i];
+//			else
+//				PostRetroGas[i] = Gal[t].DiscGas[i];
+//				
+//			if(PostRetroGas[i] < 0.0) 
+//				PostRetroGas[i] = 0.0;
+//		}
+//        
+//        // Set the new spin direction of the gas
+//        for(i=0; i<3; i++) Gal[t].SpinGas[i] = NewSpin[i];
+//    }
+//    else
+//        for(i=0; i<N_BINS; i++) PostRetroGas[i] = Gal[t].DiscGas[i];
+//
+//	DiscGasSum = get_disc_gas(t);
+//	assert(DiscGasSum <= 1.01*Gal[t].ColdGas && DiscGasSum >= Gal[t].ColdGas/1.01);
 
-	DiscGasSum = get_disc_gas(t);
-	assert(DiscGasSum <= 1.01*Gal[t].ColdGas && DiscGasSum >= Gal[t].ColdGas/1.01);
-
-      // Set spin of classical bulge.  The mass itself will be transfered there in stars_to_bulge
-      // First need to know the pos and vel of the centre of momentum
-      double dCOM_p[3], dCOM_t[3], dvCOM_p[3], dvCOM_t[3], j_t[3], j_p[3], m_t, m_p, inv_m_sum;
-      m_t = dmax(Gal[t].Mvir, Gal[t].StellarMass+Gal[t].HotGas+Gal[t].ColdGas+Gal[t].BlackHoleMass);
-      m_p = dmax(Gal[p].Mvir, Gal[p].StellarMass+Gal[p].HotGas+Gal[p].ColdGas+Gal[p].BlackHoleMass);
-      double m_t_frac = m_t/(m_t+m_p);
-      double m_p_frac = 1-m_t_frac;
-      for(i=0; i<3; i++)
-      {
-         dCOM_p[i] = dPos[i] * m_t_frac;
-         dCOM_t[i] = -dPos[i] * m_p_frac;
-          
-         dvCOM_p[i] = dVel[i] * m_t_frac; 
-         dvCOM_t[i] = -dVel[i] * m_p_frac; 
-      }
       
-      
-      j_p[0] = dCOM_p[1]*dvCOM_p[2] - dCOM_p[2]*dvCOM_p[1];
-      j_p[1] = dCOM_p[2]*dvCOM_p[0] - dCOM_p[0]*dvCOM_p[2];
-      j_p[2] = dCOM_p[0]*dvCOM_p[1] - dCOM_p[1]*dvCOM_p[0];
-      j_t[0] = dCOM_t[1]*dvCOM_t[2] - dCOM_t[2]*dvCOM_t[1];
-      j_t[1] = dCOM_t[2]*dvCOM_t[0] - dCOM_t[0]*dvCOM_t[2];
-      j_t[2] = dCOM_t[0]*dvCOM_t[1] - dCOM_t[1]*dvCOM_t[0];
-      
-      for(s=0; s<3; s++)
-      {
-          Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s] + get_disc_ang_mom(t,1)*Gal[t].SpinStars[s] + j_p[s]*m_p + j_t[s]*m_t) / (Gal[p].StellarMass+Gal[t].StellarMass);
-          if(!(Gal[t].SpinClassicalBulge[s] == Gal[t].SpinClassicalBulge[s] && Gal[t].SpinClassicalBulge[s] != INFINITY && Gal[t].SpinClassicalBulge[s] != -INFINITY))
+        // Set spin of classical bulge.  The mass itself will be transfered there in stars_to_bulge
+        // IN THE PROCESS OF EDITING
+        for(s=0; s<3; s++)
+        {
+            Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s] + get_disc_ang_mom(t,1)*Gal[t].SpinStars[s] + j_p[s]*m_p + j_t[s]*m_t) / (Gal[p].StellarMass+Gal[t].StellarMass);
+            if(!(Gal[t].SpinClassicalBulge[s] == Gal[t].SpinClassicalBulge[s] && Gal[t].SpinClassicalBulge[s] != INFINITY && Gal[t].SpinClassicalBulge[s] != -INFINITY))
               Gal[t].SpinClassicalBulge[s] = 0.0; // This is necessary to catch issues with this field
-      }
+        }
+    }
   }
 
 

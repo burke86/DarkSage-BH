@@ -318,7 +318,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     for(p = 0; p < ngal; p++)
     {
 	  DiscGasSum = get_disc_gas(p);
-	  assert(DiscGasSum <= 1.001*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.001);
+//	  assert(DiscGasSum <= 1.001*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas*0.999);
 	  assert(Gal[p].HotGas == Gal[p].HotGas && Gal[p].HotGas >= 0);
 	  assert(Gal[p].MetalsColdGas <= Gal[p].ColdGas);
 

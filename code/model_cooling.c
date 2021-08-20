@@ -266,7 +266,7 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
 
   // Check that Cold Gas has been treated properly prior to this function
   DiscGasSum = get_disc_gas(p);
-  assert(DiscGasSum <= 1.001*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.001);
+//  assert(DiscGasSum <= 1.001*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas*0.999);
   assert(Gal[p].HotGas == Gal[p].HotGas && Gal[p].HotGas >= 0);
 
   disc_spin_mag = sqrt(sqr(Gal[p].SpinGas[0]) + sqr(Gal[p].SpinGas[1]) + sqr(Gal[p].SpinGas[2]));
@@ -323,7 +323,7 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
 	
     assert(cos_angle_disc_new==cos_angle_disc_new);
 		
-	if(cos_angle_disc_new != 1.0 && cos_angle_disc_new != 0.0)
+	if(cos_angle_disc_new < 0.99 && cos_angle_disc_new != 0.0)
 	{
 		// Project current disc to new orientation.  Could use the project_disc function here.
 		for(i=0; i<N_BINS; i++)
@@ -373,15 +373,21 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
 				Gal[p].DiscGasMetals[i] += ratio_last_bin * OldDiscMetals[j];
 				OldDisc[j] -= ratio_last_bin * OldDisc[j];
 				OldDiscMetals[j] -= ratio_last_bin * OldDiscMetals[j];
+                
+                if(OldDisc[j] < 0.0) OldDisc[j] = 0.0;
+                if(OldDiscMetals[j] < 0.0) OldDiscMetals[j] = 0.0;
 			}
 			else
 			{
 				Gal[p].DiscGas[i] = OldDisc[i];
 				Gal[p].DiscGasMetals[i] = OldDiscMetals[i]; // Shouldn't need to set the Old stuff to zero for this last bit, as it'll just get overwritten by the next galaxy
 			}
+            
+            if(!(Gal[p].DiscGas[i]>=0.0) || !(Gal[p].DiscGasMetals[i]>=0.0)) printf("i, p, DiscGas, Metals = %i, %i, %e, %e\n", i, p, Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i] );
 			assert(Gal[p].DiscGas[i]>=0.0);
 			assert(Gal[p].DiscGasMetals[i]>=0.0);
 			j_old = j;
+            
 		}
 	}
 		

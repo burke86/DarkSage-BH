@@ -350,6 +350,8 @@ double get_disc_gas(int p)
             Gal[p].DiscGas[l] = 0.0;
             Gal[p].DiscGasMetals[l] = 0.0;
         }
+        else if(Gal[p].DiscGasMetals[l] < 1e-20)
+            Gal[p].DiscGasMetals[l] = 0.0;
         
         DiscGasSum += Gal[p].DiscGas[l];
         DiscMetalsSum += Gal[p].DiscGasMetals[l];
@@ -377,7 +379,7 @@ double get_disc_gas(int p)
         Gal[p].MetalsColdGas = 0.0;
     }
     
-    if(DiscGasSum>1.001*Gal[p].ColdGas || DiscGasSum<Gal[p].ColdGas/1.001)
+    if(DiscGasSum>1.001*Gal[p].ColdGas || DiscGasSum<Gal[p].ColdGas*0.999)
     {
 //        printf("get_disc_gas report ... DiscSum, ColdGas =  %e, %e\n", DiscGasSum, Gal[p].ColdGas);
 //        printf("get_disc_gas report ... MetalsSum, ColdMetals =  %e, %e\n", DiscMetalsSum, Gal[p].MetalsColdGas);
@@ -436,6 +438,7 @@ double get_disc_stars(int p)
         if(Gal[p].StellarMass <= Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass)
         {
             for(l=0; l<N_BINS; l++)
+            {
                 Gal[p].DiscStars[l] = 0.0;
                 Gal[p].DiscStarsMetals[l] = 0.0;
             
@@ -447,6 +450,7 @@ double get_disc_stars(int p)
                         Gal[p].DiscStarsMetalsAge[l][k] = 0.0;
                     }
                 }
+            }
             DiscStarSum = 0.0;
             Gal[p].StellarMass = Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass;
         }
@@ -555,7 +559,7 @@ void update_disc_radii(int p)
     
     // Determine the distribution of dark matter in the halo =====
     M_DM_tot = Gal[p].Mvir - Gal[p].HotGas - Gal[p].ColdGas - Gal[p].StellarMass - Gal[p].ICS - Gal[p].BlackHoleMass; // One may want to include Ejected Gas in this too
-    double baryon_fraction = (Gal[p].HotGas + Gal[p].ColdGas + Gal[p].StellarMass + Gal[p].ICS + Gal[p].BlackHoleMass) / Gal[p].Mvir;
+//    double baryon_fraction = (Gal[p].HotGas + Gal[p].ColdGas + Gal[p].StellarMass + Gal[p].ICS + Gal[p].BlackHoleMass) / Gal[p].Mvir;
     
     if(M_DM_tot < 0.0) M_DM_tot = 0.0;
     
@@ -1097,7 +1101,7 @@ double get_satellite_potential(int p, int centralgal)
     
     double r = get_satellite_radius(p, centralgal);
     double Potential, frac_low, HotRad;
-    int i;
+//    int i;
     
     HotRad = 0.5*Gal[centralgal].Rvir;
     
@@ -1217,4 +1221,112 @@ double get_satellite_radius(int p, int centralgal)
         r2 += sqr(dx);
     }
     return sqrt(r2) * AA[Gal[p].SnapNum]; // returns in physical units, not comoving
+}
+
+
+double get_satellite_mass(int p)
+{
+    // 'virial mass' should always include baryons, but tidal stripping can cause this to fall below the baryon mass
+    return dmax(Gal[p].Mvir, Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass);
+}
+
+
+double get_Mhost_internal(int p, int centralgal)
+{
+    // Get the mass of the host halo internal to a satellite
+    
+    if(p==centralgal)
+    {
+        printf("get_Mhost_internal() inappropriately called for a central\n");
+        return 0.0;
+    }
+    
+    double Rvir_host = Gal[centralgal].Rvir;
+    double Mhost;
+    double SatelliteRadius = get_satellite_radius(p, centralgal);
+    double SatelliteMass = get_satellite_mass(p); 
+    int i;
+    
+    // calculate internal mass of halo from satellite's position
+    if(SatelliteRadius < Rvir_host)
+    {
+        double M_DM_tot, X, z, a, b, c_DM, c, r_2, rho_const, M_DM;
+        M_DM_tot = Gal[centralgal].Mvir - Gal[centralgal].HotGas - Gal[centralgal].ColdGas - Gal[centralgal].StellarMass - Gal[centralgal].BlackHoleMass - SatelliteMass; // doesn't properly account for mass of other satellites -- effectively treats them like dark matter
+        if(M_DM_tot > 0.0) 
+        {
+            X = log10(Gal[centralgal].StellarMass/Gal[centralgal].Mvir);
+            z = ZZ[Gal[centralgal].SnapNum];
+            if(z>5.0) z=5.0;
+            a = 0.520 + (0.905-0.520)*exp(-0.617*pow(z,1.21)); // Dutton & Maccio 2014
+            b = -0.101 + 0.026*z; // Dutton & Maccio 2014
+            c_DM = pow(10.0, a+b*log10(Gal[centralgal].Mvir*UnitMass_in_g/(SOLAR_MASS*1e12))); // Dutton & Maccio 2014
+            c = c_DM * (1.0 + 3e-5*exp(3.4*(X+4.5))); // Di Cintio et al 2014b
+            r_2 = Gal[centralgal].Rvir / c; // Di Cintio et al 2014b
+            rho_const = M_DM_tot / (log((Gal[centralgal].Rvir+r_2)/r_2) - Gal[centralgal].Rvir/(Gal[centralgal].Rvir+r_2));
+            M_DM = rho_const * (log((SatelliteRadius+r_2)/r_2) - SatelliteRadius/(SatelliteRadius+r_2));
+        }
+        else
+            M_DM = 0.0;
+        
+        double M_hot;
+        if(HotGasProfileType==0)
+            M_hot = Gal[centralgal].HotGas * SatelliteRadius / Rvir_host;
+        else
+        {
+            const double c_beta = Gal[centralgal].c_beta;
+            const double cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
+            const double hot_stuff = Gal[centralgal].HotGas * cb_term;
+            const double RonRvir = SatelliteRadius / Rvir_host;
+            M_hot = hot_stuff * (RonRvir - c_beta * atan(RonRvir/c_beta));
+        }
+        
+        const double a_SB = 0.2 * Gal[centralgal].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
+        const double M_iBulge = Gal[centralgal].SecularBulgeMass * sqr((Rvir_host+a_SB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_SB));
+        
+        const double a_CB = pow(10.0, (log10(Gal[centralgal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
+        const double M_mBulge = Gal[centralgal].ClassicalBulgeMass * sqr((Rvir_host+a_CB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_CB));
+        
+        double a_ICS = 0.0;
+        if(Gal[p].ClassicalBulgeMass>0.0)
+            a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
+        else if(a_SB>0.0)
+            a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)      
+        const double M_ICS = Gal[centralgal].ICS * sqr((Rvir_host+a_ICS)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_ICS));
+        
+        // Add mass from the disc
+        double M_disc = 0.0;
+        for(i=0; i<N_BINS; i++)
+        {
+            if(Gal[centralgal].DiscRadii[i+1] <= SatelliteRadius)
+                M_disc += (Gal[centralgal].DiscGas[i] + Gal[centralgal].DiscStars[i]);
+            else
+            {
+                M_disc += ((Gal[centralgal].DiscGas[i] + Gal[centralgal].DiscStars[i]) * sqr((SatelliteRadius - Gal[centralgal].DiscRadii[i])/(Gal[centralgal].DiscRadii[i+1]-Gal[centralgal].DiscRadii[i])));
+                break;
+            }
+        }
+        
+        Mhost = dmin(Gal[centralgal].Mvir, M_DM + M_hot + M_disc + M_iBulge + M_mBulge + M_ICS + Gal[centralgal].BlackHoleMass);
+    }
+    else
+        Mhost = Gal[centralgal].Mvir;
+    
+    return Mhost;
+}
+
+
+void rotate(double *pos, double axis[3], double angle)
+{ // rotate a 3-vector pos by angle about axis
+    double dot = pos[0]*axis[0] + pos[1]*axis[1] + pos[2]*axis[2];
+    
+    double cross[3];
+    cross[0] = axis[1]*pos[2] - axis[2]*pos[1];
+    cross[1] = axis[2]*pos[0] - axis[0]*pos[2];
+    cross[2] = axis[0]*pos[1] - axis[1]*pos[0];
+    
+    double cosa = cos(angle);
+    double sina = sin(angle);
+    
+    int i;
+    for(i=0; i<3; i++) pos[i] = pos[i]*cosa + cross[i]*sina + axis[i]*dot*(1-cosa);
 }

@@ -941,6 +941,12 @@ void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewD
 	int i, j, j_old, l;
     
 	cos_angle = fabs(cos_angle); // This function will not deal with retrograde motion so needs an angle less than pi/2
+    
+    if(cos_angle > 0.99)
+    { // angle is irrelevant, just return the original disc to prevent floating-point nonsense
+        for(i=0; i<N_BINS; i++) NewDisc[i] = DiscMass[i];
+        return;
+    }
 	
 	j_old = 0;
 
@@ -979,6 +985,11 @@ void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewD
 		{
 			NewDisc[i] = DiscMass[i];
 		}
+        if(!(NewDisc[i]>=0.0)) 
+        {
+            printf("i, NewDisc[i], j, ratio_last_bin, cos_angle = %i, %e, %i, %e, %e\n", i, NewDisc[i], j, ratio_last_bin, cos_angle);
+            for(l=0; l<=j; l++) printf("l, DiscMass[l] = %i, %e\n", l, DiscMass[l]);
+        }
 		assert(NewDisc[i]>=0.0);
 
 		j_old = j;
@@ -988,10 +999,17 @@ void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewD
 
 void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, int p, int k, double *NewDiscAge)
 { // Essentially a copy of project_disc but designed for working with discs with an age axis
+    // ISN'T THIS INEFFICIENT?  SEEMS TO TREAT EACH AGE BIN LIKE AN INDIVIDUAL DISC, WHEN THE PROJECTION IS THE SAME FOR EACH AGE BIN.  REDUNDANT CALCULATIONS MUST SURELY BE BEING REPEATED.
     double high_bound, ratio_last_bin;
     int i, j, j_old, l;
         
     cos_angle = fabs(cos_angle); // This function will not deal with retrograde motion so needs an angle less than pi/2
+    
+    if(cos_angle > 0.99)
+    { // angle is irrelevant, just return the original disc to prevent floating-point nonsense
+        for(i=0; i<N_BINS; i++) NewDiscAge[i] = DiscMassAge[i][k];
+        return;
+    }
     
     j_old = 0;
 
