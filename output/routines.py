@@ -52,7 +52,7 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('DiscStars'                    , (floattype, disc_arr_dim)),
                     ('SpinStars'                    , (floattype, 3)),
                     ('SpinGas'                      , (floattype, 3)),
-                    ('SpinClassicalBulge'           , (floattype, 3)),
+                    ('SpinMergerBulge'              , (floattype, 3)),
                     ('StarsFromH2'                  , floattype),
                     ('StarsInstability'             , floattype),
                     ('StarsMergeBurst'              , floattype),

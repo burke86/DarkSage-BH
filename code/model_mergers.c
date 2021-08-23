@@ -573,6 +573,12 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
     else
         for(i=0; i<N_BINS; i++) PostRetroGas[i] = Gal[t].DiscGas[i];
       
+    // update specific angular momentum of merger-driven bulge
+    for(s=0; s<3; s++)
+    {
+        Gal[t].SpinClassicalBulge[s] = (Gal[t].SpinClassicalBulge[s]*Gal[t].ClassicalBulgeMass + sat_sam[s]*Gal[p].StellarMass) / (Gal[t].ClassicalBulgeMass + Gal[p].StellarMass);
+    }
+      
   }
   else // Major mergers -- a more complex treatment of the gas could be done in future versions
   {
@@ -794,7 +800,10 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
         // IN THE PROCESS OF EDITING
         for(s=0; s<3; s++)
         {
-            Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s] + get_disc_ang_mom(t,1)*Gal[t].SpinStars[s] + j_p[s]*m_p + j_t[s]*m_t) / (Gal[p].StellarMass+Gal[t].StellarMass);
+            Gal[t].SpinClassicalBulge[s] = (j_p[s]*Gal[p].StellarMass + j_t[s]*Gal[t].StellarMass) / (Gal[p].StellarMass + Gal[t].StellarMass);
+            // should probably consider the spin of the components of the galaxies, but in principle the orbital J considered above should dominate most of the time
+            
+//            Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s] + get_disc_ang_mom(t,1)*Gal[t].SpinStars[s] + j_p[s]*m_p + j_t[s]*m_t) / (Gal[p].StellarMass+Gal[t].StellarMass);
             if(!(Gal[t].SpinClassicalBulge[s] == Gal[t].SpinClassicalBulge[s] && Gal[t].SpinClassicalBulge[s] != INFINITY && Gal[t].SpinClassicalBulge[s] != -INFINITY))
               Gal[t].SpinClassicalBulge[s] = 0.0; // This is necessary to catch issues with this field
         }
@@ -1100,12 +1109,12 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
      
   if(stars_sum>0)
   {
-     // Update bulge spin
-     for(s=0; s<3; s++)
-     {
-         Gal[merger_centralgal].SpinClassicalBulge[s] = (Gal[merger_centralgal].SpinClassicalBulge[s]*Gal[merger_centralgal].ClassicalBulgeMass + Gal[merger_centralgal].SpinGas[s]*stars_angmom) / (Gal[merger_centralgal].ClassicalBulgeMass+stars_sum);
-         assert(Gal[merger_centralgal].SpinClassicalBulge[s] == Gal[merger_centralgal].SpinClassicalBulge[s] && Gal[merger_centralgal].SpinClassicalBulge[s] != INFINITY && Gal[merger_centralgal].SpinClassicalBulge[s] != -INFINITY);
-     }
+//     // Update bulge spin
+//     for(s=0; s<3; s++)
+//     {
+//         Gal[merger_centralgal].SpinClassicalBulge[s] = (Gal[merger_centralgal].SpinClassicalBulge[s]*Gal[merger_centralgal].ClassicalBulgeMass + Gal[merger_centralgal].SpinGas[s]*stars_angmom) / (Gal[merger_centralgal].ClassicalBulgeMass+stars_sum);
+//         assert(Gal[merger_centralgal].SpinClassicalBulge[s] == Gal[merger_centralgal].SpinClassicalBulge[s] && Gal[merger_centralgal].SpinClassicalBulge[s] != INFINITY && Gal[merger_centralgal].SpinClassicalBulge[s] != -INFINITY);
+//     }
       
      // Now adding all new stars directly to the bulge
      Gal[merger_centralgal].StellarMass += stars_sum; // Recycling fraction already taken into account when adding to stars_sum etc above
