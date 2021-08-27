@@ -576,7 +576,10 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
     // update specific angular momentum of merger-driven bulge
     for(s=0; s<3; s++)
     {
-        Gal[t].SpinClassicalBulge[s] = (Gal[t].SpinClassicalBulge[s]*Gal[t].ClassicalBulgeMass + sat_sam[s]*Gal[p].StellarMass) / (Gal[t].ClassicalBulgeMass + Gal[p].StellarMass);
+//        Gal[t].SpinClassicalBulge[s] = (Gal[t].SpinClassicalBulge[s]*Gal[t].ClassicalBulgeMass + sat_sam[s]*Gal[p].StellarMass) / (Gal[t].ClassicalBulgeMass + Gal[p].StellarMass); // NOT SATISFIED WITH THIS
+        
+        Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s]) / (Gal[t].ClassicalBulgeMass + Gal[p].StellarMass);
+        
     }
       
   }

@@ -543,6 +543,7 @@ void precess_gas(int p, double dt)
     if(SpinSqr==0)
         return;
     assert(SpinSqr > 0.0);
+    assert(SpinSqr == SpinSqr);
     
     cos_angle_gas_stars = StarSpin[0]*Gal[p].SpinGas[0] + StarSpin[1]*Gal[p].SpinGas[1] + StarSpin[2]*Gal[p].SpinGas[2];
         
@@ -585,25 +586,26 @@ void precess_gas(int p, double dt)
             for(i=0; i<3; i++) Gal[p].SpinGas[i] = -StarSpin[i];
         else
         {
-            double axis[3], axis_mag, NewSpin[3];
-            double sin_angle_precess = sin(acos(cos_angle_precess));
+            double axis[3], axis_mag;//, NewSpin[3];
+//            double sin_angle_precess = sin(acos(cos_angle_precess));
             axis[0] = Gal[p].SpinGas[1]*StarSpin[2] - Gal[p].SpinGas[2]*StarSpin[1];
             axis[1] = Gal[p].SpinGas[2]*StarSpin[0] - Gal[p].SpinGas[0]*StarSpin[2];
             axis[2] = Gal[p].SpinGas[0]*StarSpin[1] - Gal[p].SpinGas[1]*StarSpin[0];
             if(cos_angle_gas_stars < 0.0)
                 for(i=0; i<3; i++) axis[i] *= -1.0;
             axis_mag = sqrt(sqr(axis[0])+sqr(axis[1])+sqr(axis[2]));
-            for(i=0; i<3; i++) axis[i] /= axis_mag;
-            double dot = axis[0]*Gal[p].SpinGas[0] + axis[1]*Gal[p].SpinGas[1] + axis[2]*Gal[p].SpinGas[2];
-            NewSpin[0] = axis[0]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[0]*cos_angle_precess + (axis[1]*Gal[p].SpinGas[2] - axis[2]*Gal[p].SpinGas[1])*sin_angle_precess;
-            NewSpin[1] = axis[1]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[1]*cos_angle_precess + (axis[2]*Gal[p].SpinGas[0] - axis[0]*Gal[p].SpinGas[2])*sin_angle_precess;
-            NewSpin[2] = axis[2]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[2]*cos_angle_precess + (axis[0]*Gal[p].SpinGas[1] - axis[1]*Gal[p].SpinGas[0])*sin_angle_precess;
-            for(i=0; i<3; i++)
-            {
-                assert(NewSpin[i]==NewSpin[i]);
-                Gal[p].SpinGas[i] = NewSpin[i];
-                
-            }
+            rotate(Gal[p].SpinGas, axis, acos(cos_angle_precess));
+//            for(i=0; i<3; i++) axis[i] /= axis_mag;
+//            double dot = axis[0]*Gal[p].SpinGas[0] + axis[1]*Gal[p].SpinGas[1] + axis[2]*Gal[p].SpinGas[2];
+//            NewSpin[0] = axis[0]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[0]*cos_angle_precess + (axis[1]*Gal[p].SpinGas[2] - axis[2]*Gal[p].SpinGas[1])*sin_angle_precess;
+//            NewSpin[1] = axis[1]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[1]*cos_angle_precess + (axis[2]*Gal[p].SpinGas[0] - axis[0]*Gal[p].SpinGas[2])*sin_angle_precess;
+//            NewSpin[2] = axis[2]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[2]*cos_angle_precess + (axis[0]*Gal[p].SpinGas[1] - axis[1]*Gal[p].SpinGas[0])*sin_angle_precess;
+//            for(i=0; i<3; i++)
+//            {
+//                assert(NewSpin[i]==NewSpin[i]);
+//                Gal[p].SpinGas[i] = NewSpin[i];
+//                
+//            }
         }
         
         // check instability here?

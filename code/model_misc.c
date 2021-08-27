@@ -510,12 +510,12 @@ double get_disc_ang_mom(int p, int type)
     if(type==0)
     {
         for(l=N_BINS-1; l>=0; l--)
-        J_sum += Gal[p].DiscGas[l] * (DiscBinEdge[l]+DiscBinEdge[l+1])/2.0;
+        J_sum += Gal[p].DiscGas[l] * (DiscBinEdge[l]+DiscBinEdge[l+1])*0.5;
     }
     else if(type==1)
     {
         for(l=N_BINS-1; l>=0; l--)
-        J_sum += Gal[p].DiscStars[l] * (DiscBinEdge[l]+DiscBinEdge[l+1])/2.0;
+        J_sum += Gal[p].DiscStars[l] * (DiscBinEdge[l]+DiscBinEdge[l+1])*0.5;
     }
     
     return J_sum;
