@@ -12,7 +12,7 @@
 void check_disk_instability(int p, int centralgal, double dt, int step, double time)
 {
 	// New treatment of instabilities based on the Toomre Q parameter
-	double Q_star, Q_gas, V_rot, Q_gas_min, Q_star_min, Q_tot, W, Q_stable;
+	double Q_star, Q_gas, Q_gas_min, Q_star_min, Q_tot, W, Q_stable;
 	double unstable_gas, unstable_stars, metallicity, stars, stars_sum, gas_sink;
     double r_inner, r_outer, r_av, Kappa, sigma_R, c_s;
 	double NewStars[N_BINS], NewStarsMetals[N_BINS], SNgas[N_BINS], angle, DiscGasSum, DiscStarSum;
@@ -45,11 +45,6 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         NewStarsMetals[i] = 0.0;
         SNgas[i] = 0.0;
     }
-	
-	if(Gal[p].Vvir>0.0)
-		V_rot = Gal[p].Vvir;
-	else
-		V_rot = Gal[p].Vmax;
 	
 	// Deal with gaseous instabilities
 	stars_sum = 0.0;
@@ -132,7 +127,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 assert(Gal[p].DiscStarsMetals[i] <= Gal[p].DiscStars[i]);
                 assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
                 
-                stars = deal_with_unstable_gas(unstable_gas, p, i, V_rot, metallicity, centralgal, r_inner, r_outer);
+                stars = deal_with_unstable_gas(unstable_gas, p, i, metallicity, centralgal, r_inner, r_outer);
                 if(stars>=MIN_STARS_FOR_SN)
                     SNgas[i] = RecycleFraction * stars;
                 else
@@ -401,7 +396,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
     
 }
 
-double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, double metallicity, int centralgal, double r_inner, double r_outer)
+double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallicity, int centralgal, double r_inner, double r_outer)
 {
 	double gas_sink, gas_sf;
 	double stars, reheated_mass, ejected_mass, Sigma_0gas, fac, area;

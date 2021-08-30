@@ -60,7 +60,7 @@ void retrograde_gas_collision(int p, double cos_angle_halo_new, double cos_angle
 void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals[N_BINS], double time);
 void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewDisc);
 void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, int p, int k, double *NewDiscAge);
-double deal_with_unstable_gas(double unstable_gas, int p, int i, double V_rot, double metallicity, int centralgal, double r_inner, double r_outer);
+double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallicity, int centralgal, double r_inner, double r_outer);
 double get_disc_gas(int halonr);
 double get_disc_stars(int halonr);
 double get_disc_ang_mom(int halonr, int type);

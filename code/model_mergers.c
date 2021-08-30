@@ -125,6 +125,12 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 	mass_ratio = 0.0;
 	printf("Had to correct mass_ratio < 0.0");
   }
+    
+  double gas_mass_ratio = 0.0;
+  double const g_min = dmin(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
+  double const g_max = dmax(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
+  if(g_max>0) 
+    gas_mass_ratio = g_min/g_max;
 
   add_galaxies_together(merger_centralgal, p, centralgal, mass_ratio, disc_mass_ratio, PostRetroGas);
     
@@ -133,6 +139,13 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 
   if(BetaBurst>0.0) // deprecated for new default model
     collisional_starburst_recipe(disc_mass_ratio, merger_centralgal, centralgal, dt, 0, step, k_now);
+  else
+  {
+      for(i=N_BINS-1; i>=0; i--)
+      {
+          deal_with_unstable_gas(gas_mass_ratio*Gal[merger_centralgal].DiscGas[i], merger_centralgal, i, get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]), merger_centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1]);
+      }
+  }
 
   if(BlackHoleGrowthRate>0.0) // deprecated for new default model
   {
@@ -151,7 +164,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 //	if(PostRetroGas[i] < 0.99*Gal[merger_centralgal].DiscGas[i] && Gal[merger_centralgal].DiscGas[i]-PostRetroGas[i] > 1e-10)
 //	{
 //		unstable_gas = Gal[merger_centralgal].DiscGas[i] - PostRetroGas[i];
-//        stars = deal_with_unstable_gas(unstable_gas, merger_centralgal, i, Gal[merger_centralgal].Vvir, metallicity, centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1]);
+//        stars = deal_with_unstable_gas(unstable_gas, merger_centralgal, i, metallicity, centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1]);
 //        
 //        if(stars>=MIN_STARS_FOR_SN)
 //            net_stars = (1 - RecycleFraction) * stars;

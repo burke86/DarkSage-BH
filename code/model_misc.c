@@ -1042,6 +1042,7 @@ double indef_integral_mremnant_IMF(double m, int piece)
         printf("Have not added functionality for indef_integral_mremnant_IMF to take m<1 yet! Either it is time to add this to the code, or there is a bug causing this to happen.");
     else
         printf("Improper use of indef_integral_mremnant_IMF()!");
+    return 0.0; // place-holder; should probably intentionally crash the code here
 }
 
 double integrate_mremnant_IMF(double m0, double m1)

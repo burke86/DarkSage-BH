@@ -126,12 +126,13 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas)
 {
   double reionization_modifier, strippedGas, strippedGasMetals, metallicity;
+  double tidal_strippedGas, tidal_strippedGasMetals;
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
     
   // Intialise
   strippedGas = 0.0;
     
-  if(HotStripOn==1)
+  if(HotStripOn==1 || HotStripOn==4)
   {
     if(ReionizationOn)
       reionization_modifier = do_reionization(gal, ZZ[Halo[halonr].SnapNum]);
@@ -174,7 +175,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
     if(strippedGas > Gal[gal].HotGas) strippedGas = Gal[gal].HotGas;
     if(strippedGasMetals > Gal[gal].MetalsHotGas) strippedGasMetals = Gal[gal].MetalsHotGas;
 
-    if(strippedGas>0)
+    if(strippedGas>0 && HotStripOn==1)
     {
         Gal[gal].HotGas -= strippedGas;
         Gal[gal].MetalsHotGas -= strippedGasMetals;
@@ -182,8 +183,14 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
         Gal[centralgal].HotGas += strippedGas;
         Gal[centralgal].MetalsHotGas += strippedGas * metallicity;
     }
+    else if(HotStripOn==4)
+    {
+        tidal_strippedGas = strippedGas;
+        tidal_strippedGasMetals = strippedGasMetals;
+    }
   }
-  else if(HotStripOn==2)
+    
+  if(HotStripOn==2)
   {
       Gal[centralgal].HotGas += Gal[gal].HotGas;
       Gal[centralgal].MetalsHotGas += Gal[gal].MetalsHotGas;
@@ -194,7 +201,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       Gal[gal].EjectedMass = 0.0;
       Gal[gal].MetalsEjectedMass = 0.0;
   }
-  else if(HotStripOn==3)
+    
+  if(HotStripOn==3 || HotStripOn==4)
   {
       double r_gal2, v_gal2, rho_IGM, Pram, Pgrav, left, right, r_try, dif;
       int i, ii;
@@ -300,6 +308,12 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
           if(strippedGas > Gal[gal].HotGas) strippedGas = Gal[gal].HotGas;
           if(strippedGasMetals > Gal[gal].MetalsHotGas) strippedGasMetals = Gal[gal].MetalsHotGas;
           
+          if(strippedGas < tidal_strippedGas && HotStripOn==4)
+          {
+              strippedGas = tidal_strippedGas;
+              strippedGasMetals = tidal_strippedGasMetals;
+          }
+          
           if(strippedGas>0.0)
           {
               Gal[gal].HotGas -= strippedGas;
@@ -325,11 +339,17 @@ void ram_pressure_stripping(int centralgal, int gal)
     double angle = acos(Gal[gal].SpinStars[0]*Gal[gal].SpinGas[0] + Gal[gal].SpinStars[1]*Gal[gal].SpinGas[1] + Gal[gal].SpinStars[2]*Gal[gal].SpinGas[2])*180.0/M_PI;
     double Sigma_disc;
     double Pram, Pgrav, Mstrip, MstripZ;
-    int i, j;
+    int i, j, k;
+    
+    if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>Gal[gal].Rvir)
+    {
+        disrupt_satellite_to_ICS(centralgal, gal); // satellite fully tidally disrupted
+        return;
+    }
     
     r_gal2 = (sqr(Gal[gal].Pos[0]-Gal[centralgal].Pos[0]) + sqr(Gal[gal].Pos[1]-Gal[centralgal].Pos[1]) + sqr(Gal[gal].Pos[2]-Gal[centralgal].Pos[2])) * sqr(ExpFac);
     v_gal2 = (sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]));
-    
+        
     if(HotGasProfileType==0)
         rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
     else
@@ -340,6 +360,48 @@ void ram_pressure_stripping(int centralgal, int gal)
     
     for(i=0; i<N_BINS; i++)
     {
+        
+        // first check if tidal radius should remove all the stars and gas outside this radius
+        if(RamPressureOn==3 && Gal[gal].DiscRadii[i+1]>=Gal[gal].Rvir)
+        {
+            for(j=i; j<N_BINS; j++)
+            {
+                if(HeatedToCentral)
+                {
+                    Gal[centralgal].HotGas += Gal[gal].DiscGas[j];
+                    Gal[centralgal].MetalsHotGas += Gal[gal].DiscGasMetals[j];
+                }
+                else
+                {
+                    Gal[gal].HotGas += Gal[gal].DiscGas[j];
+                    Gal[gal].MetalsHotGas += Gal[gal].DiscGasMetals[j];
+                }
+                Gal[gal].ColdGas -= Gal[gal].DiscGas[j];
+                Gal[gal].MetalsColdGas -= Gal[gal].DiscGasMetals[j];
+                Gal[gal].DiscGas[i] = 0.0;
+                Gal[gal].DiscGasMetals[i] = 0.0;
+                
+                // tidally strip stars too
+                Gal[centralgal].ICS += Gal[gal].DiscStars[j];
+                Gal[centralgal].MetalsICS += Gal[gal].DiscStarsMetals[j];
+                Gal[gal].StellarMass -= Gal[gal].DiscStars[j];
+                Gal[gal].MetalsStellarMass -= Gal[gal].DiscStarsMetals[j];
+                Gal[gal].DiscStars[j] = 0.0;
+                Gal[gal].DiscStarsMetals[j] = 0.0;
+
+                for(k=0; k<N_AGE_BINS; k++)
+                {
+                    Gal[centralgal].ICS_Age[k] += Gal[gal].DiscStarsAge[j][k];
+                    Gal[centralgal].MetalsICS_Age[k] += Gal[gal].DiscStarsMetalsAge[j][k];
+                    Gal[gal].DiscStarsAge[j][k] = 0.0;
+                    Gal[gal].DiscStarsMetalsAge[j][k] = 0.0;
+                }
+                
+            }
+            return;
+        }
+        
+        
         area = M_PI * (sqr(Gal[gal].DiscRadii[i+1]) - sqr(Gal[gal].DiscRadii[i]));
         Sigma_gas = Gal[gal].DiscGas[i] / area;
         
@@ -353,7 +415,8 @@ void ram_pressure_stripping(int centralgal, int gal)
         Mstrip = Gal[gal].DiscGas[i]*Pram/Pgrav / STEPS;
         MstripZ = Gal[gal].DiscGasMetals[i]*Pram/Pgrav / STEPS;
         
-        if(Pram >= Pgrav && i==0 && Sigma_gas>0.0 && RamPressureOn==1) // If the central gas is stripped, assume all gas will be stripped.
+        
+        if(Pram >= Pgrav && i==0 && Sigma_gas>0.0 && (RamPressureOn==1 || RamPressureOn==3) ) // If the innermost-annulus gas is stripped, assume all gas will be stripped.
         {
             if(HeatedToCentral)
             {
@@ -372,9 +435,11 @@ void ram_pressure_stripping(int centralgal, int gal)
                 Gal[gal].DiscGas[j] = 0.0;
                 Gal[gal].DiscGasMetals[j] = 0.0;
             }
+            
+            
             break;
         }
-        else if(((Pram >= Pgrav && RamPressureOn==1) || ((Mstrip>=Gal[gal].DiscGas[i] || MstripZ>=Gal[gal].DiscGasMetals[i]) && RamPressureOn==2)) && Sigma_gas>0.0)
+        else if( ( (Pram >= Pgrav && (RamPressureOn==1 || RamPressureOn==3)) || ((Mstrip>=Gal[gal].DiscGas[i] || MstripZ>=Gal[gal].DiscGasMetals[i]) && RamPressureOn==2) ) && Sigma_gas>0.0 )
         {
             if(HeatedToCentral)
             {
