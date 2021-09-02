@@ -343,18 +343,18 @@ void ram_pressure_stripping(int centralgal, int gal)
 
     
 //    printf("Satellite Mvir, Len*PartMass, get_Mvir = %e, %e, %e\n", Gal[gal].Mvir, Gal[gal].Len * PartMass, get_virial_mass(Gal[gal].HaloNr, gal));
-    assert(Gal[gal].Mvir == Gal[gal].Len * PartMass);
+//    assert(Gal[gal].Mvir == Gal[gal].Len * PartMass); -- don't want this anymore necessarily
     
     r_gal = get_satellite_radius(gal, centralgal);
     r_gal2 = sqr(r_gal);
     v_gal2 = sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]);
         
-//    double Mhost = get_Mhost_internal(gal, centralgal, 0);
-//    double dr = 0.01 * r_gal;
-//    double dMdr = (get_Mhost_internal(gal, centralgal, dr) - Mhost) / dr;
-//    double r_tidal = r_gal * cbrt(get_satellite_mass(gal) / );
+    double Mhost = get_Mhost_internal(gal, centralgal, 0);
+    double dr = 0.01 * r_gal;
+    double dMdr = (get_Mhost_internal(gal, centralgal, dr) - Mhost) / dr;
+    double r_tidal = r_gal * cbrt(get_satellite_mass(gal) / (2*Mhost - r_gal*dMdr));
     
-    if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>Gal[gal].Rvir)
+    if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>r_tidal)
     {
         disrupt_satellite_to_ICS(centralgal, gal); // satellite fully tidally disrupted
         return;
@@ -370,47 +370,6 @@ void ram_pressure_stripping(int centralgal, int gal)
     
     for(i=0; i<N_BINS; i++)
     {
-        
-        // first check if tidal radius should remove all the stars and gas outside this radius
-        if(RamPressureOn==3 && Gal[gal].DiscRadii[i+1]>=Gal[gal].Rvir)
-        {
-            for(j=i; j<N_BINS; j++)
-            {
-                if(HeatedToCentral)
-                {
-                    Gal[centralgal].HotGas += Gal[gal].DiscGas[j];
-                    Gal[centralgal].MetalsHotGas += Gal[gal].DiscGasMetals[j];
-                }
-                else
-                {
-                    Gal[gal].HotGas += Gal[gal].DiscGas[j];
-                    Gal[gal].MetalsHotGas += Gal[gal].DiscGasMetals[j];
-                }
-                Gal[gal].ColdGas -= Gal[gal].DiscGas[j];
-                Gal[gal].MetalsColdGas -= Gal[gal].DiscGasMetals[j];
-                Gal[gal].DiscGas[i] = 0.0;
-                Gal[gal].DiscGasMetals[i] = 0.0;
-                
-                // tidally strip stars too
-                Gal[centralgal].ICS += Gal[gal].DiscStars[j];
-                Gal[centralgal].MetalsICS += Gal[gal].DiscStarsMetals[j];
-                Gal[gal].StellarMass -= Gal[gal].DiscStars[j];
-                Gal[gal].MetalsStellarMass -= Gal[gal].DiscStarsMetals[j];
-                Gal[gal].DiscStars[j] = 0.0;
-                Gal[gal].DiscStarsMetals[j] = 0.0;
-
-                for(k=0; k<N_AGE_BINS; k++)
-                {
-                    Gal[centralgal].ICS_Age[k] += Gal[gal].DiscStarsAge[j][k];
-                    Gal[centralgal].MetalsICS_Age[k] += Gal[gal].DiscStarsMetalsAge[j][k];
-                    Gal[gal].DiscStarsAge[j][k] = 0.0;
-                    Gal[gal].DiscStarsMetalsAge[j][k] = 0.0;
-                }
-                
-            }
-            return;
-        }
-        
         
         area = M_PI * (sqr(Gal[gal].DiscRadii[i+1]) - sqr(Gal[gal].DiscRadii[i]));
         Sigma_gas = Gal[gal].DiscGas[i] / area;
@@ -483,6 +442,47 @@ void ram_pressure_stripping(int centralgal, int gal)
             Gal[gal].DiscGas[i] -= Mstrip;
             Gal[gal].DiscGasMetals[i] -= MstripZ;
             assert(Gal[centralgal].MetalsHotGas<=Gal[centralgal].HotGas);
+        }
+        
+        
+        // first check if tidal radius should remove all the stars and gas outside this radius
+        if(RamPressureOn==3 && Gal[gal].DiscRadii[i+1]>=r_tidal && i<N_BINS-1)
+        {
+            for(j=i+1; j<N_BINS; j++)
+            {
+                if(HeatedToCentral)
+                {
+                    Gal[centralgal].HotGas += Gal[gal].DiscGas[j];
+                    Gal[centralgal].MetalsHotGas += Gal[gal].DiscGasMetals[j];
+                }
+                else
+                {
+                    Gal[gal].HotGas += Gal[gal].DiscGas[j];
+                    Gal[gal].MetalsHotGas += Gal[gal].DiscGasMetals[j];
+                }
+                Gal[gal].ColdGas -= Gal[gal].DiscGas[j];
+                Gal[gal].MetalsColdGas -= Gal[gal].DiscGasMetals[j];
+                Gal[gal].DiscGas[i] = 0.0;
+                Gal[gal].DiscGasMetals[i] = 0.0;
+                
+                // tidally strip stars too
+                Gal[centralgal].ICS += Gal[gal].DiscStars[j];
+                Gal[centralgal].MetalsICS += Gal[gal].DiscStarsMetals[j];
+                Gal[gal].StellarMass -= Gal[gal].DiscStars[j];
+                Gal[gal].MetalsStellarMass -= Gal[gal].DiscStarsMetals[j];
+                Gal[gal].DiscStars[j] = 0.0;
+                Gal[gal].DiscStarsMetals[j] = 0.0;
+
+                for(k=0; k<N_AGE_BINS; k++)
+                {
+                    Gal[centralgal].ICS_Age[k] += Gal[gal].DiscStarsAge[j][k];
+                    Gal[centralgal].MetalsICS_Age[k] += Gal[gal].DiscStarsMetalsAge[j][k];
+                    Gal[gal].DiscStarsAge[j][k] = 0.0;
+                    Gal[gal].DiscStarsMetalsAge[j][k] = 0.0;
+                }
+                
+            }
+            return;
         }
     }
 }
