@@ -1088,7 +1088,7 @@ void update_HI_H2(int p)
             if(H2prescription==1)
             {
                 double s, Zp, chi, c_f, Sigma_comp0, Tau_c;
-                Zp = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]) / 0.02; // Might also want solar metal fraction to be variable too
+                Zp = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]) / 0.0142; // Might also want solar metal fraction to be variable too
                 
                 if(Zp>0.01 && Zp<1) // Fu et al. 2013
                     c_f = ClumpFactor*pow(Zp, -ClumpExponent);

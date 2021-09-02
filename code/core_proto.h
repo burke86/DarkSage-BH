@@ -92,7 +92,7 @@ double Hubble_sqr_z(int snap);
 //void update_reinc_timescale(int p, int i, double ejected_cold_mass, double reheated_mass, double annulus_velocity, double v_wind2, double two_vv, double escape_velocity2, double annulus_radius); // likely immediately retired
 void update_reincorporation_time(int p, double new_ejected_mass);
 double get_satellite_mass(int p);
-double get_Mhost_internal(int p, int centralgal);
+double get_Mhost_internal(int p, int centralgal, double dr);
 void rotate(double *pos, double axis[3], double angle);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas);

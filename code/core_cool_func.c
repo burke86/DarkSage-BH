@@ -23,7 +23,7 @@ static char *name[] = {
 };
 
 
-// metallicies with repect to solar. Will be converted to absolut metallicities by adding log10(Z_sun), Zsun=0.02 
+// metallicies with repect to solar. Will be converted to absolute metallicities by adding log10(Z_sun), Zsun=0.0142 
 static double metallicities[8] = {
     -5.0,                          // actually primordial -> -infinity 
       -3.0,
@@ -48,7 +48,7 @@ void read_cooling_functions(void)
     sd_logLnorm, sd_logU, sd_logTau, sd_logP12, sd_logRho24, sd_ci, sd_mubar;
 
   for(i = 0; i < 8; i++)
-    metallicities[i] += log10(0.02);     // add solar metallicity 
+    metallicities[i] += log10(0.0142);     // add solar metallicity 
 
   for(i = 0; i < 8; i++)
   {

@@ -208,7 +208,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       int i, ii;
       
       r_gal2 = sqr(get_satellite_radius(gal, centralgal));
-      v_gal2 = (sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]));
+      v_gal2 = sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]);
       if(HotGasProfileType==0)
           rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
       else
@@ -218,8 +218,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       }
       Pram = rho_IGM*v_gal2;
       
-      Gal[gal].Mvir = get_virial_mass(halonr, gal); // Do this need to be updated here?  When else is it updated?
-      Gal[gal].Rvir = get_virial_radius(halonr, gal);
+//      Gal[gal].Mvir = get_virial_mass(Gal[gal].HaloNr, gal); // Do this need to be updated here?  When else is it updated?
+//      Gal[gal].Rvir = get_virial_radius(Gal[gal].HaloNr, gal);
       Pgrav = G * Gal[gal].Mvir * Gal[gal].HotGas / 8.0 / sqr(sqr(Gal[gal].Rvir)); // First calculate restoring force at the virial radius of the subhalo
       if(Pram >= Pgrav)
       {
@@ -334,12 +334,25 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
 
 void ram_pressure_stripping(int centralgal, int gal)
 {
-    double r_gal2, v_gal2, rho_IGM, Sigma_gas, area;
+    double r_gal, r_gal2, v_gal2, rho_IGM, Sigma_gas, area;
     double ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum];
     double angle = acos(Gal[gal].SpinStars[0]*Gal[gal].SpinGas[0] + Gal[gal].SpinStars[1]*Gal[gal].SpinGas[1] + Gal[gal].SpinStars[2]*Gal[gal].SpinGas[2])*180.0/M_PI;
     double Sigma_disc;
     double Pram, Pgrav, Mstrip, MstripZ;
     int i, j, k;
+
+    
+//    printf("Satellite Mvir, Len*PartMass, get_Mvir = %e, %e, %e\n", Gal[gal].Mvir, Gal[gal].Len * PartMass, get_virial_mass(Gal[gal].HaloNr, gal));
+    assert(Gal[gal].Mvir == Gal[gal].Len * PartMass);
+    
+    r_gal = get_satellite_radius(gal, centralgal);
+    r_gal2 = sqr(r_gal);
+    v_gal2 = sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]);
+        
+//    double Mhost = get_Mhost_internal(gal, centralgal, 0);
+//    double dr = 0.01 * r_gal;
+//    double dMdr = (get_Mhost_internal(gal, centralgal, dr) - Mhost) / dr;
+//    double r_tidal = r_gal * cbrt(get_satellite_mass(gal) / );
     
     if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>Gal[gal].Rvir)
     {
@@ -347,9 +360,6 @@ void ram_pressure_stripping(int centralgal, int gal)
         return;
     }
     
-    r_gal2 = (sqr(Gal[gal].Pos[0]-Gal[centralgal].Pos[0]) + sqr(Gal[gal].Pos[1]-Gal[centralgal].Pos[1]) + sqr(Gal[gal].Pos[2]-Gal[centralgal].Pos[2])) * sqr(ExpFac);
-    v_gal2 = (sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]));
-        
     if(HotGasProfileType==0)
         rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
     else

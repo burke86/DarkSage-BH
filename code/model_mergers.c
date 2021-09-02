@@ -48,7 +48,7 @@ double estimate_merging_time(int halonr, int gal, int centralgal)
       if(SatelliteMass<=0) return -1.0;
       
       double Rvir_host = Gal[centralgal].Rvir;
-      double Mhost = get_Mhost_internal(gal, centralgal);
+      double Mhost = get_Mhost_internal(gal, centralgal, 0.0);
           
       double reduced_mass = SatelliteMass * Mhost / (SatelliteMass + Mhost);
             
@@ -139,13 +139,6 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 
   if(BetaBurst>0.0) // deprecated for new default model
     collisional_starburst_recipe(disc_mass_ratio, merger_centralgal, centralgal, dt, 0, step, k_now);
-  else
-  {
-      for(i=N_BINS-1; i>=0; i--)
-      {
-          deal_with_unstable_gas(gas_mass_ratio*Gal[merger_centralgal].DiscGas[i], merger_centralgal, i, get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]), merger_centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1]);
-      }
-  }
 
   if(BlackHoleGrowthRate>0.0) // deprecated for new default model
   {
@@ -226,6 +219,14 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
     stars_to_bulge(merger_centralgal);
     Gal[merger_centralgal].LastMajorMerger = time;
     Gal[p].mergeType = 2;  // Mark as major merger
+      
+    if(BetaBurst<=0)
+    {
+      for(i=N_BINS-1; i>=0; i--)
+      {
+          deal_with_unstable_gas(gas_mass_ratio*Gal[merger_centralgal].DiscGas[i], merger_centralgal, i, get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]), merger_centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1]);
+      }
+    }
   }
   else
   {
@@ -604,7 +605,7 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
       
     // First need to know the pos and vel of the centre of momentum to measure j relative to there
     double dCOM_p[3], dCOM_t[3], dvCOM_p[3], dvCOM_t[3], j_t[3], j_p[3], m_t, m_p, inv_m_sum;
-    m_t = get_Mhost_internal(p, t);
+    m_t = get_Mhost_internal(p, t, 0.0);
     m_p = get_satellite_mass(p);
     double m_t_frac = m_t/(m_t+m_p);
     double m_p_frac = 1-m_t_frac;

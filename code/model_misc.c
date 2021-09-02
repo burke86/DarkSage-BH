@@ -1232,9 +1232,10 @@ double get_satellite_mass(int p)
 }
 
 
-double get_Mhost_internal(int p, int centralgal)
+double get_Mhost_internal(int p, int centralgal, double dr)
 {
     // Get the mass of the host halo internal to a satellite
+    // dr serves as a way of calculating internal mass at a radius close to but not exactly equal to that of a satellite (useful for calculating mass gradients near satellites, for example)
     
     if(p==centralgal)
     {
@@ -1244,7 +1245,7 @@ double get_Mhost_internal(int p, int centralgal)
     
     double Rvir_host = Gal[centralgal].Rvir;
     double Mhost;
-    double SatelliteRadius = get_satellite_radius(p, centralgal);
+    double SatelliteRadius = get_satellite_radius(p, centralgal) + dr;
     double SatelliteMass = get_satellite_mass(p); 
     int i;
     
