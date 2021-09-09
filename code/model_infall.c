@@ -68,8 +68,8 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
     if(i != centralgal)
     {
       if(HeatedToCentral) Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
-      Gal[i].ICS = Gal[i].MetalsICS = 0.0; // satellite ICS goes to central ICS
-      if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[i].ICS_Age[k] = Gal[i].MetalsICS_Age[k] = 0.0;
+//      Gal[i].ICS = Gal[i].MetalsICS = 0.0; // satellite ICS goes to central ICS
+//      if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[i].ICS_Age[k] = Gal[i].MetalsICS_Age[k] = 0.0;
     }
       
   }
@@ -98,17 +98,17 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
     Gal[centralgal].MetalsEjectedMass = 0.0;
 
   // the central galaxy keeps all the ICS (mostly for numerical convenience)
-  Gal[centralgal].ICS = tot_ICS;
-  Gal[centralgal].MetalsICS = tot_ICSMetals;
+//  Gal[centralgal].ICS = tot_ICS;
+//  Gal[centralgal].MetalsICS = tot_ICSMetals;
     
-  if(AgeStructOut>0)
-  {
-    for(k=0; k<N_AGE_BINS; k++)
-    {
-      Gal[centralgal].ICS_Age[k] = tot_ICS_Age[k];
-      Gal[centralgal].MetalsICS_Age[k] = tot_ICSMetals_Age[k];
-    }
-  }
+//  if(AgeStructOut>0)
+//  {
+//    for(k=0; k<N_AGE_BINS; k++)
+//    {
+//      Gal[centralgal].ICS_Age[k] = tot_ICS_Age[k];
+//      Gal[centralgal].MetalsICS_Age[k] = tot_ICSMetals_Age[k];
+//    }
+//  }
 
   // take care of any potential numerical issues regarding intracluster stars
   if(Gal[centralgal].MetalsICS > Gal[centralgal].ICS)
@@ -127,46 +127,55 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
 {
   double reionization_modifier, strippedGas, strippedGasMetals, metallicity;
   double tidal_strippedGas, tidal_strippedGasMetals;
+  double strippedBaryons, strippedICS, strippedICSmetals, strippedICS_age, stripped_ICSmetals_age;
+  int k;
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
     
   // Intialise
   strippedGas = 0.0;
     
+  if(ReionizationOn)
+    reionization_modifier = do_reionization(gal, ZZ[Halo[halonr].SnapNum]);
+  else
+    reionization_modifier = 1.0;
+    
+  // Usage depends on HotStripOn flag
+  strippedBaryons = -1.0 * (reionization_modifier * BaryonFrac * Gal[gal].Mvir - (Gal[gal].StellarMass + Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass + Gal[gal].BlackHoleMass + Gal[gal].ICS) ) / STEPS;
+    
+  if(strippedBaryons<=0 && HotStripOn==1) return 0.0;
+
   if(HotStripOn==1 || HotStripOn==4)
   {
-    if(ReionizationOn)
-      reionization_modifier = do_reionization(gal, ZZ[Halo[halonr].SnapNum]);
-    else
-      reionization_modifier = 1.0;
-  
-    strippedGas = -1.0 * (reionization_modifier * BaryonFrac * Gal[gal].Mvir - (Gal[gal].StellarMass + Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass + Gal[gal].BlackHoleMass + Gal[gal].ICS) ) / STEPS;
+    if(strippedBaryons<0) strippedBaryons = 0.0;
       
-      if(strippedGas<0)
-      strippedGas = 0.0;
+    strippedGas = strippedBaryons * Gal[gal].HotGas / (Gal[gal].HotGas + Gal[gal].ICS);
+    strippedICS = strippedBaryons - strippedGas;
       
-      assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
-      assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
+      // commented out because all the ejected gas should have been removed from the satellite already
       
-    if(Gal[gal].EjectedMass > strippedGas)
-    {
-          metallicity = get_metallicity(Gal[gal].EjectedMass, Gal[gal].MetalsEjectedMass);
-          Gal[gal].EjectedMass -= strippedGas;
-          Gal[gal].MetalsEjectedMass -= strippedGas * metallicity;
-          Gal[centralgal].EjectedMass += strippedGas;
-          Gal[centralgal].MetalsEjectedMass += strippedGas * metallicity;
-          strippedGas = 0.0;
-    }
-    else
-    {
-          Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
-          Gal[centralgal].MetalsEjectedMass += Gal[gal].MetalsEjectedMass;
-          strippedGas -= Gal[gal].EjectedMass;
-          Gal[gal].EjectedMass = 0.0;
-          Gal[gal].MetalsEjectedMass = 0.0;
-    }
+//      assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
+//    assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
       
-      assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
-      assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
+//    if(Gal[gal].EjectedMass > strippedGas)
+//    {
+//          metallicity = get_metallicity(Gal[gal].EjectedMass, Gal[gal].MetalsEjectedMass);
+//          Gal[gal].EjectedMass -= strippedGas;
+//          Gal[gal].MetalsEjectedMass -= strippedGas * metallicity;
+//          Gal[centralgal].EjectedMass += strippedGas;
+//          Gal[centralgal].MetalsEjectedMass += strippedGas * metallicity;
+//          strippedGas = 0.0;
+//    }
+//    else
+//    {
+//          Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
+//          Gal[centralgal].MetalsEjectedMass += Gal[gal].MetalsEjectedMass;
+//          strippedGas -= Gal[gal].EjectedMass;
+//          Gal[gal].EjectedMass = 0.0;
+//          Gal[gal].MetalsEjectedMass = 0.0;
+//    }
+      
+//      assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
+//      assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
       
     metallicity = get_metallicity(Gal[gal].HotGas, Gal[gal].MetalsHotGas);
 	assert(Gal[gal].MetalsHotGas <= Gal[gal].HotGas);
@@ -188,6 +197,54 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
         tidal_strippedGas = strippedGas;
         tidal_strippedGasMetals = strippedGasMetals;
     }
+      
+    // strip intrahalo stars from the satellite
+    if(strippedICS < Gal[gal].ICS)
+    {
+        if(AgeStructOut>0)
+        {
+            strippedICSmetals = 0.0;
+          
+            for(k=0; k<N_AGE_BINS; k++)
+            {
+                strippedICS_age = strippedICS * Gal[gal].ICS_Age[k] / Gal[gal].ICS;
+                stripped_ICSmetals_age = get_metallicity(Gal[gal].ICS_Age[k], Gal[gal].MetalsICS_Age[k]) * strippedICS_age;
+                strippedICSmetals += stripped_ICSmetals_age;
+                
+                Gal[gal].ICS_Age[k] -= strippedICS_age;
+                Gal[gal].MetalsICS_Age[k] -= stripped_ICSmetals_age;
+                
+                Gal[centralgal].ICS_Age[k] += strippedICS_age;
+                Gal[centralgal].MetalsICS_Age[k] += stripped_ICSmetals_age;
+            }
+        }
+        else
+            strippedICSmetals = strippedICS * get_metallicity(Gal[gal].ICS, Gal[gal].MetalsICS);
+        
+        Gal[gal].ICS -= strippedICS;
+        Gal[gal].MetalsICS -= strippedICSmetals;
+      
+        Gal[centralgal].ICS += strippedICS;
+        Gal[centralgal].MetalsICS += strippedICSmetals;
+    }
+    else
+    {
+        for(k=0; k<N_AGE_BINS; k++)
+        {
+            Gal[centralgal].ICS_Age[k] += Gal[gal].ICS_Age[k];
+            Gal[centralgal].MetalsICS_Age[k] += Gal[gal].MetalsICS_Age[k];
+            
+            Gal[gal].ICS_Age[k] = 0.0;
+            Gal[gal].MetalsICS_Age[k] = 0.0;
+        }
+        
+        Gal[centralgal].ICS += Gal[gal].ICS;
+        Gal[centralgal].MetalsICS += Gal[gal].MetalsICS;
+        
+        Gal[gal].ICS = 0.0;
+        Gal[gal].MetalsICS = 0.0;
+    }
+      
   }
     
   if(HotStripOn==2)

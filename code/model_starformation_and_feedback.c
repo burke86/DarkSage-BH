@@ -1098,7 +1098,7 @@ void update_HI_H2(int p)
                     c_f = ClumpFactor*pow(0.01, -ClumpExponent);
                 
                 Sigma_comp0 = c_f * Gal[p].DiscGas[i]/area; // see Krumholz & Dekel 2012, originally comes from McKee & Krumholz 2010
-                Tau_c = 320 * Zp * Sigma_comp0 * UnitMass_in_g / UnitLength_in_cm / UnitLength_in_cm * Hubble_h;
+                Tau_c = 320 * Zp * Sigma_comp0 * UnitMass_in_g / sqr(UnitLength_in_cm) * Hubble_h;
                 chi = 3.1 * (1+ 3.1*pow(Zp,0.365)) / 4.1;
                 s = log(1 + 0.6*chi + 0.01*chi*chi) / (0.6*Tau_c);
                 if(s<2)
@@ -1114,7 +1114,7 @@ void update_HI_H2(int p)
             {
                 if(angle <= ThetaThresh)
                 {
-                    f_sigma =  (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Ratio of gas vel dispersion to stars', assuming gas is always 11 km/s
+                    f_sigma =  (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Haven't used the actual average radius of each annulus here...
                     Pressure = 0.5*M_PI*G * Gal[p].DiscGas[i] * (Gal[p].DiscGas[i] + f_sigma*Gal[p].DiscStars[i]) / sqr(area) * Hubble_h * Hubble_h;
                 }
                 else
