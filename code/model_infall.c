@@ -85,6 +85,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   // the central galaxy keeps all the ejected mass
   if(HeatedToCentral)
   {
+      update_reincorporation_time(centralgal, tot_ejected-Gal[centralgal].EjectedMass); // update reincorporation time-scale, using the current time-scale for the newly added material
       Gal[centralgal].EjectedMass = tot_ejected;
       Gal[centralgal].MetalsEjectedMass = tot_ejectedMetals;
   }
@@ -151,31 +152,32 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
     strippedGas = strippedBaryons * Gal[gal].HotGas / (Gal[gal].HotGas + Gal[gal].ICS);
     strippedICS = strippedBaryons - strippedGas;
       
-      // commented out because all the ejected gas should have been removed from the satellite already
-      
-//      assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
-//    assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
-      
-//    if(Gal[gal].EjectedMass > strippedGas)
-//    {
-//          metallicity = get_metallicity(Gal[gal].EjectedMass, Gal[gal].MetalsEjectedMass);
-//          Gal[gal].EjectedMass -= strippedGas;
-//          Gal[gal].MetalsEjectedMass -= strippedGas * metallicity;
-//          Gal[centralgal].EjectedMass += strippedGas;
-//          Gal[centralgal].MetalsEjectedMass += strippedGas * metallicity;
-//          strippedGas = 0.0;
-//    }
-//    else
-//    {
-//          Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
-//          Gal[centralgal].MetalsEjectedMass += Gal[gal].MetalsEjectedMass;
-//          strippedGas -= Gal[gal].EjectedMass;
-//          Gal[gal].EjectedMass = 0.0;
-//          Gal[gal].MetalsEjectedMass = 0.0;
-//    }
-      
-//      assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
-//      assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
+    if(!HeatedToCentral)
+    { // only relevant if the ejected reservoir hasn't automatically been fully stripped
+        assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
+        assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
+          
+        if(Gal[gal].EjectedMass > strippedGas)
+        {
+              metallicity = get_metallicity(Gal[gal].EjectedMass, Gal[gal].MetalsEjectedMass);
+              Gal[gal].EjectedMass -= strippedGas;
+              Gal[gal].MetalsEjectedMass -= strippedGas * metallicity;
+              Gal[centralgal].EjectedMass += strippedGas;
+              Gal[centralgal].MetalsEjectedMass += strippedGas * metallicity;
+              strippedGas = 0.0;
+        }
+        else
+        {
+              Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
+              Gal[centralgal].MetalsEjectedMass += Gal[gal].MetalsEjectedMass;
+              strippedGas -= Gal[gal].EjectedMass;
+              Gal[gal].EjectedMass = 0.0;
+              Gal[gal].MetalsEjectedMass = 0.0;
+        }
+          
+          assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
+          assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
+    }
       
     metallicity = get_metallicity(Gal[gal].HotGas, Gal[gal].MetalsHotGas);
 	assert(Gal[gal].MetalsHotGas <= Gal[gal].HotGas);
@@ -199,50 +201,56 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
     }
       
     // strip intrahalo stars from the satellite
-    if(strippedICS < Gal[gal].ICS)
+    if(strippedICS > 0.0)
     {
-        if(AgeStructOut>0)
+        
+        if(strippedICS < Gal[gal].ICS)
         {
-            strippedICSmetals = 0.0;
-          
-            for(k=0; k<N_AGE_BINS; k++)
+            if(N_AGE_BINS>1)
             {
-                strippedICS_age = strippedICS * Gal[gal].ICS_Age[k] / Gal[gal].ICS;
-                stripped_ICSmetals_age = get_metallicity(Gal[gal].ICS_Age[k], Gal[gal].MetalsICS_Age[k]) * strippedICS_age;
-                strippedICSmetals += stripped_ICSmetals_age;
-                
-                Gal[gal].ICS_Age[k] -= strippedICS_age;
-                Gal[gal].MetalsICS_Age[k] -= stripped_ICSmetals_age;
-                
-                Gal[centralgal].ICS_Age[k] += strippedICS_age;
-                Gal[centralgal].MetalsICS_Age[k] += stripped_ICSmetals_age;
+                strippedICSmetals = 0.0;
+              
+                for(k=0; k<N_AGE_BINS; k++)
+                {
+                    strippedICS_age = strippedICS * Gal[gal].ICS_Age[k] / Gal[gal].ICS;
+                    stripped_ICSmetals_age = get_metallicity(Gal[gal].ICS_Age[k], Gal[gal].MetalsICS_Age[k]) * strippedICS_age;
+                    strippedICSmetals += stripped_ICSmetals_age;
+                    
+                    if(!(strippedICS_age <= Gal[gal].ICS_Age[k])) printf("k, strippedICS_age, Gal[gal].ICS_Age[k], strippedICS,  Gal[gal].ICS = %i, %e, %e, %e, %e\n", k, strippedICS_age, Gal[gal].ICS_Age[k], strippedICS,  Gal[gal].ICS);
+                    assert(strippedICS_age <= Gal[gal].ICS_Age[k]);
+                    Gal[gal].ICS_Age[k] -= strippedICS_age;
+                    Gal[gal].MetalsICS_Age[k] -= stripped_ICSmetals_age;
+                    
+                    Gal[centralgal].ICS_Age[k] += strippedICS_age;
+                    Gal[centralgal].MetalsICS_Age[k] += stripped_ICSmetals_age;
+                }
             }
+            else
+                strippedICSmetals = strippedICS * get_metallicity(Gal[gal].ICS, Gal[gal].MetalsICS);
+            
+            Gal[gal].ICS -= strippedICS;
+            Gal[gal].MetalsICS -= strippedICSmetals;
+          
+            Gal[centralgal].ICS += strippedICS;
+            Gal[centralgal].MetalsICS += strippedICSmetals;
         }
         else
-            strippedICSmetals = strippedICS * get_metallicity(Gal[gal].ICS, Gal[gal].MetalsICS);
-        
-        Gal[gal].ICS -= strippedICS;
-        Gal[gal].MetalsICS -= strippedICSmetals;
-      
-        Gal[centralgal].ICS += strippedICS;
-        Gal[centralgal].MetalsICS += strippedICSmetals;
-    }
-    else
-    {
-        for(k=0; k<N_AGE_BINS; k++)
         {
-            Gal[centralgal].ICS_Age[k] += Gal[gal].ICS_Age[k];
-            Gal[centralgal].MetalsICS_Age[k] += Gal[gal].MetalsICS_Age[k];
+            for(k=0; k<N_AGE_BINS; k++)
+            {
+                Gal[centralgal].ICS_Age[k] += Gal[gal].ICS_Age[k];
+                Gal[centralgal].MetalsICS_Age[k] += Gal[gal].MetalsICS_Age[k];
+                
+                Gal[gal].ICS_Age[k] = 0.0;
+                Gal[gal].MetalsICS_Age[k] = 0.0;
+            }
+                
+            Gal[centralgal].ICS += Gal[gal].ICS;
+            Gal[centralgal].MetalsICS += Gal[gal].MetalsICS;
             
-            Gal[gal].ICS_Age[k] = 0.0;
-            Gal[gal].MetalsICS_Age[k] = 0.0;
+            Gal[gal].ICS = 0.0;
+            Gal[gal].MetalsICS = 0.0;
         }
-        
-        Gal[centralgal].ICS += Gal[gal].ICS;
-        Gal[centralgal].MetalsICS += Gal[gal].MetalsICS;
-        
-        Gal[gal].ICS = 0.0;
-        Gal[gal].MetalsICS = 0.0;
     }
       
   }
@@ -409,9 +417,10 @@ void ram_pressure_stripping(int centralgal, int gal)
     double Mhost = get_Mhost_internal(gal, centralgal, 0);
     double dr = 0.01 * r_gal;
     double dMdr = (get_Mhost_internal(gal, centralgal, dr) - Mhost) / dr;
-    double r_tidal = r_gal * cbrt(get_satellite_mass(gal) / (2*Mhost - r_gal*dMdr));
+    double Msat = get_satellite_mass(gal);
+    double r_tidal = r_gal * cbrt(Msat / (2*Mhost - r_gal*dMdr));
     
-    if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>r_tidal)
+    if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>r_tidal && Msat<0.1*Mhost)
     {
         disrupt_satellite_to_ICS(centralgal, gal); // satellite fully tidally disrupted
         return;
@@ -503,7 +512,7 @@ void ram_pressure_stripping(int centralgal, int gal)
         
         
         // first check if tidal radius should remove all the stars and gas outside this radius
-        if(RamPressureOn==3 && Gal[gal].DiscRadii[i+1]>=r_tidal && i<N_BINS-1)
+        if(RamPressureOn==3 && Gal[gal].DiscRadii[i+1]>=r_tidal && i<N_BINS-1  && Msat<0.1*Mhost)
         {
             for(j=i+1; j<N_BINS; j++)
             {
