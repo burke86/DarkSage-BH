@@ -1077,11 +1077,11 @@ void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, 
 void update_HI_H2(int p)
 {
     double area, f_H2, f_H2_HI, Pressure, f_sigma;
-    int i, X_H, Z, f_neutral, f_neutral_new;
+    int i, iter;
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
     double galaxy_ion_term, annulus_ion_term, sigma_gas, fH2_defswap;
     double s, Zp, chi, c_f, Sigma_comp0, Tau_c;
-    int iter;
+    double X_H, Z, f_neutral, f_neutral_new;
     int iter_max = 100;
     double tol = 1e-3;
     
@@ -1097,8 +1097,8 @@ void update_HI_H2(int p)
             area = M_PI * (sqr(Gal[p].DiscRadii[i+1]) - sqr(Gal[p].DiscRadii[i]));
             Z = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
             
-            if(Gal[p].DiscGas[i]<=MIN_STARFORMATION) continue;
-            assert(Gal[p].DiscGas[i]>MIN_STARFORMATION);
+            if(Gal[p].DiscGas[i]<=0.0) continue;
+            assert(Gal[p].DiscGas[i]>0.0);
             
             if(Z >= 0.025)
                 X_H = 0.753 - 1.26*Z;
@@ -1107,7 +1107,6 @@ void update_HI_H2(int p)
             
             annulus_ion_term = cbrt(area / (X_H * Gal[p].DiscGas[i]));
             assert(annulus_ion_term>=0.0);
-            assert(annulus_ion_term==annulus_ion_term);
             
             f_neutral = 0.77; // initialise the ionzied fraction, will be solved iteratively
             
@@ -1169,7 +1168,7 @@ void update_HI_H2(int p)
 //                f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
                 f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
                 
-                if(!(f_neutral_new >= 0.0 && f_neutral_new <= 1.0 && Gal[p].DiscGas[i]>MIN_STARFORMATION)) 
+                if(!(f_neutral_new >= 0.0 && f_neutral_new <= 1.0 && Gal[p].DiscGas[i]>0.0)) 
                 {
                     printf("i, p = %i, %i\n", i, p);
                     printf("galaxy_ion_term = %e\n", galaxy_ion_term);
@@ -1178,9 +1177,9 @@ void update_HI_H2(int p)
                     printf("Gal[p].DiscH2[i], MIN_STARFORMATION = %e, %e\n", Gal[p].DiscH2[i], MIN_STARFORMATION);
                     printf("cbrt(Gal[p].DiscH2[i]) = %e\n", cbrt(Gal[p].DiscH2[i]));
                     printf("galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]) = %e\n", galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]));
-                    printf("f_neutral_new, fabs(f_neutral_new) = %f, %f\n", f_neutral_new, fabs(f_neutral_new));
+                    printf("f_neutral_new, fabs(f_neutral_new) = %f, %f\n\n", f_neutral_new, fabs(f_neutral_new));
                 }
-                assert(Gal[p].DiscGas[i]>MIN_STARFORMATION);
+                assert(Gal[p].DiscGas[i]>0.0);
                 assert(f_neutral_new <= 1.0);
                 assert(fabs(f_neutral_new) >= 0.0);
                 assert(f_neutral_new >= 0.0);
