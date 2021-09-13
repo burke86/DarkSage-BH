@@ -23,12 +23,11 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 	
     double star_init = Gal[p].StellarMass;
     double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
-    
-    update_HI_H2(p);
 
     DiscStarSum = get_disc_stars(p);
     DiscGasSum = get_disc_gas(p);
     check_channel_stars(p);
+    update_HI_H2(p);
     
     if(DiscStarSum==0.0 && DiscGasSum==0.0)
         return;

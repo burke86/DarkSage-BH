@@ -436,7 +436,7 @@ void ram_pressure_stripping(int centralgal, int gal)
     double Msat = get_satellite_mass(gal);
     double r_tidal = r_gal * cbrt(Msat / (2*Mhost - r_gal*dMdr));
     
-    if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>r_tidal && Msat<0.1*Mhost)
+    if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>r_tidal && Msat<ThreshMajorMerger*Mhost)
     {
         disrupt_satellite_to_ICS(centralgal, gal); // satellite fully tidally disrupted
         return;
@@ -528,7 +528,7 @@ void ram_pressure_stripping(int centralgal, int gal)
         
         
         // first check if tidal radius should remove all the stars and gas outside this radius
-        if(RamPressureOn==3 && Gal[gal].DiscRadii[i+1]>=r_tidal && i<N_BINS-1  && Msat<0.1*Mhost)
+        if(RamPressureOn==3 && Gal[gal].DiscRadii[i+1]>=r_tidal && i<N_BINS-1  && Msat<ThreshMajorMerger*Mhost)
         {
             for(j=i+1; j<N_BINS; j++)
             {

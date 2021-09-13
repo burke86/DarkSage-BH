@@ -228,7 +228,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
     // Mightn't be necessary to pass 'area' in -- could just calculate it here if it isn't used outside this function.
     
     double reheated_mass, ejected_cold_mass, ejected_mass, strdot, fac, Sigma_0gas;
-    double energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, excess_energy, eject_specific_energy, escape_velocity2;//, VV, specific_energy_ratio, a, b, c, bracket_term, discriminant; // for new feedback recipe
+    double energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, excess_energy, eject_specific_energy, escape_velocity2, vertical_velocity;//, VV, specific_energy_ratio, a, b, c, bracket_term, discriminant; // for new feedback recipe
     double reheated_mass_old, v_wind2, v_therm2, two_vv;
     int iter;
     
@@ -254,7 +254,8 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             energy_feedback = FeedbackReheatCoupling * stars * EnergySNcode * SNperMassFormed; // still controlled by a coupling efficiency
             annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
             annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
-            cold_specific_energy = 0.5 * sqr(annulus_velocity) + 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]);
+            vertical_velocity = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s;
+            cold_specific_energy = 0.5*(sqr(annulus_velocity) + sqr(vertical_velocity) + Gal[p].Potential[i] + Gal[p].Potential[i+1]);
             reheat_specific_energy = hot_specific_energy - cold_specific_energy;
             eject_specific_energy = ejected_specific_energy - cold_specific_energy;
             
@@ -1076,19 +1077,43 @@ void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, 
 void update_HI_H2(int p)
 {
     double area, f_H2, f_H2_HI, Pressure, f_sigma;
-    int i;
+    int i, X_H, Z, f_neutral, f_neutral_new;
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
+    double galaxy_ion_term, annulus_ion_term, sigma_gas, fH2_defswap;
+    double s, Zp, chi, c_f, Sigma_comp0, Tau_c;
+    int iter;
+    int iter_max = 100;
+    double tol = 1e-3;
+    
+    sigma_gas = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s;
     
     if(Gal[p].Vvir>0.0 && Gal[p].ColdGas>0.0)
     {
+        galaxy_ion_term = cbrt(2.699e-10 * sigma_gas / G) * UnitLength_in_cm / Hubble_h;
+        assert(galaxy_ion_term>=0.0);
+        
         for(i=0; i<N_BINS; i++)
         {
             area = M_PI * (sqr(Gal[p].DiscRadii[i+1]) - sqr(Gal[p].DiscRadii[i]));
+            Z = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
+            
+            if(Gal[p].DiscGas[i]<=MIN_STARFORMATION) continue;
+            assert(Gal[p].DiscGas[i]>MIN_STARFORMATION);
+            
+            if(Z >= 0.025)
+                X_H = 0.753 - 1.26*Z;
+            else
+                X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
+            
+            annulus_ion_term = cbrt(area / (X_H * Gal[p].DiscGas[i]));
+            assert(annulus_ion_term>=0.0);
+            assert(annulus_ion_term==annulus_ion_term);
+            
+            f_neutral = 0.77; // initialise the ionzied fraction, will be solved iteratively
             
             if(H2prescription==1)
             {
-                double s, Zp, chi, c_f, Sigma_comp0, Tau_c;
-                Zp = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]) / 0.0142; // Might also want solar metal fraction to be variable too
+                Zp = Z / 0.0142; // Might also want solar metal fraction to be variable too
                 
                 if(Zp>0.01 && Zp<1) // Fu et al. 2013
                     c_f = ClumpFactor*pow(Zp, -ClumpExponent);
@@ -1114,7 +1139,7 @@ void update_HI_H2(int p)
             {
                 if(angle <= ThetaThresh)
                 {
-                    f_sigma =  (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Haven't used the actual average radius of each annulus here...
+                    f_sigma =  sigma_gas / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Haven't used the actual average radius of each annulus here...
                     Pressure = 0.5*M_PI*G * Gal[p].DiscGas[i] * (Gal[p].DiscGas[i] + f_sigma*Gal[p].DiscStars[i]) / sqr(area) * Hubble_h * Hubble_h;
                 }
                 else
@@ -1124,17 +1149,46 @@ void update_HI_H2(int p)
             }
 
             
-            if(f_H2_HI > 0.0)
+            // iteratively solve for f_neutral, which will lead to absolute H2 and HI masses per annulus
+            fH2_defswap = X_H / (1.0/f_H2_HI + 1) ;
+            for(iter=0; iter<iter_max; iter++)
             {
-                assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
-                f_H2 = 0.75 * 1.0/(1.0/f_H2_HI + 1) * (1 - Gal[p].DiscGasMetals[i]/Gal[p].DiscGas[i]) / 1.3; //Changes f_H2 from being H2/HI to H2/Cold Gas
-                Gal[p].DiscH2[i] = f_H2 * Gal[p].DiscGas[i];
-                Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
-            }
-            else
-            {
-                Gal[p].DiscH2[i] = 0.0;
-                Gal[p].DiscHI[i] = 0.75*(Gal[p].DiscGas[i]-Gal[p].DiscGasMetals[i])/1.3; // All properly cold hydrogen must be in the form of HI if there's no H2.
+                if(f_H2_HI > 0.0)
+                {
+                    assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
+                    f_H2 = fH2_defswap * f_neutral; //Changes f_H2 from being H2/HI to H2/Cold Gas
+                    Gal[p].DiscH2[i] = f_H2 * Gal[p].DiscGas[i];
+                    Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
+                }
+                else
+                {
+                    Gal[p].DiscH2[i] = 0.0;
+                    Gal[p].DiscHI[i] = X_H*Gal[p].DiscGas[i] * f_neutral; // All properly cold hydrogen must be in the form of HI if there's no H2.
+                }
+                
+//                f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
+                f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
+                
+                if(!(f_neutral_new >= 0.0 && f_neutral_new <= 1.0 && Gal[p].DiscGas[i]>MIN_STARFORMATION)) 
+                {
+                    printf("i, p = %i, %i\n", i, p);
+                    printf("galaxy_ion_term = %e\n", galaxy_ion_term);
+                    printf("annulus_ion_term = %e\n", annulus_ion_term);
+                    printf("area, X_H, Gal[p].DiscGas[i] = %e, %e, %e\n", area, X_H, Gal[p].DiscGas[i]);
+                    printf("Gal[p].DiscH2[i], MIN_STARFORMATION = %e, %e\n", Gal[p].DiscH2[i], MIN_STARFORMATION);
+                    printf("cbrt(Gal[p].DiscH2[i]) = %e\n", cbrt(Gal[p].DiscH2[i]));
+                    printf("galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]) = %e\n", galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]));
+                    printf("f_neutral_new, fabs(f_neutral_new) = %f, %f\n", f_neutral_new, fabs(f_neutral_new));
+                }
+                assert(Gal[p].DiscGas[i]>MIN_STARFORMATION);
+                assert(f_neutral_new <= 1.0);
+                assert(fabs(f_neutral_new) >= 0.0);
+                assert(f_neutral_new >= 0.0);
+                
+                if(fabs(f_neutral_new-f_neutral)/f_neutral <= tol) break;
+                f_neutral = 1.0*f_neutral_new;
+                
+                if(iter==iter_max-1) printf("Hit max iterations solving for ionized and molecular fractions\n");
             }
         }
     }
@@ -1146,7 +1200,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 {
     int k, i;
     double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, ejected_specific_energy, excess_energy, return_metal_mass, new_metals, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
-    double reheated_mass_old, v_wind2, v_therm2, two_vv;
+    double reheated_mass_old, v_wind2, v_therm2, two_vv, vertical_velocity;
     int iter;
     double StellarOutput[2];
     
@@ -1265,7 +1319,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         // relevant energy quantities for this annulus
         annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
         annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
-        cold_specific_energy = 0.5 * sqr(annulus_velocity) + 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]);
+        vertical_velocity = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s;
+        cold_specific_energy = 0.5*(sqr(annulus_velocity) + sqr(vertical_velocity) + Gal[p].Potential[i] + Gal[p].Potential[i+1]);
         reheat_specific_energy = hot_specific_energy - cold_specific_energy;
         eject_specific_energy = ejected_specific_energy - cold_specific_energy;
         

@@ -291,7 +291,7 @@ double grow_black_hole(int merger_centralgal, double* disc_mass_ratio)
 void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 { // I should probably out through the centralgal ID here
     double quasar_energy, cold_gas_energy, hot_gas_energy, DiscGasSum, cold_gas_energy_tot;
-    double annulus_radius, annulus_velocity, cold_specific_energy, ejected_specific_energy, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, hot_specific_energy, ejected_mass, ejected_metals, Delta_specific_energy;
+    double annulus_radius, annulus_velocity, cold_specific_energy, ejected_specific_energy, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, hot_specific_energy, ejected_mass, ejected_metals, Delta_specific_energy, vertical_velocity;
     int k;
 
     // checks -- are these still necessary?
@@ -327,7 +327,8 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
         
         annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[k]) + sqr(Gal[p].DiscRadii[k+1])) );
         annulus_velocity = 0.5 * (DiscBinEdge[k] + DiscBinEdge[k+1]) / annulus_radius;
-        cold_specific_energy = 0.5 * sqr(annulus_velocity) + 0.5*(Gal[p].Potential[k] + Gal[p].Potential[k+1]);
+        vertical_velocity = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s;
+        cold_specific_energy = 0.5*(sqr(annulus_velocity) + sqr(vertical_velocity) + Gal[p].Potential[k] + Gal[p].Potential[k+1]);        
         Delta_specific_energy = ejected_specific_energy - cold_specific_energy; // specific energy required to instantly eject mass
         
         if(Delta_specific_energy>0)
