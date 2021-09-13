@@ -33,44 +33,48 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
 
   for(i = 0; i < ngal; i++)      // Loop over all galaxies in the FoF-halo 
   {
-    Rsat = sqrt(sqr(Gal[i].Pos[0]-Gal[centralgal].Pos[0]) + sqr(Gal[i].Pos[1]-Gal[centralgal].Pos[1]) + sqr(Gal[i].Pos[2]-Gal[centralgal].Pos[2])) * ExpFac;
+    Rsat = get_satellite_radius(i, centralgal);
       
     // "Total baryons" is only concerned within Rvir
     if(Rsat <= Gal[centralgal].Rvir)
     {
-      tot_stellarMass += Gal[i].StellarMass;
-      tot_BHMass += Gal[i].BlackHoleMass;
-      tot_coldMass += Gal[i].ColdGas;
-      tot_hotMass += Gal[i].HotGas;
-      tot_hotMetals += Gal[i].MetalsHotGas;
-      tot_ejected += Gal[i].EjectedMass;
-      tot_ejectedMetals += Gal[i].MetalsEjectedMass;
+        tot_stellarMass += Gal[i].StellarMass;
+        tot_BHMass += Gal[i].BlackHoleMass;
+        tot_coldMass += Gal[i].ColdGas;
+        tot_hotMass += Gal[i].HotGas;
+        tot_hotMetals += Gal[i].MetalsHotGas;
+        tot_ejected += Gal[i].EjectedMass;
+        tot_ejectedMetals += Gal[i].MetalsEjectedMass;
+        
+        tot_ICS += Gal[i].ICS;
+        tot_ICSMetals += Gal[i].MetalsICS;
+          
+        // Age structure of ICS
+        if(AgeStructOut>0)
+        {
+          for(k=0; k<N_AGE_BINS; k++)
+          {
+              tot_ICS_Age[k] += Gal[i].ICS_Age[k];
+              tot_ICSMetals_Age[k] += Gal[i].MetalsICS_Age[k];
+          }
+        }
+        
+        if(i != centralgal) Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
+        
     }
-    else if(HeatedToCentral)
-    {
-      tot_ejected += Gal[i].EjectedMass;
-      tot_ejectedMetals += Gal[i].MetalsEjectedMass;
-    }
+//    else if(HeatedToCentral)
+//    {
+//      tot_ejected += Gal[i].EjectedMass;
+//      tot_ejectedMetals += Gal[i].MetalsEjectedMass;
+//    }
       
-    tot_ICS += Gal[i].ICS;
-    tot_ICSMetals += Gal[i].MetalsICS;
-      
-    // Age structure of ICS
-    if(AgeStructOut>0)
-    {
-      for(k=0; k<N_AGE_BINS; k++)
-      {
-          tot_ICS_Age[k] += Gal[i].ICS_Age[k];
-          tot_ICSMetals_Age[k] += Gal[i].MetalsICS_Age[k];
-      }
-    }
     
-    if(i != centralgal)
-    {
-      if(HeatedToCentral) Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
-//      Gal[i].ICS = Gal[i].MetalsICS = 0.0; // satellite ICS goes to central ICS
-//      if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[i].ICS_Age[k] = Gal[i].MetalsICS_Age[k] = 0.0;
-    }
+    
+//    if(i != centralgal)
+//    {
+////      Gal[i].ICS = Gal[i].MetalsICS = 0.0; // satellite ICS goes to central ICS
+////      if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[i].ICS_Age[k] = Gal[i].MetalsICS_Age[k] = 0.0;
+//    }
       
   }
 
@@ -82,12 +86,19 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
 
   infallingMass = reionization_modifier * BaryonFrac * Gal[centralgal].Mvir - (tot_stellarMass + tot_coldMass + tot_hotMass + tot_ejected + tot_BHMass + tot_ICS);
 
-  // the central galaxy keeps all the ejected mass
-  if(HeatedToCentral)
+//  // the central galaxy keeps all the ejected mass of galaxies within Rvir
+//  if(HeatedToCentral)
+//  {
+////      if(ReincorpotationModel>=3) update_reincorporation_time(centralgal, tot_ejected-Gal[centralgal].EjectedMass); // update reincorporation time-scale, using the current time-scale for the newly added material
+//      Gal[centralgal].EjectedMass = tot_ejected;
+//      Gal[centralgal].MetalsEjectedMass = tot_ejectedMetals;
+//  }
+    
+  // Put ejecta from satellites into the hot reservoir of the central
+  if(tot_ejected > Gal[centralgal].EjectedMass)
   {
-      update_reincorporation_time(centralgal, tot_ejected-Gal[centralgal].EjectedMass); // update reincorporation time-scale, using the current time-scale for the newly added material
-      Gal[centralgal].EjectedMass = tot_ejected;
-      Gal[centralgal].MetalsEjectedMass = tot_ejectedMetals;
+    Gal[centralgal].HotGas += (tot_ejected - Gal[centralgal].EjectedMass);
+    Gal[centralgal].MetalsHotGas += (tot_ejectedMetals - Gal[centralgal].MetalsEjectedMass);
   }
 
   // take care of any potential numerical issues regarding ejected mass
@@ -129,6 +140,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
   double reionization_modifier, strippedGas, strippedGasMetals, metallicity;
   double tidal_strippedGas, tidal_strippedGasMetals;
   double strippedBaryons, strippedICS, strippedICSmetals, strippedICS_age, stripped_ICSmetals_age;
+  double r_gal;
   int k;
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
     
@@ -142,7 +154,9 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
     
   // Usage depends on HotStripOn flag
   strippedBaryons = -1.0 * (reionization_modifier * BaryonFrac * Gal[gal].Mvir - (Gal[gal].StellarMass + Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass + Gal[gal].BlackHoleMass + Gal[gal].ICS) ) / STEPS;
-    
+        
+  r_gal = get_satellite_radius(gal, centralgal);
+
   if(strippedBaryons<=0 && HotStripOn==1) return 0.0;
 
   if(HotStripOn==1 || HotStripOn==4)
@@ -152,8 +166,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
     strippedGas = strippedBaryons * Gal[gal].HotGas / (Gal[gal].HotGas + Gal[gal].ICS);
     strippedICS = strippedBaryons - strippedGas;
       
-    if(!HeatedToCentral)
-    { // only relevant if the ejected reservoir hasn't automatically been fully stripped
+    if(r_gal > Gal[centralgal].Rvir)
+    { // gradually strip ejected gas when satellite is outside the virial radius
         assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
         assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
           
@@ -162,12 +176,14 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
               metallicity = get_metallicity(Gal[gal].EjectedMass, Gal[gal].MetalsEjectedMass);
               Gal[gal].EjectedMass -= strippedGas;
               Gal[gal].MetalsEjectedMass -= strippedGas * metallicity;
+              update_reincorporation_time(centralgal, strippedGas);
               Gal[centralgal].EjectedMass += strippedGas;
               Gal[centralgal].MetalsEjectedMass += strippedGas * metallicity;
               strippedGas = 0.0;
         }
         else
         {
+              update_reincorporation_time(centralgal, Gal[gal].EjectedMass);
               Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
               Gal[centralgal].MetalsEjectedMass += Gal[gal].MetalsEjectedMass;
               strippedGas -= Gal[gal].EjectedMass;
@@ -192,7 +208,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
         Gal[gal].MetalsHotGas -= strippedGasMetals;
 
         Gal[centralgal].HotGas += strippedGas;
-        Gal[centralgal].MetalsHotGas += strippedGas * metallicity;
+        Gal[centralgal].MetalsHotGas += strippedGasMetals;
     }
     else if(HotStripOn==4)
     {
@@ -272,7 +288,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       double r_gal2, v_gal2, rho_IGM, Pram, Pgrav, left, right, r_try, dif;
       int i, ii;
       
-      r_gal2 = sqr(get_satellite_radius(gal, centralgal));
+      r_gal2 = sqr(r_gal);
       v_gal2 = sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]);
       if(HotGasProfileType==0)
           rho_IGM = Gal[centralgal].HotGas/ (4 * M_PI * Gal[centralgal].Rvir * r_gal2);
@@ -400,7 +416,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
 void ram_pressure_stripping(int centralgal, int gal)
 {
     double r_gal, r_gal2, v_gal2, rho_IGM, Sigma_gas, area;
-    double ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum];
+//    double ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum];
     double angle = acos(Gal[gal].SpinStars[0]*Gal[gal].SpinGas[0] + Gal[gal].SpinStars[1]*Gal[gal].SpinGas[1] + Gal[gal].SpinStars[2]*Gal[gal].SpinGas[2])*180.0/M_PI;
     double Sigma_disc;
     double Pram, Pgrav, Mstrip, MstripZ;
