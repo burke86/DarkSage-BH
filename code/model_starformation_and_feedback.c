@@ -1079,7 +1079,7 @@ void update_HI_H2(int p)
     double area, f_H2, f_H2_HI, Pressure, f_sigma;
     int i, iter;
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
-    double galaxy_ion_term, annulus_ion_term, sigma_gas, fH2_defswap;
+    double galaxy_ion_term, annulus_ion_term, sigma_gas, fH2_defswap, full_ratio, solution_ratio;
     double s, Zp, chi, c_f, Sigma_comp0, Tau_c;
     double X_H, Z, f_neutral, f_neutral_new;
     int iter_max = 100;
@@ -1089,7 +1089,7 @@ void update_HI_H2(int p)
     
     if(Gal[p].Vvir>0.0 && Gal[p].ColdGas>0.0)
     {
-        galaxy_ion_term = cbrt(2.699e-10 * sigma_gas / G) * UnitLength_in_cm / Hubble_h;
+        galaxy_ion_term = G / sigma_gas * 3.705e9 * cube(Hubble_h / UnitLength_in_cm);
         assert(galaxy_ion_term>=0.0);
         
         for(i=0; i<N_BINS; i++)
@@ -1105,7 +1105,7 @@ void update_HI_H2(int p)
             else
                 X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
             
-            annulus_ion_term = cbrt(area / (X_H * Gal[p].DiscGas[i]));
+            annulus_ion_term = X_H * sqr(Gal[p].DiscGas[i]/area);
             assert(annulus_ion_term>=0.0);
             
             f_neutral = 0.77; // initialise the ionzied fraction, will be solved iteratively
@@ -1152,6 +1152,8 @@ void update_HI_H2(int p)
             fH2_defswap = X_H / (1.0/f_H2_HI + 1) ;
             for(iter=0; iter<iter_max; iter++)
             {
+                printf("iter, f_neutral = %i, %e\n", iter, f_neutral);
+
                 if(f_H2_HI > 0.0)
                 {
                     assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
@@ -1166,7 +1168,9 @@ void update_HI_H2(int p)
                 }
                 
 //                f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
-                f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
+                full_ratio = galaxy_ion_term * annulus_ion_term / Gal[p].DiscH2[i];
+                solution_ratio = cbrt(0.5*(5.196152 * sqrt(27*sqr(full_ratio) + 4*full_ratio) + 27*full_ratio + 2));
+                f_neutral_new = 1.0 - 3.0 / (solution_ratio + 1.0/solution_ratio + 1);
                 
                 if(!(f_neutral_new >= 0.0 && f_neutral_new <= 1.0 && Gal[p].DiscGas[i]>0.0)) 
                 {
@@ -1174,9 +1178,8 @@ void update_HI_H2(int p)
                     printf("galaxy_ion_term = %e\n", galaxy_ion_term);
                     printf("annulus_ion_term = %e\n", annulus_ion_term);
                     printf("area, X_H, Gal[p].DiscGas[i] = %e, %e, %e\n", area, X_H, Gal[p].DiscGas[i]);
-                    printf("Gal[p].DiscH2[i], MIN_STARFORMATION = %e, %e\n", Gal[p].DiscH2[i], MIN_STARFORMATION);
+                    printf("Gal[p].DiscH2[i] = %e\n", Gal[p].DiscH2[i]);
                     printf("cbrt(Gal[p].DiscH2[i]) = %e\n", cbrt(Gal[p].DiscH2[i]));
-                    printf("galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]) = %e\n", galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]));
                     printf("f_neutral_new, fabs(f_neutral_new) = %f, %f\n\n", f_neutral_new, fabs(f_neutral_new));
                 }
                 assert(Gal[p].DiscGas[i]>0.0);
@@ -1184,10 +1187,12 @@ void update_HI_H2(int p)
                 assert(fabs(f_neutral_new) >= 0.0);
                 assert(f_neutral_new >= 0.0);
                 
-                if(fabs(f_neutral_new-f_neutral)/f_neutral <= tol) break;
-                f_neutral = 1.0*f_neutral_new;
+                if(fabs(f_neutral_new-f_neutral) <= tol*f_neutral) break;
                 
-                if(iter==iter_max-1) printf("Hit max iterations solving for ionized and molecular fractions\n");
+                if(iter==iter_max-1) 
+                    printf("Hit max iterations solving for ionized and molecular fractions. Last solutions = %e, %e\n\n", f_neutral, f_neutral_new);
+                
+                f_neutral = 1.0*f_neutral_new;
             }
         }
     }
