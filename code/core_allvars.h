@@ -510,7 +510,7 @@ extern double UnitLength_in_cm,
   G,
   Hubble,
   a0, ar,
-  P_0;
+  P_0, uni_ion_term;
 
 extern int    ListOutputSnaps[ABSOLUTEMAXSNAPS];
 

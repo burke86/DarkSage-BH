@@ -63,6 +63,9 @@ void set_units(void)
     
   // Reference pressure for mid-plane HI/H2 breakdown
   P_0 = 5.93e-12 / UnitMass_in_g * UnitLength_in_cm * UnitTime_in_s * UnitTime_in_s;
+    
+  // Constant used in calculating ionized fraction
+  uni_ion_term = 7.271e-17 * sqr(cube(UnitLength_in_cm) / (UnitMass_in_g * UnitTime_in_s) * Hubble_h);
 
 }
 

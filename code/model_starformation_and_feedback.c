@@ -1089,7 +1089,7 @@ void update_HI_H2(int p)
     
     if(Gal[p].Vvir>0.0 && Gal[p].ColdGas>0.0)
     {
-        galaxy_ion_term = G / sqr(sigma_gas) * 3.705e9 * cube(Hubble_h / UnitLength_in_cm); // could add factor of 1/(1-f_esc) here
+        galaxy_ion_term = uni_ion_term * sqr(sigma_gas); // could add factor of 1/(1-f_esc) here
         assert(galaxy_ion_term>=0.0);
         
         for(i=0; i<N_BINS; i++)
@@ -1099,17 +1099,6 @@ void update_HI_H2(int p)
             
             if(Gal[p].DiscGas[i]<=0.0) continue;
             assert(Gal[p].DiscGas[i]>0.0);
-            
-            if(Z >= 0.025)
-                X_H = 0.753 - 1.26*Z;
-            else
-                X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
-            
-            Y_He = 1.0 - X_H - Z;
-            annulus_ion_term = sqr(Gal[p].DiscGas[i]/area)  / (1 + Y_He/X_H);
-            assert(annulus_ion_term>=0.0);
-            
-            f_neutral = 0.77; // initialise the ionzied fraction, will be solved iteratively
             
             if(H2prescription==1)
             {
@@ -1149,55 +1138,72 @@ void update_HI_H2(int p)
             }
 
             
-            // iteratively solve for f_neutral, which will lead to absolute H2 and HI masses per annulus
+            // solve for f_neutral, which will lead to absolute H2 and HI masses per annulus
             if(f_H2_HI > 0.0)
             {
-                fH2_defswap = X_H / (1.0/f_H2_HI + 1) ;
-                for(iter=0; iter<iter_max; iter++)
-                {
+                if(Z >= 0.025)
+                    X_H = 0.753 - 1.26*Z;
+                else
+                    X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
+                
+                Y_He = 1.0 - X_H - Z;
+                
+                f_H2 = X_H / (1.0/f_H2_HI + 1);
+                full_ratio = galaxy_ion_term * f_H2 * sqr(area / (X_H * Gal[p].DiscGas[i])) * 0.25*(3*X_H+1);
+                
+                f_neutral = 0.5 * (full_ratio + 2.0 - sqrt(full_ratio*(full_ratio+4.0)));
+                Gal[p].DiscH2[i] = f_H2 * f_neutral * Gal[p].DiscGas[i];
+                Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
+                
+//                annulus_ion_term = sqr(Gal[p].DiscGas[i]/area)  / (1 + Y_He/X_H);
+//                assert(annulus_ion_term>=0.0);
+                
+    //            f_neutral = 0.77; // initialise the ionzied fraction, will be solved iteratively
+//                for(iter=0; iter<iter_max; iter++)
+//                {
 //                    printf("iter, f_neutral = %i, %e\n", iter, f_neutral);
                     
-                    assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
-                    f_H2 = fH2_defswap * f_neutral; //Changes f_H2 from being H2/HI to H2/Cold Gas
-                    Gal[p].DiscH2[i] = f_H2 * Gal[p].DiscGas[i];
-                    Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
+//                assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
+//                f_H2 = fH2_defswap * f_neutral; //Changes f_H2 from being H2/HI to H2/Cold Gas
+                
 
 
-                    
-    //                f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
-                    full_ratio = galaxy_ion_term * annulus_ion_term / Gal[p].DiscH2[i];
-                    full_ratio_squared = sqr(full_ratio);
-                    solution_ratio = cbrt(9*full_ratio_squared + sqrt(81*sqr(full_ratio_squared) + 12*cube(full_ratio)) );
-                    f_neutral_new = 1.0 - 0.38157*solution_ratio/full_ratio + 0.87358/solution_ratio;
-                    
-                    if(f_neutral_new > 1.0) 
-                    {
-                        f_neutral_new = 1.0;
-//                        break;
-                    }
-                    
-                    if(!(f_neutral_new >= 0.0 && f_neutral_new <= 1.0 && Gal[p].DiscGas[i]>0.0)) 
-                    {
-                        printf("i, p = %i, %i\n", i, p);
-                        printf("galaxy_ion_term, annulus_ion_term = %e, %e\n", galaxy_ion_term, annulus_ion_term);
-                        printf("full_ratio, solution_ratio = %e, %e\n", full_ratio, solution_ratio);
-                        printf("area, X_H, Gal[p].DiscGas[i] = %e, %e, %e\n", area, X_H, Gal[p].DiscGas[i]);
-                        printf("Gal[p].DiscH2[i] = %e\n", Gal[p].DiscH2[i]);
-                        printf("cbrt(Gal[p].DiscH2[i]) = %e\n", cbrt(Gal[p].DiscH2[i]));
-                        printf("f_neutral_new, fabs(f_neutral_new), f_H2_HI = %e, %e, %e\n\n", f_neutral_new, fabs(f_neutral_new), f_H2_HI);
-                    }
-                    assert(Gal[p].DiscGas[i]>0.0);
-                    assert(f_neutral_new <= 1.0);
-                    assert(fabs(f_neutral_new) >= 0.0);
-                    assert(f_neutral_new >= 0.0);
-                    
-                    if(fabs(f_neutral_new-f_neutral) <= tol*f_neutral) break;
-                    
-                    if(iter==iter_max-1) 
-                        printf("Hit max iterations solving for ionized and molecular fractions. Last solutions = %e, %e\n\n", f_neutral, f_neutral_new);
-                    
-                    f_neutral = 1.0*f_neutral_new;
-                }
+                
+//                f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
+//                full_ratio = galaxy_ion_term * annulus_ion_term / Gal[p].DiscH2[i];
+//                full_ratio_squared = sqr(full_ratio);
+//                solution_ratio = cbrt(9*full_ratio_squared + sqrt(81*sqr(full_ratio_squared) + 12*cube(full_ratio)) );
+//                f_neutral_new = 1.0 - 0.38157*solution_ratio/full_ratio + 0.87358/solution_ratio;
+//                
+//                if(f_neutral_new > 1.0) 
+//                {
+//                    f_neutral_new = 1.0;
+////                        break;
+//                }
+//                
+//                if(!(f_neutral_new >= 0.0 && f_neutral_new <= 1.0 && Gal[p].DiscGas[i]>0.0)) 
+//                {
+//                    printf("i, p = %i, %i\n", i, p);
+//                    printf("galaxy_ion_term, annulus_ion_term = %e, %e\n", galaxy_ion_term, annulus_ion_term);
+//                    printf("full_ratio, solution_ratio = %e, %e\n", full_ratio, solution_ratio);
+//                    printf("area, X_H, Gal[p].DiscGas[i] = %e, %e, %e\n", area, X_H, Gal[p].DiscGas[i]);
+//                    printf("Gal[p].DiscH2[i] = %e\n", Gal[p].DiscH2[i]);
+//                    printf("cbrt(Gal[p].DiscH2[i]) = %e\n", cbrt(Gal[p].DiscH2[i]));
+//                    printf("f_neutral_new, fabs(f_neutral_new), f_H2_HI = %e, %e, %e\n\n", f_neutral_new, fabs(f_neutral_new), f_H2_HI);
+//                }
+//                assert(Gal[p].DiscGas[i]>0.0);
+//                assert(f_neutral_new <= 1.0);
+//                assert(fabs(f_neutral_new) >= 0.0);
+//                assert(f_neutral_new >= 0.0);
+//                
+//                if(fabs(f_neutral_new-f_neutral) <= tol*f_neutral) break;
+//                
+//                if(iter==iter_max-1) 
+//                    printf("Hit max iterations solving for ionized and molecular fractions. Last solutions = %e, %e\n\n", f_neutral, f_neutral_new);
+//                
+//                f_neutral = 1.0*f_neutral_new;
+
+//                }
             }
             else
             {
