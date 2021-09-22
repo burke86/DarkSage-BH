@@ -50,6 +50,7 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('IntraClusterStars'            , bulge_arr_type),
                     ('DiscGas'                      , (floattype, Nannuli)),
                     ('DiscStars'                    , (floattype, disc_arr_dim)),
+                    ('VelDispStars'                 , (floattype, disc_arr_dim)),
                     ('SpinStars'                    , (floattype, 3)),
                     ('SpinGas'                      , (floattype, 3)),
                     ('SpinMergerBulge'              , (floattype, 3)),

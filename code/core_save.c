@@ -328,6 +328,7 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
       o->DiscHI[j] = g->DiscHI[j];
       o->DiscH2[j] = g->DiscH2[j];
       o->DiscSFR[j] = g->DiscSFR[j] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
+      o->VelDispStars[j] = g->VelDispStars[j];
   }
 
   o->SfrFromH2 = 0.0;
@@ -476,6 +477,7 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     {
       o->DiscStars[j][k] = g->DiscStarsAge[j][k];
       o->DiscStarsMetals[j][k] = g->DiscStarsMetalsAge[j][k];
+      o->VelDispStars[j][k] = g->VelDispStarsAge[j][k];
     }
     o->DiscGas[j] = g->DiscGas[j];
     o->DiscGasMetals[j] = g->DiscGasMetals[j];

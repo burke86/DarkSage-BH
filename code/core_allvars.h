@@ -85,6 +85,7 @@ struct GALAXY_OUTPUT
   float ICS;
   float DiscGas[N_BINS];
   float DiscStars[N_BINS];
+  float VelDispStars[N_BINS];
   float SpinStars[3];
   float SpinGas[3];
 //  float SpinSecularBulge[3];
@@ -197,6 +198,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float ICS[N_AGE_BINS];
   float DiscGas[N_BINS];
   float DiscStars[N_BINS][N_AGE_BINS];
+  float VelDispStars[N_BINS][N_AGE_BINS];
   float SpinStars[3];
   float SpinGas[3];
   float SpinClassicalBulge[3];
@@ -295,6 +297,7 @@ struct GALAXY
   double ICS;
   double DiscGas[N_BINS];
   double DiscStars[N_BINS];
+  double VelDispStars[N_BINS];
   double SpinStars[3];
   double SpinGas[3];
   double SpinSecularBulge[3];
@@ -381,6 +384,7 @@ struct GALAXY
     double DiscStarsMetalsAge[N_BINS][N_AGE_BINS];
     double ICS_Age[N_AGE_BINS];
     double MetalsICS_Age[N_AGE_BINS];
+    double VelDispStarsAge[N_BINS][N_AGE_BINS];
     
 }
 *Gal, *HaloGal;

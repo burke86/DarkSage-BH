@@ -111,9 +111,9 @@ void init_galaxy(int p, int halonr)
     for(j=0; j<N_BINS; j++)
     {
         if(Gal[p].Vvir>0.0)
-        Gal[p].DiscRadii[j+1] = DiscBinEdge[j+1] / Gal[p].Vvir;
+            Gal[p].DiscRadii[j+1] = DiscBinEdge[j+1] / Gal[p].Vvir;
         else
-        Gal[p].DiscRadii[j+1] = DiscBinEdge[j+1]; // This is essentially just a place-holder for problem galaxies
+            Gal[p].DiscRadii[j+1] = DiscBinEdge[j+1]; // This is essentially just a place-holder for problem galaxies
         Gal[p].DiscGas[j] = 0.0;
         Gal[p].DiscStars[j] = 0.0;
         Gal[p].DiscGasMetals[j] = 0.0;
@@ -122,6 +122,7 @@ void init_galaxy(int p, int halonr)
         Gal[p].TotSinkGas[j] = 0.0;
         Gal[p].TotSinkStar[j] = 0.0;
         Gal[p].Potential[j+1] = NFW_potential(p, Gal[p].DiscRadii[j+1]);
+        Gal[p].VelDispStars[j] = 0.0;
     }
     Gal[p].Potential[0] = Gal[p].Potential[1];
 
@@ -168,6 +169,7 @@ void init_galaxy(int p, int halonr)
         {
             Gal[p].DiscStarsAge[j][k] = 0.0;
             Gal[p].DiscStarsMetalsAge[j][k] = 0.0;
+            Gal[p].VelDispStarsAge[j][k] = 0.0;
         }
     }
 
