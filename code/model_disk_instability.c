@@ -17,7 +17,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
     double r_inner, r_outer, r_av, Kappa, sigma_R, c_s;
 	double NewStars[N_BINS], NewStarsMetals[N_BINS], SNgas[N_BINS], angle, DiscGasSum, DiscStarSum;
     double old_spin[3], SNgas_copy[N_BINS], SNgas_proj[N_BINS], cos_angle;
-    double ann_frac, frac_down, frac_up;
+    double ann_frac, frac_down, frac_up, vel_disp_factor;
 	int i, s, k;
     int first, first_gas, first_star;
 	
@@ -69,7 +69,8 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         else
             Kappa = sqrt(2.0*DiscBinEdge[i+1]/cube(r_outer) * (DiscBinEdge[i+1]-DiscBinEdge[i])/(r_outer-r_inner));
         
-        sigma_R = 0.5*Gal[p].Vvir*exp_f(-r_av/2.0/Gal[p].StellarDiscScaleRadius);
+//        sigma_R = 0.5*Gal[p].Vvir*exp_f(-r_av/2.0/Gal[p].StellarDiscScaleRadius);
+        sigma_R = Gal[p].VelDispStars[i];
 
         Q_gas = c_s * Kappa * (sqr(r_outer) - sqr(r_inner)) / G / Gal[p].DiscGas[i];
         
@@ -218,7 +219,8 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         else
             Kappa = sqrt(2.0*DiscBinEdge[i+1]/cube(r_outer) * (DiscBinEdge[i+1]-DiscBinEdge[i])/(r_outer-r_inner));
         
-        sigma_R = 0.5*Gal[p].Vvir*exp_f(-r_av/2.0/Gal[p].StellarDiscScaleRadius);
+//        sigma_R = 0.5*Gal[p].Vvir*exp_f(-r_av/2.0/Gal[p].StellarDiscScaleRadius);
+        sigma_R = Gal[p].VelDispStars[i];
         
         if(Gal[p].DiscGas[i]-SNgas[i]>0.0 && angle<=ThetaThresh)
         {
@@ -262,7 +264,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
             first_star = 0;
             Gal[p].TotInstabAnnuliStar +=1;
             
-			unstable_stars = (Gal[p].DiscStars[i]+SNgas[i]) * (1.0 - Q_star/Q_star_min);
+			unstable_stars = GasSinkRate * (Gal[p].DiscStars[i]+SNgas[i]) * (1.0 - Q_star/Q_star_min);
             if(unstable_stars > Gal[p].DiscStars[i]) unstable_stars = Gal[p].DiscStars[i];
             
             if(unstable_stars>1e-10)
@@ -367,7 +369,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     }
                     
                 }
-                else // Transfer unstable stars directly into the pseudobulge.  The annuli are already within it!
+                else // Transfer unstable stars directly into the instablility-driven.  The annuli are already within it!  Specific for DiskInstabilityOn=2, which is not the normal mode!
                 {
                     j_lose = (DiscBinEdge[i+1]+DiscBinEdge[i])/2.0;
                     for(s=0; s<3; s++)
@@ -387,6 +389,17 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 }
 
             }
+            
+            // the stellar instability will be partially resolved by adding dispersion to the annulus
+            vel_disp_factor = (1.0 - GasSinkRate) * Q_star_min/Q_star + GasSinkRate;
+            Gal[p].VelDispStars[i] *= vel_disp_factor;
+            
+            if(AgeStructOut > 0)
+            {
+                for(k=0; k<N_AGE_BINS; k++) 
+                    Gal[p].VelDispStarsAge[i][k] *= vel_disp_factor;
+            }
+            
 		}
 	}
     
