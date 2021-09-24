@@ -492,6 +492,7 @@ extern double ClumpExponent;
 extern double RadiusWeight;
 extern double QTotMin;
 extern double GasSinkRate;
+extern double StarSinkRate;
 extern double ThetaThresh;
 extern double DegPerTdyn;
 extern double Reionization_z0;

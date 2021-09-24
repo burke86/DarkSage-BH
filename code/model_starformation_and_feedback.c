@@ -1366,7 +1366,8 @@ void update_HI_H2(int p)
             {
                 if(angle <= ThetaThresh)
                 {
-                    f_sigma =  sigma_gas / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Haven't used the actual average radius of each annulus here...
+//                    f_sigma =  sigma_gas / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Haven't used the actual average radius of each annulus here...
+                    f_sigma =  sigma_gas / Gal[p].VelDispStars[i];
                     Pressure = 0.5*M_PI*G * Gal[p].DiscGas[i] * (Gal[p].DiscGas[i] + f_sigma*Gal[p].DiscStars[i]) / sqr(area) * Hubble_h * Hubble_h;
                 }
                 else
