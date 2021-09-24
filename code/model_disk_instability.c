@@ -333,10 +333,13 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                             frac_down = m_down / unstable_stars;
                             for(k=0; k<N_AGE_BINS; k++)
                             {
-                                Gal[p].VelDispStarsAge[i-1][k] = sqrt( (Gal[p].DiscStarsAge[i-1][k]*sqr(Gal[p].VelDispStarsAge[i-1][k]) + frac_down*unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].DiscStarsAge[i-1][k] + frac_down*unstable_stars_age[k]) );
+                                if(Gal[p].DiscStarsAge[i-1][k] + frac_down*unstable_stars_age[k] > 0.0)
+                                {
+                                    Gal[p].VelDispStarsAge[i-1][k] = sqrt( (Gal[p].DiscStarsAge[i-1][k]*sqr(Gal[p].VelDispStarsAge[i-1][k]) + frac_down*unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].DiscStarsAge[i-1][k] + frac_down*unstable_stars_age[k]) );
 
-                                Gal[p].DiscStarsAge[i-1][k] += unstable_stars_age[k] * frac_down;
-                                Gal[p].DiscStarsMetalsAge[i-1][k] += unstable_metals_age[k] * frac_down;
+                                    Gal[p].DiscStarsAge[i-1][k] += unstable_stars_age[k] * frac_down;
+                                    Gal[p].DiscStarsMetalsAge[i-1][k] += unstable_metals_age[k] * frac_down;
+                                }
                             }
                         }
                         
@@ -378,10 +381,13 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                         frac_up = m_up / unstable_stars;
                         for(k=0; k<N_AGE_BINS; k++)
                         {
-                            Gal[p].VelDispStarsAge[i+1][k] = sqrt( (Gal[p].DiscStarsAge[i+1][k]*sqr(Gal[p].VelDispStarsAge[i+1][k]) + frac_up*unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].DiscStarsAge[i+1][k] + frac_up*unstable_stars_age[k]) );
+                            if(Gal[p].DiscStarsAge[i+1][k] + frac_up*unstable_stars_age[k] > 0.0)
+                            {
+                                Gal[p].VelDispStarsAge[i+1][k] = sqrt( (Gal[p].DiscStarsAge[i+1][k]*sqr(Gal[p].VelDispStarsAge[i+1][k]) + frac_up*unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].DiscStarsAge[i+1][k] + frac_up*unstable_stars_age[k]) );
 
-                            Gal[p].DiscStarsAge[i+1][k] += unstable_stars_age[k] * frac_up;
-                            Gal[p].DiscStarsMetalsAge[i+1][k] += unstable_metals_age[k] * frac_up;
+                                Gal[p].DiscStarsAge[i+1][k] += unstable_stars_age[k] * frac_up;
+                                Gal[p].DiscStarsMetalsAge[i+1][k] += unstable_metals_age[k] * frac_up;
+                            }
                         }
                     }
                     

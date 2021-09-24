@@ -232,6 +232,8 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
     double reheated_mass_old, v_wind2, v_therm2, two_vv;
     int iter;
     
+    if(max_consume > Gal[p].DiscGas[i])
+        max_consume = Gal[p].DiscGas[i];
 
     if(SupernovaRecipeOn > 0 && Gal[p].DiscGas[i] > 0.0 && stars>=MIN_STARS_FOR_SN)
     {
