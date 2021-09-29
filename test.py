@@ -63,6 +63,7 @@ def galdtype():
         ('IntraClusterStars'            , floattype),
         ('DiscGas'                      , (floattype, Nannuli)),
         ('DiscStars'                    , (floattype, Nannuli)),
+        ('VelDispStars'                 , (floattype, Nannuli)),
         ('SpinStars'                    , (floattype, 3)),
         ('SpinGas'                      , (floattype, 3)),
         ('SpinMergerBulge'              , (floattype, 3)),
