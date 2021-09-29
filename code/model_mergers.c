@@ -132,7 +132,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
   if(g_max>0) 
     gas_mass_ratio = g_min/g_max;
 
-  add_galaxies_together(merger_centralgal, p, centralgal, mass_ratio, disc_mass_ratio, PostRetroGas);
+  add_galaxies_together(merger_centralgal, p, centralgal, k_now, mass_ratio, disc_mass_ratio, PostRetroGas);
     
   
   for(i=0; i<N_BINS; i++) assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
@@ -216,7 +216,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 
   if(mass_ratio > ThreshMajorMerger)
   {
-    stars_to_bulge(merger_centralgal);
+    stars_to_bulge(merger_centralgal, k_now);
     Gal[merger_centralgal].LastMajorMerger = time;
     Gal[p].mergeType = 2;  // Mark as major merger
       
@@ -453,7 +453,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 
 
 
-void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
+void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
 {
   int step, i, s, k;
   double DiscGasSum, CentralGasOrig, ExpFac, dPos[3], dVel[3];
@@ -848,7 +848,7 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
   // If accounting for age, need to deposit all the smaller galaxies' stars into the right age bins for the classical bulge  
   if(AgeStructOut>0)
   {
-      for(k=0; k<N_AGE_BINS; k++)
+      for(k=k_now; k<N_AGE_BINS; k++)
       {
           Gal[t].ClassicalBulgeMassAge[k] += (Gal[p].ClassicalBulgeMassAge[k] + Gal[p].SecularBulgeMassAge[k]);
           Gal[t].ClassicalMetalsBulgeMassAge[k] += (Gal[p].ClassicalMetalsBulgeMassAge[k] + Gal[p].SecularMetalsBulgeMassAge[k]);
@@ -899,7 +899,7 @@ void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, doub
 
 
 
-void stars_to_bulge(int t)
+void stars_to_bulge(int t, int k_now)
 {
   int step, i, k;
     
@@ -921,7 +921,7 @@ void stars_to_bulge(int t)
   // Put stars from different age bins into appropriate ones for the merger-driven bulge
   if(AgeStructOut>0)
   {
-    for(k=0; k<N_AGE_BINS; k++)
+    for(k=k_now; k<N_AGE_BINS; k++)
     {
         Gal[t].ClassicalBulgeMassAge[k] += Gal[t].SecularBulgeMassAge[k];
         Gal[t].ClassicalMetalsBulgeMassAge[k] += Gal[t].SecularMetalsBulgeMassAge[k];
@@ -954,7 +954,7 @@ void stars_to_bulge(int t)
 
 
 
-void disrupt_satellite_to_ICS(int centralgal, int gal)
+void disrupt_satellite_to_ICS(int centralgal, int gal, int k_now)
 {  
   int i, k;
   Gal[centralgal].HotGas += Gal[gal].ColdGas + Gal[gal].HotGas;
@@ -971,7 +971,7 @@ void disrupt_satellite_to_ICS(int centralgal, int gal)
     
   if(AgeStructOut>0)
   {
-    for(k=0; k<N_AGE_BINS; k++)
+    for(k=k_now; k<N_AGE_BINS; k++)
     {
         Gal[centralgal].ICS_Age[k] += (Gal[gal].ClassicalBulgeMassAge[k] + Gal[gal].SecularBulgeMassAge[k] + Gal[gal].ICS_Age[k]);
         Gal[centralgal].MetalsICS_Age[k] += (Gal[gal].ClassicalMetalsBulgeMassAge[k] + Gal[gal].SecularMetalsBulgeMassAge[k] + Gal[gal].MetalsICS_Age[k]);

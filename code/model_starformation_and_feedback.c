@@ -234,6 +234,9 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
     
     if(max_consume > Gal[p].DiscGas[i])
         max_consume = Gal[p].DiscGas[i];
+    
+    if(stars > max_consume)
+        stars = max_consume;
 
     if(SupernovaRecipeOn > 0 && Gal[p].DiscGas[i] > 0.0 && stars>=MIN_STARS_FOR_SN)
     {
@@ -759,7 +762,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
 		assert(NewStarsMetals[i] <= NewStars[i]);
         
-        for(k=0; k<N_AGE_BINS; k++)
+        for(k=k_now; k<N_AGE_BINS; k++)
             assert(Gal[p].DiscStarsMetalsAge[i][k] <= Gal[p].DiscStarsAge[i][k]);
     }
 	
@@ -824,9 +827,9 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 	if(cos_angle_sdisc_comb<1.0)
     {
 //        for(i=0; i<N_BINS; i++) 
-//            for(k=0; k<N_AGE_BINS; k++)
+//            for(k=k_now; k<N_AGE_BINS; k++)
 //                assert(Gal[p].DiscStarsMetalsAge[i][k] <= Gal[p].DiscStarsAge[i][k]);
-		project_disc_with_dispersion(Gal[p].DiscStars, Gal[p].DiscStarsMetals, Gal[p].VelDispStars, Gal[p].DiscStarsAge, Gal[p].DiscStarsMetalsAge, Gal[p].VelDispStarsAge, cos_angle_sdisc_comb, p, Disc1, Disc1Metals, Disc1VelDisp, Disc1Age, Disc1MetalsAge, Disc1VelDispAge);
+		project_disc_with_dispersion(Gal[p].DiscStars, Gal[p].DiscStarsMetals, Gal[p].VelDispStars, Gal[p].DiscStarsAge, Gal[p].DiscStarsMetalsAge, Gal[p].VelDispStarsAge, cos_angle_sdisc_comb, p, k_now, Disc1, Disc1Metals, Disc1VelDisp, Disc1Age, Disc1MetalsAge, Disc1VelDispAge);
 //		project_disc(Gal[p].DiscStarsMetals, cos_angle_sdisc_comb, p, Disc1Metals);
         
         // using old functions here as I don't need to project dispersion
@@ -836,7 +839,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
         // moving this code to inside the new project_disc_with_dispersion() function
 //        if(AgeStructOut>0)
 //        {
-//            for(k=0; k<N_AGE_BINS; k++)
+//            for(k=k_now; k<N_AGE_BINS; k++)
 //            {
 //                project_disc_age(Gal[p].DiscStarsAge, cos_angle_sdisc_comb, p, k, Disc1Age[k]);
 //                project_disc_age(Gal[p].DiscStarsMetalsAge, cos_angle_sdisc_comb, p, k, Disc1MetalsAge[k]);
@@ -865,7 +868,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
             
             if(AgeStructOut>0)
             {
-                for(k=0; k<N_AGE_BINS; k++)
+                for(k=k_now; k<N_AGE_BINS; k++)
                 {
                     Gal[p].DiscStarsAge[i][k] = 1.0*Disc1Age[i][k];
                     Gal[p].DiscStarsMetalsAge[i][k] = 1.0*Disc1MetalsAge[i][k];
@@ -936,9 +939,9 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 //		project_disc(Gal[p].DiscStarsMetals, (J_sum - 2.0*J_retro)/J_sum, p, Disc1Metals);
         
 //        for(i=0; i<N_BINS; i++) 
-//            for(k=0; k<N_AGE_BINS; k++)
+//            for(k=k_now; k<N_AGE_BINS; k++)
 //                assert(Gal[p].DiscStarsMetalsAge[i][k] <= Gal[p].DiscStarsAge[i][k]);
-        project_disc_with_dispersion(Gal[p].DiscStars, Gal[p].DiscStarsMetals, Gal[p].VelDispStars, Gal[p].DiscStarsAge, Gal[p].DiscStarsMetalsAge, Gal[p].VelDispStarsAge, (J_sum - 2.0*J_retro)/J_sum, p, Disc1, Disc1Metals, Disc1VelDisp, Disc1Age, Disc1MetalsAge, Disc1VelDispAge);
+        project_disc_with_dispersion(Gal[p].DiscStars, Gal[p].DiscStarsMetals, Gal[p].VelDispStars, Gal[p].DiscStarsAge, Gal[p].DiscStarsMetalsAge, Gal[p].VelDispStarsAge, (J_sum - 2.0*J_retro)/J_sum, p, k_now, Disc1, Disc1Metals, Disc1VelDisp, Disc1Age, Disc1MetalsAge, Disc1VelDispAge);
         
 		for(i=0; i<N_BINS; i++)
 		{
@@ -949,7 +952,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
             
             if(AgeStructOut>0)
             {
-                for(k=0; k<N_AGE_BINS; k++)
+                for(k=k_now; k<N_AGE_BINS; k++)
                 {
                     Gal[p].DiscStarsAge[i][k] = Disc1Age[i][k];
                     Gal[p].DiscStarsMetalsAge[i][k] = Disc1MetalsAge[i][k];
@@ -961,7 +964,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
         
 //        if(AgeStructOut>0)
 //        {
-//            for(k=0; k<N_AGE_BINS; k++)
+//            for(k=k_now; k<N_AGE_BINS; k++)
 //            {
 //                project_disc_age(Gal[p].DiscStarsAge, (J_sum - 2.0*J_retro)/J_sum, p, k, Disc1Age[k]);
 //                project_disc_age(Gal[p].DiscStarsMetalsAge, (J_sum - 2.0*J_retro)/J_sum, p, k, Disc1MetalsAge[k]);
@@ -984,8 +987,8 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
     }
     
     DiscStarSum = get_disc_stars(p);
-    if(DiscStarSum > 1.01*(Gal[p].StellarMass-Gal[p].SecularBulgeMass-Gal[p].ClassicalBulgeMass) || DiscStarSum < (Gal[p].StellarMass-Gal[p].SecularBulgeMass-Gal[p].ClassicalBulgeMass)/1.01)
-        printf("Stellar Disc, bulge, total = %e, %e, %e\n", DiscStarSum, Gal[p].SecularBulgeMass+Gal[p].ClassicalBulgeMass, Gal[p].StellarMass);
+//    if(DiscStarSum > 1.01*(Gal[p].StellarMass-Gal[p].SecularBulgeMass-Gal[p].ClassicalBulgeMass) || DiscStarSum < (Gal[p].StellarMass-Gal[p].SecularBulgeMass-Gal[p].ClassicalBulgeMass)/1.01)
+//        printf("Stellar Disc, bulge, total = %e, %e, %e\n", DiscStarSum, Gal[p].SecularBulgeMass+Gal[p].ClassicalBulgeMass, Gal[p].StellarMass);
     
     if(DiscStarSum>0.0) assert(DiscStarSum+Gal[p].SecularBulgeMass+Gal[p].ClassicalBulgeMass <= 1.01*Gal[p].StellarMass && DiscStarSum+Gal[p].SecularBulgeMass+Gal[p].ClassicalBulgeMass >= Gal[p].StellarMass/1.01);
 
@@ -994,7 +997,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 		if(Gal[p].DiscStarsMetals[i] > Gal[p].DiscStars[i]) printf("DiscStars, Metals = %e, %e\n", Gal[p].DiscStars[i], Gal[p].DiscStarsMetals[i]);
 		assert(Gal[p].DiscStarsMetals[i] <= Gal[p].DiscStars[i]);
         
-//        for(k=0; k<N_AGE_BINS; k++)
+//        for(k=k_now; k<N_AGE_BINS; k++)
 //            assert(Gal[p].DiscStarsMetalsAge[i][k] <= Gal[p].DiscStarsAge[i][k]);
     }
 
@@ -1064,7 +1067,7 @@ void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewD
 }
 
 
-void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_BINS], double VelDisp[N_BINS], double DiscMassAge[N_BINS][N_AGE_BINS], double DiscMetalsAge[N_BINS][N_AGE_BINS], double VelDispAge[N_BINS][N_AGE_BINS], double cos_angle, int p, double *NewDisc, double *NewMetals, double *NewVelDisp, double (*NewDiscAge)[N_AGE_BINS], double (*NewMetalsAge)[N_AGE_BINS], double (*NewVelDispAge)[N_AGE_BINS])
+void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_BINS], double VelDisp[N_BINS], double DiscMassAge[N_BINS][N_AGE_BINS], double DiscMetalsAge[N_BINS][N_AGE_BINS], double VelDispAge[N_BINS][N_AGE_BINS], double cos_angle, int p, int k_now, double *NewDisc, double *NewMetals, double *NewVelDisp, double (*NewDiscAge)[N_AGE_BINS], double (*NewMetalsAge)[N_AGE_BINS], double (*NewVelDispAge)[N_AGE_BINS])
 {
     
     
@@ -1083,7 +1086,7 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
             
             if(AgeStructOut > 0)
             {
-                for(k=0; k<N_AGE_BINS; k++)
+                for(k=k_now; k<N_AGE_BINS; k++)
                 {
                     if(!(DiscMetalsAge[i][k] <= DiscMassAge[i][k]))
                         printf("i, k, DiscMetalsAge[i][k], DiscMassAge[i][k] = %i, %i, %e, %e\n", i, k, DiscMetalsAge[i][k], DiscMassAge[i][k]);
@@ -1120,7 +1123,7 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
         NewVelDisp[i] = 0.0; // Will treat this as variance and take the square root at the end of the loop to avoid unnecessary repetitive squaring and rooting
         if(AgeStructOut > 0)
         {
-            for(k=0; k<N_AGE_BINS; k++)
+            for(k=k_now; k<N_AGE_BINS; k++)
             {
                 NewDiscAge[i][k] = 0.0;
                 NewMetalsAge[i][k] = 0.0;
@@ -1137,7 +1140,7 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
                 
                 if(AgeStructOut > 0)
                 {
-                    for(k=0; k<N_AGE_BINS; k++)
+                    for(k=k_now; k<N_AGE_BINS; k++)
                     {
                         if(NewDiscAge[i][k] + DiscMassAge[l][k] > 0)
                         {
@@ -1185,7 +1188,7 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
                 
                 if(AgeStructOut > 0)
                 {
-                    for(k=0; k<N_AGE_BINS; k++)
+                    for(k=k_now; k<N_AGE_BINS; k++)
                     {
                         if(NewDiscAge[i][k] + ratio_last_bin*DiscMassAge[j][k] > 0)
                         {
@@ -1216,7 +1219,7 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
             
             if(AgeStructOut > 0)
             {
-                for(k=0; k<N_AGE_BINS; k++)
+                for(k=k_now; k<N_AGE_BINS; k++)
                 {
                     NewVelDispAge[i][k] = VelDispAge[i][k];
                     NewDiscAge[i][k] = DiscMassAge[i][k];

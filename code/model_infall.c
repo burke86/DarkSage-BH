@@ -17,6 +17,8 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   double tot_ICS, tot_ICSMetals;
   double tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS];
   double infallingMass, reionization_modifier, DiscGasSum, Rsat, ExpFac;
+    
+  int k_now = get_stellar_age_bin_index(Age[Gal[centralgal].SnapNum]);
 
   ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum]; // Expansion factor
     
@@ -52,7 +54,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
         // Age structure of ICS
         if(AgeStructOut>0)
         {
-          for(k=0; k<N_AGE_BINS; k++)
+          for(k=k_now; k<N_AGE_BINS; k++)
           {
               tot_ICS_Age[k] += Gal[i].ICS_Age[k];
               tot_ICSMetals_Age[k] += Gal[i].MetalsICS_Age[k];
@@ -135,7 +137,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
 
 
 
-double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas)
+double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas, int k_now)
 {
   double reionization_modifier, strippedGas, strippedGasMetals, metallicity;
   double tidal_strippedGas, tidal_strippedGasMetals;
@@ -226,7 +228,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             {
                 strippedICSmetals = 0.0;
               
-                for(k=0; k<N_AGE_BINS; k++)
+                for(k=k_now; k<N_AGE_BINS; k++)
                 {
                     strippedICS_age = strippedICS * Gal[gal].ICS_Age[k] / Gal[gal].ICS;
                     stripped_ICSmetals_age = get_metallicity(Gal[gal].ICS_Age[k], Gal[gal].MetalsICS_Age[k]) * strippedICS_age;
@@ -252,7 +254,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
         }
         else
         {
-            for(k=0; k<N_AGE_BINS; k++)
+            for(k=k_now; k<N_AGE_BINS; k++)
             {
                 Gal[centralgal].ICS_Age[k] += Gal[gal].ICS_Age[k];
                 Gal[centralgal].MetalsICS_Age[k] += Gal[gal].MetalsICS_Age[k];
@@ -413,7 +415,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
 }
 
 
-void ram_pressure_stripping(int centralgal, int gal)
+void ram_pressure_stripping(int centralgal, int gal, int k_now)
 {
     double r_gal, r_gal2, v_gal2, rho_IGM, Sigma_gas, area;
 //    double ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum];
@@ -438,7 +440,7 @@ void ram_pressure_stripping(int centralgal, int gal)
     
     if(RamPressureOn==3 && Gal[gal].DiscRadii[1]>r_tidal && Msat<ThreshMajorMerger*Mhost)
     {
-        disrupt_satellite_to_ICS(centralgal, gal); // satellite fully tidally disrupted
+        disrupt_satellite_to_ICS(centralgal, gal, k_now); // satellite fully tidally disrupted
         return;
     }
     
@@ -555,7 +557,7 @@ void ram_pressure_stripping(int centralgal, int gal)
                 Gal[gal].DiscStars[j] = 0.0;
                 Gal[gal].DiscStarsMetals[j] = 0.0;
 
-                for(k=0; k<N_AGE_BINS; k++)
+                for(k=k_now; k<N_AGE_BINS; k++)
                 {
                     Gal[centralgal].ICS_Age[k] += Gal[gal].DiscStarsAge[j][k];
                     Gal[centralgal].MetalsICS_Age[k] += Gal[gal].DiscStarsMetalsAge[j][k];

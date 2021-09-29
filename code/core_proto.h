@@ -35,7 +35,7 @@ void myexit(int signum);
 void finalize_galaxy_file(int filenr);
 
 void starformation_and_feedback(int p, int centralgal, double dt, int step, double time);
-void add_galaxies_together(int t, int p, int centralgal, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas);
+void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas);
 void init_galaxy(int p, int halonr);
 double infall_recipe(int centralgal, int ngal, double Zcurr);
 void add_infall_to_hot(int centralgal, double infallingGas);
@@ -51,7 +51,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
 void update_from_star_formation(int p, double stars, double metallicity, int i);
 void update_from_feedback(int p, int centralgal, double reheated_mass, double metallicity, int i, double ejected_cold_mass);
 void update_from_ejection(int p, int centralgal, double ejected_mass);
-void stars_to_bulge(int t);
+void stars_to_bulge(int t, int k_now);
 double grow_black_hole(int merger_centralgal, double* disc_mass_ratio);
 void check_disk_instability(int p, int centralgal, double dt, int step, double time);
 
@@ -60,7 +60,7 @@ void retrograde_gas_collision(int p, double cos_angle_halo_new, double cos_angle
 void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals[N_BINS], double time);
 void project_disc(double DiscMass[N_BINS], double cos_angle, int p, double *NewDisc);
 void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, int p, int k, double *NewDiscAge);
-void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_BINS], double VelDisp[N_BINS], double DiscMassAge[N_BINS][N_AGE_BINS], double DiscMetalsAge[N_BINS][N_AGE_BINS], double VelDispAge[N_BINS][N_AGE_BINS], double cos_angle, int p, double *NewDisc, double *NewMetals, double *NewVelDisp, double (*NewDiscAge)[N_AGE_BINS], double (*NewMetalsAge)[N_AGE_BINS], double (*NewVelDispAge)[N_AGE_BINS]);
+void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_BINS], double VelDisp[N_BINS], double DiscMassAge[N_BINS][N_AGE_BINS], double DiscMetalsAge[N_BINS][N_AGE_BINS], double VelDispAge[N_BINS][N_AGE_BINS], double cos_angle, int p, int k_now, double *NewDisc, double *NewMetals, double *NewVelDisp, double (*NewDiscAge)[N_AGE_BINS], double (*NewMetalsAge)[N_AGE_BINS], double (*NewVelDispAge)[N_AGE_BINS]);
 double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallicity, int centralgal, double r_inner, double r_outer);
 double get_disc_gas(int halonr);
 double get_disc_stars(int halonr);
@@ -70,7 +70,7 @@ void update_HI_H2(int p);
 void update_disc_radii(int p);
 void check_channel_stars(int p);
 void check_ejected(int p);
-void ram_pressure_stripping(int centralgal, int gal);
+void ram_pressure_stripping(int centralgal, int gal, int k_now);
 double sqr(double x);
 double cube(double x);
 double exp_f(double x);
@@ -96,8 +96,8 @@ double get_satellite_mass(int p);
 double get_Mhost_internal(int p, int centralgal, double dr);
 void rotate(double *pos, double axis[3], double angle);
 
-double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas);
-void disrupt_satellite_to_ICS(int centralgal, int gal);
+double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas, int k_now);
+void disrupt_satellite_to_ICS(int centralgal, int gal, int k_now);
 void quasar_mode_wind(int p, float BHaccrete, int centralgal);
 
 double get_metallicity(double gas, double metals);

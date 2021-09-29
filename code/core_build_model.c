@@ -336,7 +336,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       deltaT = Age[Gal[p].SnapNum] - Age[Halo[halonr].SnapNum];
       dt = (deltaT / STEPS);
       time = Age[Gal[p].SnapNum] - (step + 0.5) * dt;
-      
+      k_now = get_stellar_age_bin_index(time);
+
       if(Gal[p].dT < 0.0)
         Gal[p].dT = deltaT;
 
@@ -351,11 +352,11 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         
       // hot-gas stripping of satellites
       else if(HotStripOn>0 && Gal[p].Type == 1 && Gal[p].HotGas > 0.0 && Gal[p].MaxStrippedGas>0.0)
-            Gal[p].MaxStrippedGas = strip_from_satellite(halonr, centralgal, p, Gal[p].MaxStrippedGas);
+            Gal[p].MaxStrippedGas = strip_from_satellite(halonr, centralgal, p, Gal[p].MaxStrippedGas, k_now);
         
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0 && (Gal[p].ColdGas+Gal[p].StellarMass)>Gal[p].HotGas)
-          ram_pressure_stripping(centralgal, p);
+          ram_pressure_stripping(centralgal, p, k_now);
         
       // determine cooling gas given halo properties
       // Preventing cooling when there's no angular momentum, as the code isn't built to handle that.  This only cropped up for Vishnu haloes with 2 particles, which clearly weren't interesting/physical.  Haloes always have some spin otherwise.
@@ -382,7 +383,6 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
         if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && Gal[p].StellarMass>0)
         {
-            k_now = get_stellar_age_bin_index(time);
             InstantTimeFrame = 0.5*(AgeBinEdge[k_now+1] - AgeBinEdge[k_now]);
 //            printf("InstantTimeFrame = %e\n", InstantTimeFrame);
             get_RecycleFraction_and_NumSNperMass(0.0, InstantTimeFrame, StellarOutput);
@@ -440,7 +440,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
           Gal[p].mergeIntoID = NumGals + merger_centralgal;  // position in output 
 
           if(Gal[p].MergTime > 0.0)  // disruption has occured!
-            disrupt_satellite_to_ICS(centralgal, p);
+            disrupt_satellite_to_ICS(centralgal, p, k_now);
           else
           {
             time = Age[Gal[p].SnapNum] - (step + 0.5) * dt;
@@ -476,7 +476,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     
   //=== move any ICS and Ejected Gas to the central -- this should already be the case, but somehow there were occasional satellites with non-zero ICS masses in the outputs ===//
   tot_ICS = tot_ejected = tot_ejectedMetals = tot_ICSMetals = 0.0;
-  for(k=0; k<N_AGE_BINS; k++) tot_ICS_Age[k] = tot_ICSMetals_Age[k] = 0.0;
+  for(k=k_now; k<N_AGE_BINS; k++) tot_ICS_Age[k] = tot_ICSMetals_Age[k] = 0.0;
   for(p = 0; p < ngal; p++)
   {
     tot_ejected += Gal[p].EjectedMass;
@@ -487,7 +487,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     // Age structure of ICS
     if(AgeStructOut>0)
     {
-      for(k=0; k<N_AGE_BINS; k++)
+      for(k=k_now; k<N_AGE_BINS; k++)
       {
           tot_ICS_Age[k] += Gal[p].ICS_Age[k];
           tot_ICSMetals_Age[k] += Gal[p].MetalsICS_Age[k];
@@ -498,7 +498,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     {
       Gal[p].EjectedMass = Gal[p].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
       Gal[p].ICS = Gal[p].MetalsICS = 0.0; // satellite ICS goes to central ICS
-      if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[p].ICS_Age[k] = Gal[p].MetalsICS_Age[k] = 0.0;
+      if(AgeStructOut>0)  for(k=k_now; k<N_AGE_BINS; k++)  Gal[p].ICS_Age[k] = Gal[p].MetalsICS_Age[k] = 0.0;
     }
   }
   Gal[centralgal].EjectedMass = tot_ejected;
@@ -508,7 +508,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       
   if(AgeStructOut>0)
   {
-    for(k=0; k<N_AGE_BINS; k++)
+    for(k=k_now; k<N_AGE_BINS; k++)
     {
     Gal[centralgal].ICS_Age[k] = tot_ICS_Age[k];
     Gal[centralgal].MetalsICS_Age[k] = tot_ICSMetals_Age[k];

@@ -395,10 +395,11 @@ double get_disc_gas(int p)
 
 double get_disc_stars(int p)
 {
-    double DiscStarSum, DiscAndBulge, AgeSum; //, dumped_mass
+    double DiscStarSum, DiscAndBulge, AgeSum, VelDispSqrSum, VelDispNet, AgeMetalsSum, DiscMetalsSum, MetalsDiscAndBulge; //, dumped_mass
     int l, k;
     
     DiscStarSum = 0.0;
+    DiscMetalsSum = 0.0;
 //    dumped_mass = 0.0;
     for(l=N_BINS-1; l>=0; l--)
     {
@@ -420,23 +421,47 @@ double get_disc_stars(int p)
         else if(AgeStructOut>0)
         {
             AgeSum = 0.0;
-            for(k=0; k<N_AGE_BINS; k++) AgeSum += Gal[p].DiscStarsAge[l][k];
+            AgeMetalsSum = 0.0;
+            VelDispSqrSum = 0.0;
+            for(k=0; k<N_AGE_BINS; k++)
+            {
+                AgeSum += Gal[p].DiscStarsAge[l][k];
+                AgeMetalsSum += Gal[p].DiscStarsMetalsAge[l][k];
+                VelDispSqrSum += (Gal[p].DiscStarsAge[l][k] * sqr(Gal[p].VelDispStarsAge[l][k]));
+            }
+            VelDispNet = sqrt(VelDispSqrSum / AgeSum);
+            
             if(AgeSum>1.001*Gal[p].DiscStars[l] || AgeSum<0.999*Gal[p].DiscStars[l])
             {
-                printf("get_disc_stars age report: l, AgeSum, Gal[p].DiscStars[l]: %i, %e, %e\n", l, AgeSum, Gal[p].DiscStars[l]);
-                assert(AgeSum<=1.01*Gal[p].DiscStars[l] && AgeSum>=0.99*Gal[p].DiscStars[l]);
-                Gal[p].DiscStars[l] = 1.0*AgeSum;
+//                assert(AgeSum<=1.01*Gal[p].DiscStars[l] && AgeSum>=0.99*Gal[p].DiscStars[l]);
+//                if(AgeSum>1.01*Gal[p].DiscStars[l] || AgeSum<0.99*Gal[p].DiscStars[l])
+//                    printf("get_disc_stars age report: l, AgeSum, Gal[p].DiscStars[l], Gal[p].StellarMass: %i, %e, %e, %e\n", l, AgeSum, Gal[p].DiscStars[l], Gal[p].StellarMass);
+                Gal[p].DiscStars[l] = AgeSum;
+                Gal[p].DiscStarsMetals[l] = AgeMetalsSum;
             }
+            
+            if(VelDispNet > 1.001*Gal[p].VelDispStars[l] || VelDispNet < 0.999*Gal[p].VelDispStars[l])
+            {
+//                assert(VelDispNet<=1.01*Gal[p].VelDispStars[l] && VelDispNet>=0.99*Gal[p].VelDispStars[l]);
+//                if(VelDispNet > 1.01*Gal[p].VelDispStars[l] || VelDispNet < 0.99*Gal[p].VelDispStars[l])
+//                    printf("get_disc_stars age report: l, VelDispNet, Gal[p].VelDispStars[l]: %i, %e, %e\n", l, VelDispNet, Gal[p].VelDispStars[l]);
+                Gal[p].VelDispStars[l] = VelDispNet;
+            }
+            
         }
         DiscStarSum += Gal[p].DiscStars[l];
+        DiscMetalsSum += Gal[p].DiscStarsMetals[l];
     }
     
     DiscAndBulge = DiscStarSum + Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass;
+    MetalsDiscAndBulge = DiscMetalsSum + Gal[p].ClassicalMetalsBulgeMass + Gal[p].SecularMetalsBulgeMass;
     
     if(DiscAndBulge>1.001*Gal[p].StellarMass || DiscAndBulge<0.999*Gal[p].StellarMass)
     {
-//        printf("get_disc_stars report: DiscAndBulge, StellarMass, dumped_mass = %e, %e, %e\n", DiscAndBulge, Gal[p].StellarMass, dumped_mass);
+//        if(DiscAndBulge>1.01*Gal[p].StellarMass || DiscAndBulge<0.99*Gal[p].StellarMass)
+//            printf("get_disc_stars report: DiscAndBulge, StellarMass, dumped_mass = %e, %e, %e\n", DiscAndBulge, Gal[p].StellarMass, Gal[p].StellarMass-DiscAndBulge);
         Gal[p].StellarMass = DiscAndBulge; // Prevent small errors from blowing up
+        Gal[p].MetalsStellarMass = MetalsDiscAndBulge;
         if(Gal[p].StellarMass <= Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass)
         {
             for(l=0; l<N_BINS; l++)
@@ -455,6 +480,7 @@ double get_disc_stars(int p)
             }
             DiscStarSum = 0.0;
             Gal[p].StellarMass = Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass;
+            Gal[p].MetalsStellarMass = Gal[p].ClassicalMetalsBulgeMass + Gal[p].SecularMetalsBulgeMass;
         }
     }
     

@@ -15,15 +15,17 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 	double Q_star, Q_gas, Q_gas_min, Q_star_min, Q_tot, W, Q_stable;
 	double unstable_gas, unstable_stars, metallicity, stars, stars_sum, gas_sink;
     double r_inner, r_outer, r_av, Kappa, sigma_R, c_s;
-	double NewStars[N_BINS], NewStarsMetals[N_BINS], SNgas[N_BINS], angle, DiscGasSum, DiscStarSum;
-    double old_spin[3], SNgas_copy[N_BINS], SNgas_proj[N_BINS], cos_angle;
+    double NewStars[N_BINS], NewStarsMetals[N_BINS], angle, DiscGasSum, DiscStarSum, SNgas[N_BINS];
+    double old_spin[3], cos_angle; //, SNgas_copy[N_BINS], SNgas_proj[N_BINS]
     double ann_frac, frac_down, frac_up, vel_disp_factor, vel_disp_factor_again;
 	int i, s, k;
     int first, first_gas, first_star;
 	
     double star_init = Gal[p].StellarMass;
     double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
-
+    
+    int k_now = get_stellar_age_bin_index(time);
+    
     DiscStarSum = get_disc_stars(p);
     DiscGasSum = get_disc_gas(p);
     check_channel_stars(p);
@@ -128,6 +130,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
                 
                 stars = deal_with_unstable_gas(unstable_gas, p, i, metallicity, centralgal, r_inner, r_outer);
+                assert(stars >= 0);
                 if(stars>=MIN_STARS_FOR_SN)
                     SNgas[i] = RecycleFraction * stars;
                 else
@@ -154,17 +157,17 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
             }
 		}
         
-        if(SNgas[i]>Gal[p].DiscGas[i])
+        if(SNgas[i]  >= Gal[p].DiscGas[i])
         {
             SNgas[i] = 1.0*Gal[p].DiscGas[i];
             Q_gas = 1e5; // arbitrarily large
         }
         else
         {
-            Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / G / (Gal[p].DiscGas[i]-SNgas[i]);
-            if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, SNgas = %e", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], SNgas[i]);
+            Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / (G * (Gal[p].DiscGas[i] - SNgas[i])); // can't guarantee that Q_gas will always be right if I only have DiscGas on the denominator here
+            if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, stars = %e, Q_gas = %e\n", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], NewStars[i] , Q_gas);
             assert(Q_gas>0);
-            if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min = %e, %e\n", Q_gas, Q_gas_min);
+            if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min, Gal[p].DiscGas[i], stars = %e, %e, %e, %e\n", Q_gas, Q_gas_min, Gal[p].DiscGas[i], NewStars[i] );
             assert(Q_gas >= 0.99*Q_gas_min);
             assert(Q_gas >= 0.99*QTotMin);
         }
@@ -174,7 +177,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 	if(gas_sink>0.0 && AGNrecipeOn > 0)
 		quasar_mode_wind(p, gas_sink, centralgal);
 	
-    for(i=0; i<N_BINS; i++) SNgas_copy[i] = SNgas[i];
+//    for(i=0; i<N_BINS; i++) SNgas_copy[i] = SNgas[i];
     
 	// Merge new-star disc with previous stellar disc
 	if(stars_sum>0.0)
@@ -191,7 +194,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         for(i=0; i<3; i++) old_spin[i] = Gal[p].SpinStars[i];
 		combine_stellar_discs(p, NewStars, NewStarsMetals, time);
         cos_angle = Gal[p].SpinStars[0]*old_spin[0] + Gal[p].SpinStars[1]*old_spin[1] + Gal[p].SpinStars[2]*old_spin[2];
-        project_disc(SNgas_copy, cos_angle, p, SNgas_proj);
+//        project_disc(SNgas_copy, cos_angle, p, SNgas_proj);
         
 		Gal[p].SfrInstab[step] += stars_sum / dt;
         Gal[p].StarsInstability += NewStarsSum;
@@ -199,10 +202,10 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         assert(NewStarsSum<=1.001*stars_sum);
         check_channel_stars(p);
    	}
-    else
-    {
-        for(i=0; i<N_BINS; i++) SNgas_proj[i] = 0.0;
-    }
+//    else
+//    {
+//        for(i=0; i<N_BINS; i++) SNgas_proj[i] = 0.0;
+//    }
 	
 	// Deal with stellar instabilities
 	for(i=N_BINS-1; i>=0; i--)
@@ -283,7 +286,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 // Deal with stellar-age populations when stars migrate
                 if(AgeStructOut>0)
                 {
-                    for(k=0; k<N_AGE_BINS; k++)
+                    for(k=k_now; k<N_AGE_BINS; k++)
                     {
                         unstable_stars_age[k] = ann_frac * Gal[p].DiscStarsAge[i][k]; // build array to know which age bins to move mass to in adjacent annuli
                         unstable_metals_age[k] = ann_frac * Gal[p].DiscStarsMetalsAge[i][k];
@@ -303,7 +306,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     
                     if(AgeStructOut>0)
                     {
-                        for(k=0; k<N_AGE_BINS; k++)
+                        for(k=k_now; k<N_AGE_BINS; k++)
                         {
                             Gal[p].VelDispStarsAge[i-1][k] = sqrt( (Gal[p].DiscStarsAge[i-1][k]*sqr(Gal[p].VelDispStarsAge[i-1][k]) + unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].DiscStarsAge[i-1][k] + unstable_stars_age[k]) );
                             
@@ -331,7 +334,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                         if(AgeStructOut>0)
                         {
                             frac_down = m_down / unstable_stars;
-                            for(k=0; k<N_AGE_BINS; k++)
+                            for(k=k_now; k<N_AGE_BINS; k++)
                             {
                                 if(Gal[p].DiscStarsAge[i-1][k] + frac_down*unstable_stars_age[k] > 0.0)
                                 {
@@ -361,7 +364,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                         if(AgeStructOut>0)
                         {
                             frac_down = m_down / unstable_stars;
-                            for(k=0; k<N_AGE_BINS; k++)
+                            for(k=k_now; k<N_AGE_BINS; k++)
                             {
                                 Gal[p].SecularBulgeMassAge[k] += unstable_stars_age[k] * frac_down;
                                 Gal[p].SecularMetalsBulgeMassAge[k] += unstable_metals_age[k] * frac_down;
@@ -379,7 +382,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     if(AgeStructOut>0)
                     {
                         frac_up = m_up / unstable_stars;
-                        for(k=0; k<N_AGE_BINS; k++)
+                        for(k=k_now; k<N_AGE_BINS; k++)
                         {
                             if(Gal[p].DiscStarsAge[i+1][k] + frac_up*unstable_stars_age[k] > 0.0)
                             {
@@ -402,7 +405,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     
                     if(AgeStructOut>0)
                     {
-                        for(k=0; k<N_AGE_BINS; k++)
+                        for(k=k_now; k<N_AGE_BINS; k++)
                         {
                             Gal[p].SecularBulgeMassAge[k] += unstable_stars_age[k];
                             Gal[p].SecularMetalsBulgeMassAge[k] += unstable_metals_age[k];
@@ -434,7 +437,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     
                     if(AgeStructOut > 0)
                     {
-                        for(k=0; k<N_AGE_BINS; k++) 
+                        for(k=k_now; k<N_AGE_BINS; k++) 
                             Gal[p].VelDispStarsAge[i][k] *= vel_disp_factor;
                     }
                 }
