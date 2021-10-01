@@ -185,6 +185,7 @@ void walk_down(int i)
                 printf("GalaxyNr, SnapNum, Type, mergeType = %i, %i, %i, %i\n", GalaxyNr, SnapNum, HaloGal[p].Type, mergeType);
                 printf("StellarMass, ICS, sum = %e, %e, %e\n", StellarMass, ICS, StellarMass+ICS);
                 printf("HaloGal[p].StellarMass, HaloGal[p].ICS, sum = %e, %e, %e\n", HaloGal[p].StellarMass, HaloGal[p].ICS, HaloGal[p].StellarMass + HaloGal[p].ICS);
+                printf("HaloGal[i].RotSupportScaleRadius, HaloGal[p].RotSupportScaleRadius = %e, %e\n", HaloGal[i].RotSupportScaleRadius, HaloGal[p].RotSupportScaleRadius);
                 return;
             }
             
@@ -354,6 +355,7 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->DiskScaleRadius = g->DiskScaleRadius;
   o->CoolScaleRadius = g->CoolScaleRadius;
   o->StellarDiscScaleRadius = g->StellarDiscScaleRadius;
+  o->RotSupportScaleRadius = g->RotSupportScaleRadius;
 
   if (g->Cooling > 0.0)
     o->Cooling = log10(g->Cooling * UnitEnergy_in_cgs / UnitTime_in_s);
@@ -509,6 +511,7 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   o->DiskScaleRadius = g->DiskScaleRadius;
   o->CoolScaleRadius = g->CoolScaleRadius;
   o->StellarDiscScaleRadius = g->StellarDiscScaleRadius;
+  o->RotSupportScaleRadius = g->RotSupportScaleRadius;
 
   if (g->Cooling > 0.0)
     o->Cooling = log10(g->Cooling * UnitEnergy_in_cgs / UnitTime_in_s);
@@ -521,7 +524,8 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
 
   o->LastMajorMerger = g->LastMajorMerger * UnitTime_in_Megayears;
   o->LastMinorMerger = g->LastMinorMerger * UnitTime_in_Megayears;
-    o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+    
+    o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;    
     o->SNejectRate = g->SNejectRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
     
   //infall properties

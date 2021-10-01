@@ -237,12 +237,20 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
             if(Q_gas >= Q_star)
             {
                 Q_tot = 1.0 / (W/Q_gas + 1.0/Q_star);
-                Q_star_min = 1.0 / (1.0/QTotMin - W/Q_gas);
+                
+                if(1.0/QTotMin - W/Q_gas > 0)
+                    Q_star_min = 1.0 / (1.0/QTotMin - W/Q_gas);
+                else
+                    Q_star_min = 1.0; // not clear what else to do in this rare instance
             }
             else
             {
                 Q_tot = 1.0 / (1.0/Q_gas + W/Q_star);
-                Q_star_min = W / (1.0/QTotMin - 1.0/Q_gas);
+                
+                if(1.0/QTotMin - 1.0/Q_gas > 0)
+                    Q_star_min = W / (1.0/QTotMin - 1.0/Q_gas);
+                else
+                    Q_star_min = 1.0; // not clear what else to do in this rare instance
             }
             
             if(Q_tot>=0.99*QTotMin || Q_star>=0.99*Q_star_min) // factor of 0.99 there for rounding errors
@@ -299,6 +307,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 if(i==N_BINS-1)
                 {
                     Gal[p].VelDispStars[i-1] = sqrt( (Gal[p].DiscStars[i-1]*sqr(Gal[p].VelDispStars[i-1]) + unstable_stars*sqr(Gal[p].VelDispStars[i])) / (Gal[p].DiscStars[i-1] + unstable_stars) );
+                    assert(Gal[p].VelDispStars[i-1] >= 0);
                     
                     Gal[p].DiscStars[i-1] += unstable_stars;
                     Gal[p].DiscStarsMetals[i-1] += metallicity * unstable_stars;
@@ -308,7 +317,13 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     {
                         for(k=k_now; k<N_AGE_BINS; k++)
                         {
+                            if(unstable_stars_age[k] <= 0) continue;
+                            
                             Gal[p].VelDispStarsAge[i-1][k] = sqrt( (Gal[p].DiscStarsAge[i-1][k]*sqr(Gal[p].VelDispStarsAge[i-1][k]) + unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].DiscStarsAge[i-1][k] + unstable_stars_age[k]) );
+                            
+                            if(!(Gal[p].VelDispStarsAge[i-1][k] >= 0))
+                                printf("Gal[p].VelDispStarsAge[i-1][k], Gal[p].DiscStarsAge[i-1][k], unstable_stars_age[k] = %e, %e, %e\n", Gal[p].VelDispStarsAge[i-1][k], Gal[p].DiscStarsAge[i-1][k], unstable_stars_age[k]);
+                            assert(Gal[p].VelDispStarsAge[i-1][k] >= 0);
                             
                             Gal[p].DiscStarsAge[i-1][k] += unstable_stars_age[k];
                             Gal[p].DiscStarsMetalsAge[i-1][k] += unstable_metals_age[k];
@@ -327,6 +342,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                         assert((m_up+m_down)<=1.01*unstable_stars && (m_up+m_down)>=0.99*unstable_stars);
                         
                         Gal[p].VelDispStars[i-1] = sqrt( (Gal[p].DiscStars[i-1]*sqr(Gal[p].VelDispStars[i-1]) + m_down*sqr(Gal[p].VelDispStars[i])) / (Gal[p].DiscStars[i-1] + m_down) );
+                        assert(Gal[p].VelDispStars[i-1] >= 0);
                         Gal[p].DiscStars[i-1] += m_down;
                         Gal[p].DiscStarsMetals[i-1] += metallicity * m_down;
                         assert(Gal[p].DiscStarsMetals[i-1]<=Gal[p].DiscStars[i-1]);
@@ -339,6 +355,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                                 if(Gal[p].DiscStarsAge[i-1][k] + frac_down*unstable_stars_age[k] > 0.0)
                                 {
                                     Gal[p].VelDispStarsAge[i-1][k] = sqrt( (Gal[p].DiscStarsAge[i-1][k]*sqr(Gal[p].VelDispStarsAge[i-1][k]) + frac_down*unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].DiscStarsAge[i-1][k] + frac_down*unstable_stars_age[k]) );
+                                    assert(Gal[p].VelDispStarsAge[i-1][k] >= 0);
 
                                     Gal[p].DiscStarsAge[i-1][k] += unstable_stars_age[k] * frac_down;
                                     Gal[p].DiscStarsMetalsAge[i-1][k] += unstable_metals_age[k] * frac_down;
@@ -374,6 +391,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     }
                     
                     Gal[p].VelDispStars[i+1] = sqrt( (Gal[p].DiscStars[i+1]*sqr(Gal[p].VelDispStars[i+1]) + m_up*sqr(Gal[p].VelDispStars[i])) / (Gal[p].DiscStars[i+1] + m_up) );
+                    assert(Gal[p].VelDispStars[i+1] >= 0);
                     
                     Gal[p].DiscStars[i+1] += m_up;
                     Gal[p].DiscStarsMetals[i+1] += metallicity * m_up;
@@ -387,6 +405,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                             if(Gal[p].DiscStarsAge[i+1][k] + frac_up*unstable_stars_age[k] > 0.0)
                             {
                                 Gal[p].VelDispStarsAge[i+1][k] = sqrt( (Gal[p].DiscStarsAge[i+1][k]*sqr(Gal[p].VelDispStarsAge[i+1][k]) + frac_up*unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].DiscStarsAge[i+1][k] + frac_up*unstable_stars_age[k]) );
+                                assert(Gal[p].VelDispStarsAge[i+1][k] >= 0);
 
                                 Gal[p].DiscStarsAge[i+1][k] += unstable_stars_age[k] * frac_up;
                                 Gal[p].DiscStarsMetalsAge[i+1][k] += unstable_metals_age[k] * frac_up;
@@ -434,11 +453,15 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     assert(vel_disp_factor > 0.99*vel_disp_factor_again && vel_disp_factor < 1.01*vel_disp_factor_again);
                     
                     Gal[p].VelDispStars[i] *= vel_disp_factor;
+                    assert(Gal[p].VelDispStars[i] >= 0);
                     
                     if(AgeStructOut > 0)
                     {
                         for(k=k_now; k<N_AGE_BINS; k++) 
+                        {
                             Gal[p].VelDispStarsAge[i][k] *= vel_disp_factor;
+                            assert(Gal[p].VelDispStarsAge[i][k] >= 0);
+                        }
                     }
                 }
 

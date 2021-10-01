@@ -95,6 +95,7 @@ void update_reincorporation_time(int p, double new_ejected_mass);
 double get_satellite_mass(int p);
 double get_Mhost_internal(int p, int centralgal, double dr);
 void rotate(double *pos, double axis[3], double angle);
+void update_rotation_support_scale_radius(int p);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas, int k_now);
 void disrupt_satellite_to_ICS(int centralgal, int gal, int k_now);

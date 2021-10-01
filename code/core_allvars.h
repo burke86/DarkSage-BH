@@ -139,6 +139,7 @@ struct GALAXY_OUTPUT
   float CoolScaleRadius;
   float StellarDiscScaleRadius;
 //  float GasDiscScaleRadius;
+    float RotSupportScaleRadius;
   float Cooling;
   float Heating;
   float LastMajorMerger;
@@ -231,12 +232,13 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float DiskScaleRadius;
   float CoolScaleRadius;
   float StellarDiscScaleRadius;
+  float RotSupportScaleRadius;
   float Cooling;
   float Heating;
   float LastMajorMerger;
   float LastMinorMerger;
-    float SNreheatRate;
-    float SNejectRate;
+  float SNreheatRate;
+  float SNejectRate;
     
   //infall properties
   float infallMvir;
@@ -359,6 +361,7 @@ struct GALAXY
   double CoolScaleRadius;
   double StellarDiscScaleRadius;
   double GasDiscScaleRadius;
+    double RotSupportScaleRadius;
   double MergTime;
   double Cooling;
   double Heating;

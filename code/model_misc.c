@@ -141,6 +141,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].StellarDiscScaleRadius = 1.0*Gal[p].DiskScaleRadius;
     Gal[p].GasDiscScaleRadius = 1.0*Gal[p].DiskScaleRadius;
     Gal[p].CoolScaleRadius = 1.0*Gal[p].DiskScaleRadius;
+    Gal[p].RotSupportScaleRadius = 0.333*Gal[p].DiskScaleRadius;
     Gal[p].MergTime = 999.9;
     Gal[p].Cooling = 0.0;
     Gal[p].Heating = 0.0;
@@ -446,6 +447,7 @@ double get_disc_stars(int p)
 //                if(VelDispNet > 1.01*Gal[p].VelDispStars[l] || VelDispNet < 0.99*Gal[p].VelDispStars[l])
 //                    printf("get_disc_stars age report: l, VelDispNet, Gal[p].VelDispStars[l]: %i, %e, %e\n", l, VelDispNet, Gal[p].VelDispStars[l]);
                 Gal[p].VelDispStars[l] = VelDispNet;
+                assert(Gal[p].VelDispStars[l] >= 0);
             }
             
         }
@@ -584,6 +586,7 @@ void update_disc_radii(int p)
     
     update_stellardisc_scaleradius(p); // need this at the start, as disc scale radii are part of this calculation
     update_gasdisc_scaleradius(p);
+    update_rotation_support_scale_radius(p);
     
     // Determine the distribution of dark matter in the halo =====
     M_DM_tot = Gal[p].Mvir - Gal[p].HotGas - Gal[p].ColdGas - Gal[p].StellarMass - Gal[p].ICS - Gal[p].BlackHoleMass; // One may want to include Ejected Gas in this too
@@ -645,7 +648,8 @@ void update_disc_radii(int p)
     if(Gal[p].Mvir>0.0 && BTT<1.0)
     {
         const double hot_fraction = Gal[p].HotGas * inv_Rvir; // when assuming a singular isothermal sphere
-        const double exponent_support = -3.0*(1.0-BTT)/Gal[p].StellarDiscScaleRadius;
+//        const double exponent_support =  -3.0*(1.0-BTT)/Gal[p].StellarDiscScaleRadius;
+        const double exponent_support =  -1.0 / Gal[p].RotSupportScaleRadius;
         const int NUM_R_BINS=51;
 
         // when assuming a beta profile
@@ -823,7 +827,7 @@ void update_disc_radii(int p)
             
             
 //            Gal[p].HotGasPotential = dmax(analytic_potential[0], gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc));
-            Gal[p].EjectedPotential = dmax(0.9999*Gal[p].HotGasPotential, gsl_spline_eval(spline2, Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which is should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
+            Gal[p].EjectedPotential = dmax(0.9999*Gal[p].HotGasPotential, gsl_spline_eval(spline2, Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which it should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
             
 //            if(Gal[p].EjectedPotential < Gal[p].HotGasPotential)
 //                for(k=0; k<NUM_R_BINS; k++) printf("r, Potential = %e, %e\n", analytic_r[k], analytic_potential[k]);
@@ -865,7 +869,7 @@ void update_disc_radii(int p)
     
     
     update_stellardisc_scaleradius(p);
-    // if other functionality is added for gas disc scale radius, update it here too
+    // if other functionality is added for gas disc scale radius or fsupport scale radius, update it here too
     
     
     if(Gal[p].HotGasPotential>=0)
@@ -1359,4 +1363,72 @@ void rotate(double *pos, double axis[3], double angle)
     
     int i;
     for(i=0; i<3; i++) pos[i] = pos[i]*cosa + cross[i]*sina + axis[i]*dot*(1-cosa);
+}
+
+
+void update_rotation_support_scale_radius(int p)
+{
+    int i;
+    double f_rot, v_circ, rad, rad_old, f_rot_old, rad_50;
+    
+    // initialise
+    rad_old = 0.0;
+    f_rot_old = 0.0;
+    
+    for(i=0; i<N_BINS; i++)
+    {
+        rad = sqrt( (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) * 0.5 );
+        v_circ = 0.5*(DiscBinEdge[i]+DiscBinEdge[i+1]) / rad;
+        
+        if(Gal[p].DiscStars[i] > 0)
+            f_rot = v_circ / sqrt(sqr(v_circ) +  sqr(Gal[p].VelDispStars[i]));
+        else // use gas velocity dispersion when there are no stars (stars will be born with this value of dispersion)
+            f_rot = v_circ / sqrt(sqr(v_circ) +  sqr((1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s));
+        
+        if(f_rot >= 0.5 && f_rot > f_rot_old)
+        {
+            rad_50 = rad - (f_rot - 0.5) / (f_rot - f_rot_old) * (rad - rad_old);
+            Gal[p].RotSupportScaleRadius = rad_50 * 1.442695; // multiplicative factor = -1/ln(0.5)
+            assert(Gal[p].RotSupportScaleRadius > 0);
+            
+//            if(Gal[p].RotSupportScaleRadius > 100*Gal[p].StellarDiscScaleRadius)
+//            {
+//                printf("\nupdate_rotation_support_scale_radius() T1\n");
+//                printf("Gal[p].RotSupportScaleRadius, Gal[p].StellarDiscScaleRadius = %e, %e\n", Gal[p].RotSupportScaleRadius, Gal[p].StellarDiscScaleRadius);
+//                printf("i, rad, f_rot, v_circ = %i, %e, %e, %e\n", i, rad, f_rot, v_circ);
+//                
+//                if(Gal[p].DiscStars[i] > 0)
+//                    printf("StarVelDisp, Gal[p].DiscStars[i] = %e, %e\n", Gal[p].VelDispStars[i], Gal[p].DiscStars[i]);
+//                else
+//                    printf("GasVelDisp = %e\n", (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s);
+//            }
+            
+            return;
+        }
+        
+        rad_old = rad;
+        f_rot_old = f_rot;
+        
+    }
+    
+    // If the 90% support radius couldn't be found, use the largest available information to find an appropriate scale radius
+    Gal[p].RotSupportScaleRadius = - rad / log(1.0 - f_rot);
+    assert(Gal[p].RotSupportScaleRadius > 0);
+    
+//    if(Gal[p].RotSupportScaleRadius > 100*Gal[p].StellarDiscScaleRadius)
+//    {
+//        i = N_BINS-1;
+//        printf("\nupdate_rotation_support_scale_radius() T2\n");
+//        printf("Gal[p].RotSupportScaleRadius, Gal[p].StellarDiscScaleRadius = %e, %e\n", Gal[p].RotSupportScaleRadius, Gal[p].StellarDiscScaleRadius);
+//        printf("i, rad, f_rot, v_circ = %i, %e, %e, %e\n", i, rad, f_rot, v_circ);
+//        
+//        if(Gal[p].DiscStars[i] > 0)
+//            printf("StarVelDisp, Gal[p].DiscStars[i] = %e, %e\n", Gal[p].VelDispStars[i], Gal[p].DiscStars[i]);
+//        else
+//            printf("GasVelDisp = %e\n", (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s);
+//        
+//    }
+    
+    return;
+    
 }

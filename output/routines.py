@@ -77,6 +77,7 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('DiskScaleRadius'              , floattype),
                     ('CoolScaleRadius'              , floattype), 
                     ('StellarDiscScaleRadius'       , floattype),
+                    ('RotSupportScaleRadius'        , floattype),
                     ('Cooling'                      , floattype),
                     ('Heating'                      , floattype),
                     ('LastMajorMerger'              , floattype),

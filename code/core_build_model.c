@@ -464,6 +464,9 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     Gal[p].SNreheatRate /= deltaT;
     Gal[p].SNejectRate /= deltaT;
       
+      assert(Gal[p].SNreheatRate >= 0);
+      assert(Gal[p].SNejectRate >= 0);
+      
     if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0)
     {
         if(Gal[p].Type==0) update_disc_radii(p);
