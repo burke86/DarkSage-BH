@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/571r/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/25j/'
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/28o/'
 sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
@@ -200,6 +200,7 @@ if Nage>1: # check consistency from stellar-age bins
         StarsByAge[k] += np.sum(G0['MergerBulgeMass'][:,k])
         StarsByAge[k] += np.sum(G0['InstabilityBulgeMass'][:,k])
         StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k])
+        StarsByAge[k] += np.sum(G0['LocalIGS'][:,k])
 
     SFRbyAge = StarsByAge*1e10/h/dT/(1.-RecycleFraction)
     SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)

@@ -84,6 +84,7 @@ struct GALAXY_OUTPUT
   float LocalIGM;
   float BlackHoleMass;
   float ICS;
+  float LocalIGS;
   float DiscGas[N_BINS];
   float DiscStars[N_BINS];
   float VelDispStars[N_BINS];
@@ -123,6 +124,7 @@ struct GALAXY_OUTPUT
   float MetalsEjectedMass;
   float MetalsLocalIGM;
   float MetalsICS;
+  float MetalsLocalIGS;
   float DiscGasMetals[N_BINS];
   float DiscStarsMetals[N_BINS];
 
@@ -200,6 +202,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float LocalIGM;
   float BlackHoleMass;
   float ICS[N_AGE_BINS];
+  float LocalIGS[N_AGE_BINS];
   float DiscGas[N_BINS];
   float DiscStars[N_BINS][N_AGE_BINS];
   float VelDispStars[N_BINS][N_AGE_BINS];
@@ -222,6 +225,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float MetalsEjectedMass;
   float MetalsLocalIGM;
   float MetalsICS[N_AGE_BINS];
+  float MetalsLocalIGS[N_AGE_BINS];
   float DiscGasMetals[N_BINS];
   float DiscStarsMetals[N_BINS][N_AGE_BINS];
 
@@ -302,6 +306,7 @@ struct GALAXY
   double BlackHoleMass;
   double LocalIGM;
   double ICS;
+  double LocalIGS;
   double DiscGas[N_BINS];
   double DiscStars[N_BINS];
   double VelDispStars[N_BINS];
@@ -343,6 +348,7 @@ struct GALAXY
   double MetalsEjectedMass;
   double MetalsLocalIGM;
   double MetalsICS;
+  double MetalsLocalIGS;
   double DiscGasMetals[N_BINS];
   double DiscStarsMetals[N_BINS];
 
@@ -393,6 +399,8 @@ struct GALAXY
     double DiscStarsMetalsAge[N_BINS][N_AGE_BINS];
     double ICS_Age[N_AGE_BINS];
     double MetalsICS_Age[N_AGE_BINS];
+    double LocalIGS_Age[N_AGE_BINS];
+    double MetalsLocalIGS_Age[N_AGE_BINS];
     double VelDispStarsAge[N_BINS][N_AGE_BINS];
     
 }

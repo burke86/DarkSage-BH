@@ -186,6 +186,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
       metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
       assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
       assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
+      assert(Gal[p].MetalsHotGas>=0);
       if(reheated_mass > 0.0)
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass);
 
@@ -1492,7 +1493,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     
-    
+    assert(Gal[p].MetalsHotGas>=0);
+  
     if(HeatedToCentral>0)
     {
         satellite_specific_energy = get_satellite_potential(p, centralgal);
@@ -1733,6 +1735,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         // apply feedback
         metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
         
+        assert(Gal[p].MetalsHotGas>=0);
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass);
         
         // excess energy that goes into gas ejection from this annulus

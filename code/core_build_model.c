@@ -345,7 +345,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       if(p == centralgal)
       {
         add_infall_to_hot(centralgal, infallingGas / STEPS);
-          
+          assert(Gal[p].MetalsHotGas>=0);
+
           if(!(ReIncorporationFactor <= 0.0 && ReincorpotationModel==0))
             reincorporate_gas(p, dt);
       }
@@ -353,21 +354,30 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       // hot-gas stripping of satellites
       else if(HotStripOn>0 && Gal[p].Type == 1 && Gal[p].HotGas > 0.0 && Gal[p].MaxStrippedGas>0.0)
             Gal[p].MaxStrippedGas = strip_from_satellite(halonr, centralgal, p, Gal[p].MaxStrippedGas, k_now);
-        
+        assert(Gal[p].MetalsHotGas>=0);
+
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0 && (Gal[p].ColdGas+Gal[p].StellarMass)>Gal[p].HotGas)
           ram_pressure_stripping(centralgal, p, k_now);
-        
+        assert(Gal[p].MetalsHotGas>=0);
+
       // determine cooling gas given halo properties
       // Preventing cooling when there's no angular momentum, as the code isn't built to handle that.  This only cropped up for Vishnu haloes with 2 particles, which clearly weren't interesting/physical.  Haloes always have some spin otherwise.
       if(!(Gal[p].SpinHot[0]==0 && Gal[p].SpinHot[1]==0 && Gal[p].SpinHot[2]==0))
         {
             assert(Gal[p].HotGas>=0);
+            assert(Gal[p].MetalsHotGas>=0);
+
           coolingGas = cooling_recipe(p, dt);
             assert(Gal[p].HotGas>=0);
+            assert(Gal[p].MetalsHotGas>=0);
+            assert(coolingGas >= 0);
+
           Gal[p].AccretedGasMass += coolingGas;
           cool_gas_onto_galaxy(p, coolingGas);
             assert(Gal[p].HotGas>=0);
+            assert(Gal[p].MetalsHotGas>=0);
+
             
             if(ReincorpotationModel==4)
             {
@@ -375,11 +385,13 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
             }
             
         }
+        assert(Gal[p].MetalsHotGas>=0);
 
       // Update radii of the annuli
       if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && Gal[p].Type==0)
         update_disc_radii(p);
-	
+        assert(Gal[p].MetalsHotGas>=0);
+
       // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
         if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && Gal[p].StellarMass>0)
         {

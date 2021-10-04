@@ -80,6 +80,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].LocalIGM = 0.0;
     Gal[p].BlackHoleMass = 0.0;
     Gal[p].ICS = 0.0;
+    Gal[p].LocalIGS = 0.0;
     
     Gal[p].StarsFromH2 = 0.0;
     Gal[p].StarsInstability = 0.0;
@@ -93,6 +94,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].MetalsEjectedMass = 0.0;
     Gal[p].MetalsLocalIGM = 0.0;
     Gal[p].MetalsICS = 0.0;
+    Gal[p].MetalsLocalIGS = 0.0;
     
     Gal[p].AccretedGasMass = 0.0;
     Gal[p].EjectedSNGasMass = 0.0;
@@ -167,6 +169,8 @@ void init_galaxy(int p, int halonr)
         Gal[p].SecularMetalsBulgeMassAge[k] = 0.0;
         Gal[p].ICS_Age[k] = 0.0;
         Gal[p].MetalsICS_Age[k] = 0.0;
+        Gal[p].LocalIGS_Age[k] = 0.0;
+        Gal[p].MetalsLocalIGS_Age[k] = 0.0;
         
         for(j=0; j<N_BINS; j++)
         {

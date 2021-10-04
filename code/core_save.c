@@ -304,8 +304,10 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->SecularBulgeMass = g->SecularBulgeMass;
   o->HotGas = g->HotGas;
   o->EjectedMass = g->EjectedMass;
+  o->LocalIGM = g->LocalIGM;
   o->BlackHoleMass = g->BlackHoleMass;
   o->ICS = g->ICS;
+  o->LocalIGS = g->LocalIGS;
 
   o->MetalsColdGas = g->MetalsColdGas;
   o->MetalsStellarMass = g->MetalsStellarMass;
@@ -313,8 +315,10 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->SecularMetalsBulgeMass = g->SecularMetalsBulgeMass;
   o->MetalsHotGas = g->MetalsHotGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
+  o->MetalsLocalIGM = g->MetalsLocalIGM;
   o->MetalsICS = g->MetalsICS;
-    
+  o->MetalsLocalIGS = g->MetalsLocalIGS;
+
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;
   o->StarsMergeBurst = g->StarsMergeBurst;
@@ -451,9 +455,11 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->ClassicalBulgeMass[k] = g->ClassicalBulgeMassAge[k];
     o->SecularBulgeMass[k] = g->SecularBulgeMassAge[k];
     o->ICS[k] = g->ICS_Age[k];
+    o->LocalIGS[k] = g->LocalIGS_Age[k];
   }
   o->HotGas = g->HotGas;
   o->EjectedMass = g->EjectedMass;
+  o->LocalIGM = g->LocalIGM;
   o->BlackHoleMass = g->BlackHoleMass;
   
 
@@ -464,9 +470,11 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->ClassicalMetalsBulgeMass[k] = g->ClassicalMetalsBulgeMassAge[k];
     o->SecularMetalsBulgeMass[k] = g->SecularMetalsBulgeMassAge[k];
     o->MetalsICS[k] = g->MetalsICS_Age[k];
+    o->MetalsLocalIGS[k] = g->MetalsLocalIGS_Age[k];
   }
   o->MetalsHotGas = g->MetalsHotGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
+  o->MetalsLocalIGM = g->MetalsLocalIGM;
     
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;
@@ -483,9 +491,10 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     }
     o->DiscGas[j] = g->DiscGas[j];
     o->DiscGasMetals[j] = g->DiscGasMetals[j];
-      o->DiscHI[j] = g->DiscHI[j];
-      o->DiscH2[j] = g->DiscH2[j];
-      o->DiscSFR[j] = g->DiscSFR[j] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
+      
+    o->DiscHI[j] = g->DiscHI[j];
+    o->DiscH2[j] = g->DiscH2[j];
+    o->DiscSFR[j] = g->DiscSFR[j] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
   }
 
   o->SfrFromH2 = 0.0;

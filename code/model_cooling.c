@@ -268,7 +268,8 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
   DiscGasSum = get_disc_gas(p);
 //  assert(DiscGasSum <= 1.001*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas*0.999);
   assert(Gal[p].HotGas == Gal[p].HotGas && Gal[p].HotGas >= 0);
-
+    assert(Gal[p].MetalsHotGas >= 0);
+    
   disc_spin_mag = sqrt(sqr(Gal[p].SpinGas[0]) + sqr(Gal[p].SpinGas[1]) + sqr(Gal[p].SpinGas[2]));
   assert(disc_spin_mag==disc_spin_mag);
     
@@ -426,6 +427,10 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
       Gal[p].MetalsColdGas += metallicity * coolingGas;
       Gal[p].HotGas -= coolingGas;
       Gal[p].MetalsHotGas -= metallicity * coolingGas;
+        
+        if(!(Gal[p].MetalsHotGas >= 0)) printf("Hot Gas, Metals = %e, %e\n", Gal[p].HotGas, Gal[p].MetalsHotGas);
+        assert(Gal[p].MetalsHotGas >= 0);
+
     }
     else
     {

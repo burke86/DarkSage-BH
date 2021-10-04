@@ -14,9 +14,9 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
 {
   int i, k;
   double tot_stellarMass, tot_BHMass, tot_coldMass, tot_hotMass, tot_hotMetals, tot_ejected, tot_ejectedMetals;
-  double tot_ICS, tot_ICSMetals;
-  double tot_ICS_Age[N_AGE_BINS], tot_ICSMetals_Age[N_AGE_BINS];
-  double tot_LocalIGM, tot_LocalIGMMetals;
+  double tot_ICS, tot_ICSMetals, tot_IGS, tot_IGSMetals;
+  double tot_IGS_Age[N_AGE_BINS], tot_IGSMetals_Age[N_AGE_BINS];
+  double tot_LocalIGM, tot_LocalIGMMetals, FOF_baryons;
   double infallingMass, reionization_modifier, DiscGasSum, Rsat, ExpFac;
     
   int k_now = get_stellar_age_bin_index(Age[Gal[centralgal].SnapNum]);
@@ -30,13 +30,38 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
 
   // need to add up all the baryonic mass asociated with the full halo 
-  tot_stellarMass = tot_coldMass = tot_hotMass = tot_hotMetals = tot_ejected = tot_BHMass = tot_ejectedMetals = tot_ICS = tot_ICSMetals = tot_LocalIGM = tot_LocalIGMMetals = 0.0;
-  if(AgeStructOut>0) for(k=0; k<N_AGE_BINS; k++) tot_ICS_Age[k] = tot_ICSMetals_Age[k] = 0.0;
+  tot_stellarMass = tot_coldMass = tot_hotMass = tot_hotMetals = tot_ejected = tot_BHMass = tot_ejectedMetals = tot_ICS = tot_ICSMetals = tot_LocalIGM = tot_LocalIGMMetals = tot_IGS = tot_IGSMetals = 0.0;
+  if(AgeStructOut>0) for(k=0; k<N_AGE_BINS; k++) tot_IGS_Age[k] = tot_IGSMetals_Age[k] = 0.0;
     
 
   for(i = 0; i < ngal; i++)      // Loop over all galaxies in the FoF-halo 
   {
     Rsat = get_satellite_radius(i, centralgal);
+      
+    FOF_baryons += (Gal[i].StellarMass + Gal[i].BlackHoleMass + Gal[i].ColdGas + Gal[i].HotGas + Gal[i].EjectedMass + Gal[i].ICS + Gal[i].LocalIGS);
+      
+    tot_LocalIGM += Gal[i].LocalIGM;
+    tot_LocalIGMMetals += Gal[i].MetalsLocalIGM;
+      
+    // sum up local intergalactic stars -- will go to central. Only go through the loop is necessary
+    tot_IGS += Gal[i].LocalIGS;
+    tot_IGSMetals += Gal[i].MetalsLocalIGS;
+    if(AgeStructOut>0)
+    {
+        for(k=0; k<N_AGE_BINS; k++)
+        {
+            tot_IGS_Age[k] += Gal[i].LocalIGS_Age[k];
+            tot_IGSMetals_Age[k] += Gal[i].MetalsLocalIGS_Age[k];
+        }
+    }
+
+      
+    if(i != centralgal) // Satellites effectively do not have a "local IGM", as they aren't allowed to accrete cosmologically
+    {
+        Gal[i].LocalIGM = Gal[i].MetalsLocalIGM = 0.0;
+        Gal[i].LocalIGS = Gal[i].MetalsLocalIGS = 0.0;
+        if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[i].LocalIGS_Age[k] = Gal[i].MetalsLocalIGS_Age[k] = 0.0;
+    }
       
     // "Total baryons" is only concerned within Rvir
     if(Rsat <= Gal[centralgal].Rvir)
@@ -52,25 +77,10 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
         tot_ICS += Gal[i].ICS;
         tot_ICSMetals += Gal[i].MetalsICS;
         
-        tot_LocalIGM += Gal[i].LocalIGM;
-        tot_LocalIGMMetals += Gal[i].MetalsLocalIGM;
-          
-        // Age structure of ICS
-        if(AgeStructOut>0)
-        {
-          for(k=k_now; k<N_AGE_BINS; k++)
-          {
-              tot_ICS_Age[k] += Gal[i].ICS_Age[k];
-              tot_ICSMetals_Age[k] += Gal[i].MetalsICS_Age[k];
-          }
-        }
-        
         if(i != centralgal) Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central hot reservoir
         
     }
-      
-    if(i != centralgal) // Satellites effectively do not have a "local IGM", as they aren't allowed to accrete cosmologically
-        Gal[i].LocalIGM = Gal[i].MetalsLocalIGM = 0.0;
+
       
   }
 
@@ -82,9 +92,27 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
 
   infallingMass = reionization_modifier * BaryonFrac * Gal[centralgal].Mvir - (tot_stellarMass + tot_coldMass + tot_hotMass + tot_ejected + tot_BHMass + tot_ICS);
     
-    // The Local IGM is associated with the central -- it is the only one that can acquire gas cosmologically by design
-    Gal[centralgal].LocalIGM = tot_LocalIGM;
-    Gal[centralgal].MetalsLocalIGM = tot_LocalIGMMetals;
+    // The Local IGM is associated with the central -- it is the only one that can acquire gas cosmologically by design.  Its total mass is always defined by the remaining baryon mass needed to fill out the entire FoF.  Use of dmax() and dmin() are for safety. 
+    Gal[centralgal].LocalIGM = dmax(tot_LocalIGM, reionization_modifier * BaryonFrac * Gal[centralgal].Len * PartMass - FOF_baryons); // not sure if using reionization_modifier here is appropriate
+    Gal[centralgal].MetalsLocalIGM = dmax(dmin(tot_LocalIGMMetals, Gal[centralgal].LocalIGM), BIG_BANG_METALLICITY * Gal[centralgal].LocalIGM);
+    assert(Gal[centralgal].LocalIGM>=0);
+    assert(Gal[centralgal].MetalsLocalIGM>=0);
+    
+    // Local intergalactic stars also only associated with central, as it is a property of the FoF
+    Gal[centralgal].LocalIGS = tot_IGS;
+    Gal[centralgal].MetalsLocalIGS = tot_IGSMetals;
+    if(!(Gal[centralgal].LocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS >= 0)) printf("LocalIGS, Metals = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+    assert(Gal[centralgal].LocalIGS >= 0);
+    assert(Gal[centralgal].MetalsLocalIGS >= 0);
+
+    if(AgeStructOut>0)
+    {
+      for(k=k_now; k<N_AGE_BINS; k++)
+      {
+          Gal[centralgal].LocalIGS_Age[k] = tot_IGS_Age[k];
+          Gal[centralgal].MetalsLocalIGS_Age[k] = tot_IGSMetals_Age[k];
+      }
+    }
     
   // Put ejecta from satellites into the hot reservoir of the central
   if(tot_ejected > Gal[centralgal].EjectedMass)
@@ -209,7 +237,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
         
         if(strippedICS < Gal[gal].ICS)
         {
-            if(N_AGE_BINS>1)
+            if(AgeStructOut>0)
             {
                 strippedICSmetals = 0.0;
               
@@ -224,8 +252,17 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
                     Gal[gal].ICS_Age[k] -= strippedICS_age;
                     Gal[gal].MetalsICS_Age[k] -= stripped_ICSmetals_age;
                     
-                    Gal[centralgal].ICS_Age[k] += strippedICS_age;
-                    Gal[centralgal].MetalsICS_Age[k] += stripped_ICSmetals_age;
+                    if(r_gal > Gal[centralgal].Rvir)
+                    {
+                        Gal[centralgal].LocalIGS_Age[k] += strippedICS_age;
+                        Gal[centralgal].MetalsLocalIGS_Age[k] += stripped_ICSmetals_age;
+                    }
+                    else
+                    {
+                        Gal[centralgal].ICS_Age[k] += strippedICS_age;
+                        Gal[centralgal].MetalsICS_Age[k] += stripped_ICSmetals_age;                        
+                    }
+                    
                 }
             }
             else
@@ -234,22 +271,50 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             Gal[gal].ICS -= strippedICS;
             Gal[gal].MetalsICS -= strippedICSmetals;
           
-            Gal[centralgal].ICS += strippedICS;
-            Gal[centralgal].MetalsICS += strippedICSmetals;
+            if(r_gal > Gal[centralgal].Rvir)
+            {
+                Gal[centralgal].LocalIGS += strippedICS;
+                Gal[centralgal].MetalsLocalIGS += strippedICSmetals;                
+                assert(Gal[centralgal].LocalIGS >= 0);
+                assert(Gal[centralgal].MetalsLocalIGS >= 0);
+            }
+            else
+            {
+                Gal[centralgal].ICS += strippedICS;
+                Gal[centralgal].MetalsICS += strippedICSmetals;
+            }
         }
         else
         {
             for(k=k_now; k<N_AGE_BINS; k++)
             {
-                Gal[centralgal].ICS_Age[k] += Gal[gal].ICS_Age[k];
-                Gal[centralgal].MetalsICS_Age[k] += Gal[gal].MetalsICS_Age[k];
+                if(r_gal > Gal[centralgal].Rvir)
+                {
+                    Gal[centralgal].LocalIGS_Age[k] += Gal[gal].ICS_Age[k];
+                    Gal[centralgal].MetalsLocalIGS_Age[k] += Gal[gal].MetalsICS_Age[k];
+                }
+                else
+                {
+                    Gal[centralgal].ICS_Age[k] += Gal[gal].ICS_Age[k];
+                    Gal[centralgal].MetalsICS_Age[k] += Gal[gal].MetalsICS_Age[k];
+                }
                 
                 Gal[gal].ICS_Age[k] = 0.0;
                 Gal[gal].MetalsICS_Age[k] = 0.0;
             }
                 
-            Gal[centralgal].ICS += Gal[gal].ICS;
-            Gal[centralgal].MetalsICS += Gal[gal].MetalsICS;
+            if(r_gal > Gal[centralgal].Rvir)
+            {
+                Gal[centralgal].LocalIGS += Gal[gal].ICS;
+                Gal[centralgal].MetalsLocalIGS += Gal[gal].MetalsICS;
+                assert(Gal[centralgal].LocalIGS >= 0);
+                assert(Gal[centralgal].MetalsLocalIGS >= 0);
+            }
+            else
+            {
+                Gal[centralgal].ICS += Gal[gal].ICS;
+                Gal[centralgal].MetalsICS += Gal[gal].MetalsICS;
+            }
             
             Gal[gal].ICS = 0.0;
             Gal[gal].MetalsICS = 0.0;
@@ -396,6 +461,10 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
   }
     
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
+  assert(Gal[centralgal].MetalsHotGas >= 0);
+  assert(Gal[centralgal].LocalIGM >= Gal[centralgal].MetalsLocalIGM);
+  assert(Gal[centralgal].MetalsLocalIGM >= 0);
+    
   return strippedGas;
 }
 
@@ -456,7 +525,7 @@ void ram_pressure_stripping(int centralgal, int gal, int k_now)
         
         if(Pram >= Pgrav && i==0 && Sigma_gas>0.0 && (RamPressureOn==1 || RamPressureOn==3) ) // If the innermost-annulus gas is stripped, assume all gas will be stripped.
         {
-            if(HeatedToCentral)
+            if(HeatedToCentral) // consider when the satellite is outside Rvir that it should go to local IGM!
             {
                 Gal[centralgal].HotGas += Gal[gal].ColdGas;
                 Gal[centralgal].MetalsHotGas += Gal[gal].MetalsColdGas;
@@ -658,17 +727,19 @@ void add_infall_to_hot(int centralgal, double infallingGas)
 
   metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
+    assert(Gal[centralgal].MetalsLocalIGM >= 0);
 
   // add the ambient infalling gas to the central galaxy hot component 
   if(infallingGas > 0.0)
   {
-    if(Gal[centralgal].LocalIGM > infallingGas)
+    if(Gal[centralgal].LocalIGM >= infallingGas)
     {
         metallicity = get_metallicity(Gal[centralgal].LocalIGM, Gal[centralgal].MetalsLocalIGM);
         Gal[centralgal].HotGas += infallingGas;
         Gal[centralgal].MetalsHotGas += metallicity * infallingGas;
         Gal[centralgal].LocalIGM -= infallingGas;
         Gal[centralgal].MetalsLocalIGM -= metallicity * infallingGas;
+        if(Gal[centralgal].MetalsLocalIGM <= 0) Gal[centralgal].MetalsLocalIGM = BIG_BANG_METALLICITY * Gal[centralgal].LocalIGM;
     }
     else if(Gal[centralgal].LocalIGM > 0)
     {
@@ -685,6 +756,9 @@ void add_infall_to_hot(int centralgal, double infallingGas)
 
   metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
+    
+    assert(Gal[centralgal].LocalIGM >= 0);
+    assert(Gal[centralgal].MetalsLocalIGM >= 0);
 
 }
 
