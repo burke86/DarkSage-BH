@@ -284,10 +284,6 @@ void read_parameter_file(char *fname)
     strcpy(tag[nt], "GasSinkRate");
     addr[nt] = &GasSinkRate;
     id[nt++] = DOUBLE;
-
-    strcpy(tag[nt], "StarSinkRate");
-    addr[nt] = &StarSinkRate;
-    id[nt++] = DOUBLE;
     
     strcpy(tag[nt], "ThetaThresh");
     addr[nt] = &ThetaThresh;

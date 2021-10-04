@@ -45,7 +45,7 @@ BoxLen          75.0
 %------------------------------------------
 
 SFprescription              0        ;0: proportional to H2; 1: as 0 but all gas for low H2 fraction a la Fu et al 2010; 2: Threshold cold mass (closest to SAGE implementation)
-H2prescription              1       ;0: mid-plane pressure; 1: metallicity-dependent (McKee & Krumholz 2010)
+H2prescription              0       ;0: mid-plane pressure; 1: metallicity-dependent (McKee & Krumholz 2010)
 AGNrecipeOn                 2        ;0: switch off; 1: empirical model; 2: Bondi-Hoyle model; 3: cold cloud accretion model
 SupernovaRecipeOn           3        ;0: switch off; 1: scale with local density; 2: uniform reheated fraction; 3: energy-based local feedback; 4: energy-based distributive feedback
 ReionizationOn              1        ;0: switch off
@@ -128,7 +128,7 @@ ClumpExponent               0.7     ; Controls the clump factor which affects H2
 RadiusWeight                1.0     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
 
 QTotMin                     1.0    ;threshold Toomre Q value for instabilities
-GasSinkRate                 0.6    ; maximum fraction of unstable gas that radially migrates rather than forming stars
+GasSinkRate                 0.7    ; fraction of unstable gas that radially migrates rather than forming stars
 ThetaThresh                 10.0   ;threshold angle for gas and stellar discs to be coplanar
 
 DegPerTdyn                  5.0    ;degrees the gas disc precesses to come in line with stars per dynamical time

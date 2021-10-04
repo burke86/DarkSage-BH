@@ -17,7 +17,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
     double r_inner, r_outer, r_av, Kappa, sigma_R, c_s;
     double NewStars[N_BINS], NewStarsMetals[N_BINS], angle, DiscGasSum, DiscStarSum, SNgas[N_BINS];
     double old_spin[3], cos_angle; //, SNgas_copy[N_BINS], SNgas_proj[N_BINS]
-    double ann_frac, frac_down, frac_up, vel_disp_factor, vel_disp_factor_again;
+    double ann_frac, frac_down, frac_up, vel_disp_factor, vel_disp_factor_again, StarSinkRate;
 	int i, s, k;
     int first, first_gas, first_star;
 	
@@ -278,8 +278,9 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
             first_star = 0;
             Gal[p].TotInstabAnnuliStar +=1;
             
-//			unstable_stars = StarSinkRate * (Gal[p].DiscStars[i]+SNgas[i]) * (1.0 - Q_star/Q_star_min);
+            StarSinkRate = 1.0 - (1.0-GasSinkRate) * c_s/sigma_R;
             unstable_stars = StarSinkRate * Gal[p].DiscStars[i] * (1.0 - Q_star/Q_star_min);
+            
             if(unstable_stars > Gal[p].DiscStars[i]) unstable_stars = Gal[p].DiscStars[i];
             
             if(unstable_stars>1e-10)

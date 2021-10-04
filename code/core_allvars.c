@@ -102,7 +102,6 @@ double ClumpExponent;
 double RadiusWeight;
 double QTotMin;
 double GasSinkRate;
-double StarSinkRate;
 double ThetaThresh;
 double DegPerTdyn;
 double Reionization_z0;
