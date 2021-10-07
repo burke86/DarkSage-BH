@@ -393,7 +393,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         assert(Gal[p].MetalsHotGas>=0);
 
       // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
-        if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && Gal[p].StellarMass>0)
+        if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && (Gal[p].StellarMass>0 || Gal[p].ICS>0 || Gal[p].LocalIGS>0))
         {
             InstantTimeFrame = 0.5*(AgeBinEdge[k_now+1] - AgeBinEdge[k_now]);
 //            printf("InstantTimeFrame = %e\n", InstantTimeFrame);
@@ -407,7 +407,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         
 	  // stars form and then explode!
       if(SfrEfficiency>0.0) // passive H2 channel, mightn't be needed anymore!
-        starformation_and_feedback(p, centralgal, dt, step, time);
+        starformation_and_feedback(p, centralgal, dt, step, time, k_now);
 
       // precess gas disc
       if(GasPrecessionOn && Gal[p].StellarMass>0.0 && get_disc_gas(p)>0.0)
@@ -489,47 +489,47 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
   }
     
     
-  //=== move any ICS and Ejected Gas to the central -- this should already be the case, but somehow there were occasional satellites with non-zero ICS masses in the outputs ===//
-  tot_ICS = tot_ejected = tot_ejectedMetals = tot_ICSMetals = 0.0;
-  for(k=k_now; k<N_AGE_BINS; k++) tot_ICS_Age[k] = tot_ICSMetals_Age[k] = 0.0;
-  for(p = 0; p < ngal; p++)
-  {
-    tot_ejected += Gal[p].EjectedMass;
-    tot_ejectedMetals += Gal[p].MetalsEjectedMass;
-    tot_ICS += Gal[p].ICS;
-    tot_ICSMetals += Gal[p].MetalsICS;
-      
-    // Age structure of ICS
-    if(AgeStructOut>0)
-    {
-      for(k=k_now; k<N_AGE_BINS; k++)
-      {
-          tot_ICS_Age[k] += Gal[p].ICS_Age[k];
-          tot_ICSMetals_Age[k] += Gal[p].MetalsICS_Age[k];
-      }
-    }
-
-    if(p != centralgal)
-    {
-      Gal[p].EjectedMass = Gal[p].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
-      Gal[p].ICS = Gal[p].MetalsICS = 0.0; // satellite ICS goes to central ICS
-      if(AgeStructOut>0)  for(k=k_now; k<N_AGE_BINS; k++)  Gal[p].ICS_Age[k] = Gal[p].MetalsICS_Age[k] = 0.0;
-    }
-  }
-  Gal[centralgal].EjectedMass = tot_ejected;
-  Gal[centralgal].MetalsEjectedMass = tot_ejectedMetals;
-  Gal[centralgal].ICS = tot_ICS;
-  Gal[centralgal].MetalsICS = tot_ICSMetals;
-      
-  if(AgeStructOut>0)
-  {
-    for(k=k_now; k<N_AGE_BINS; k++)
-    {
-    Gal[centralgal].ICS_Age[k] = tot_ICS_Age[k];
-    Gal[centralgal].MetalsICS_Age[k] = tot_ICSMetals_Age[k];
-    }
-  }
-  // === === === === === === === === === === === === === === === === === === === === === === === === === === ===//
+//  //=== move any ICS and Ejected Gas to the central -- this should already be the case, but somehow there were occasional satellites with non-zero ICS masses in the outputs ===//
+//  tot_ICS = tot_ejected = tot_ejectedMetals = tot_ICSMetals = 0.0;
+//  for(k=k_now; k<N_AGE_BINS; k++) tot_ICS_Age[k] = tot_ICSMetals_Age[k] = 0.0;
+//  for(p = 0; p < ngal; p++)
+//  {
+//    tot_ejected += Gal[p].EjectedMass;
+//    tot_ejectedMetals += Gal[p].MetalsEjectedMass;
+//    tot_ICS += Gal[p].ICS;
+//    tot_ICSMetals += Gal[p].MetalsICS;
+//      
+//    // Age structure of ICS
+//    if(AgeStructOut>0)
+//    {
+//      for(k=k_now; k<N_AGE_BINS; k++)
+//      {
+//          tot_ICS_Age[k] += Gal[p].ICS_Age[k];
+//          tot_ICSMetals_Age[k] += Gal[p].MetalsICS_Age[k];
+//      }
+//    }
+//
+//    if(p != centralgal)
+//    {
+//      Gal[p].EjectedMass = Gal[p].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central ejected reservoir
+//      Gal[p].ICS = Gal[p].MetalsICS = 0.0; // satellite ICS goes to central ICS
+//      if(AgeStructOut>0)  for(k=k_now; k<N_AGE_BINS; k++)  Gal[p].ICS_Age[k] = Gal[p].MetalsICS_Age[k] = 0.0;
+//    }
+//  }
+//  Gal[centralgal].EjectedMass = tot_ejected;
+//  Gal[centralgal].MetalsEjectedMass = tot_ejectedMetals;
+//  Gal[centralgal].ICS = tot_ICS;
+//  Gal[centralgal].MetalsICS = tot_ICSMetals;
+//      
+//  if(AgeStructOut>0)
+//  {
+//    for(k=k_now; k<N_AGE_BINS; k++)
+//    {
+//    Gal[centralgal].ICS_Age[k] = tot_ICS_Age[k];
+//    Gal[centralgal].MetalsICS_Age[k] = tot_ICSMetals_Age[k];
+//    }
+//  }
+//  // === === === === === === === === === === === === === === === === === === === === === === === === === === ===//
 
 
 

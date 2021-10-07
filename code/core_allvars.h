@@ -77,8 +77,10 @@ struct GALAXY_OUTPUT
   // baryonic reservoirs 
   float ColdGas;
   float StellarMass;
+    float StellarFormationMass;
   float ClassicalBulgeMass;
   float SecularBulgeMass;
+  float StarsExSitu;
   float HotGas;
   float EjectedMass;
   float LocalIGM;
@@ -98,6 +100,10 @@ struct GALAXY_OUTPUT
   float DiscHI[N_BINS];
   float DiscH2[N_BINS];
   float DiscSFR[N_BINS];
+    float ICBHmass;
+    int ICBHnum;
+    float LocalIGBHmass;
+    int LocalIGBHnum;
     
     // inflow/outflow tracking
 //    float AccretedGasMass;
@@ -120,6 +126,7 @@ struct GALAXY_OUTPUT
   float MetalsStellarMass;
   float ClassicalMetalsBulgeMass;
   float SecularMetalsBulgeMass;
+  float MetalsStarsExSitu;
   float MetalsHotGas;
   float MetalsEjectedMass;
   float MetalsLocalIGM;
@@ -195,8 +202,10 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   // baryonic reservoirs 
   float ColdGas;
   float StellarMass;
+    float StellarFormationMass[N_AGE_BINS];
   float ClassicalBulgeMass[N_AGE_BINS];
   float SecularBulgeMass[N_AGE_BINS];
+    float StarsExSitu[N_AGE_BINS];
   float HotGas;
   float EjectedMass;
   float LocalIGM;
@@ -215,12 +224,17 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float DiscHI[N_BINS];
   float DiscH2[N_BINS];
   float DiscSFR[N_BINS];
+    float ICBHmass;
+    int ICBHnum;
+    float LocalIGBHmass;
+    int LocalIGBHnum;
     
   // metals
   float MetalsColdGas;
   float MetalsStellarMass;
   float ClassicalMetalsBulgeMass[N_AGE_BINS];
   float SecularMetalsBulgeMass[N_AGE_BINS];
+  float MetalsStarsExSitu[N_AGE_BINS];
   float MetalsHotGas;
   float MetalsEjectedMass;
   float MetalsLocalIGM;
@@ -301,6 +315,7 @@ struct GALAXY
   double StellarMass;
   double ClassicalBulgeMass;
   double SecularBulgeMass;
+  double StarsExSitu;
   double HotGas;
   double EjectedMass;
   double BlackHoleMass;
@@ -321,6 +336,10 @@ struct GALAXY
   double DiscHI[N_BINS];
   double DiscH2[N_BINS];
   double DiscSFR[N_BINS];
+    double ICBHmass;
+    int ICBHnum;
+    double LocalIGBHmass;
+    int LocalIGBHnum;
     
     // inflow/outflow tracking
     double AccretedGasMass;
@@ -344,6 +363,7 @@ struct GALAXY
   double MetalsStellarMass;
   double ClassicalMetalsBulgeMass;
   double SecularMetalsBulgeMass;
+  double MetalsStarsExSitu;
   double MetalsHotGas;
   double MetalsEjectedMass;
   double MetalsLocalIGM;
@@ -402,6 +422,9 @@ struct GALAXY
     double LocalIGS_Age[N_AGE_BINS];
     double MetalsLocalIGS_Age[N_AGE_BINS];
     double VelDispStarsAge[N_BINS][N_AGE_BINS];
+    double StarsExSituAge[N_AGE_BINS];
+    double MetalsStarsExSituAge[N_AGE_BINS];
+    double StellarFormationMassAge[N_AGE_BINS];
     
 }
 *Gal, *HaloGal;

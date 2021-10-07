@@ -158,7 +158,7 @@ void walk_down(int i)
 {
     if(HaloGal[i].RootID >= 0) return; // No need to do anything if the RootID has already been found for this galaxy
     
-    double StellarMass, ICS;
+    double StellarMass, ICS, LocalIGS;
     int GalaxyNr, p, SnapNum, mergeType, g;
     GalaxyNr = HaloGal[i].GalaxyNr;
     SnapNum = HaloGal[i].SnapNum;
@@ -166,8 +166,9 @@ void walk_down(int i)
     mergeType = 0;
     
     // If galaxy is along a main branch or merges into a central, StellarMass+ICS should never decrease.  If a galaxy merges into a satellite then StellarMass should never decrease (but ICS might, as that goes to the central).
-    StellarMass = HaloGal[i].StellarMass; // This can only decrease a small amount while walking down if delayed feedback is on
-    ICS = HaloGal[i].ICS;
+//    StellarMass = HaloGal[i].StellarMass; // This can only decrease a small amount while walking down if delayed feedback is on
+//    ICS = HaloGal[i].ICS;
+//    LocalIGS = HaloGal[i].LocalIGS;
     
     for(p=i; p<NumGals; p++)
     {        
@@ -175,19 +176,19 @@ void walk_down(int i)
         {
             if(mergeType==4) assert(HaloGal[p].Type==0);
             
-            // This must be a fly-by or something weird.  Assume there is no appropriate root
-            if((HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS < StellarMass + ICS && DelayedFeedbackOn==0) || 
-               (HaloGal[p].Type==1 && HaloGal[p].StellarMass<StellarMass && DelayedFeedbackOn==0) ||
-               (HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS < FinalRecycleFraction*(StellarMass + ICS)) ||
-               (HaloGal[p].Type==1 && HaloGal[p].StellarMass < FinalRecycleFraction*StellarMass))
-            {
-                printf("i, p, NumGals = %i, %i, %i\n", i, p, NumGals);
-                printf("GalaxyNr, SnapNum, Type, mergeType = %i, %i, %i, %i\n", GalaxyNr, SnapNum, HaloGal[p].Type, mergeType);
-                printf("StellarMass, ICS, sum = %e, %e, %e\n", StellarMass, ICS, StellarMass+ICS);
-                printf("HaloGal[p].StellarMass, HaloGal[p].ICS, sum = %e, %e, %e\n", HaloGal[p].StellarMass, HaloGal[p].ICS, HaloGal[p].StellarMass + HaloGal[p].ICS);
-                printf("HaloGal[i].RotSupportScaleRadius, HaloGal[p].RotSupportScaleRadius = %e, %e\n", HaloGal[i].RotSupportScaleRadius, HaloGal[p].RotSupportScaleRadius);
-                return;
-            }
+//            // This must be a fly-by or something weird.  Assume there is no appropriate root
+//            if((HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS + HaloGal[p].LocalIGS < StellarMass + ICS + LocalIGS && DelayedFeedbackOn==0) || 
+//               (HaloGal[p].Type==1 && HaloGal[p].StellarMass<StellarMass && DelayedFeedbackOn==0) ||
+//               (HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS + HaloGal[p].LocalIGS < FinalRecycleFraction*(StellarMass + ICS + LocalIGS)) ||
+//               (HaloGal[p].Type==1 && HaloGal[p].StellarMass < FinalRecycleFraction*StellarMass))
+//            {
+//                printf("i, p, NumGals = %i, %i, %i\n", i, p, NumGals);
+//                printf("GalaxyNr, SnapNum, Type, mergeType = %i, %i, %i, %i\n", GalaxyNr, SnapNum, HaloGal[p].Type, mergeType);
+//                printf("StellarMass, ICS, sum = %e, %e, %e\n", StellarMass, ICS, StellarMass+ICS);
+//                printf("HaloGal[p].StellarMass, HaloGal[p].ICS, sum = %e, %e, %e\n", HaloGal[p].StellarMass, HaloGal[p].ICS, HaloGal[p].StellarMass + HaloGal[p].ICS);
+//                printf("HaloGal[i].RotSupportScaleRadius, HaloGal[p].RotSupportScaleRadius = %e, %e\n", HaloGal[i].RotSupportScaleRadius, HaloGal[p].RotSupportScaleRadius);
+//                return;
+//            }
             
             if(HaloGal[p].RootID >= 0) // If we arrive at a galaxy that already has a known root, then they must have the same root.
             {
@@ -232,8 +233,9 @@ void walk_down(int i)
                     SnapNum = HaloGal[p].SnapNum+1;
                 }
                 
-                StellarMass = HaloGal[p].StellarMass;
-                ICS = HaloGal[p].ICS;
+//                StellarMass = HaloGal[p].StellarMass;
+//                ICS = HaloGal[p].ICS;
+//                LocalIGS = HaloGal[p].LocalIGS;
             }
         }
         
@@ -300,8 +302,10 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
     
   o->ColdGas = g->ColdGas;
   o->StellarMass = g->StellarMass;
+  o->StellarFormationMass = g->StellarMass / (1 - RecycleFraction);
   o->ClassicalBulgeMass = g->ClassicalBulgeMass;
   o->SecularBulgeMass = g->SecularBulgeMass;
+  o->StarsExSitu = g->StarsExSitu;
   o->HotGas = g->HotGas;
   o->EjectedMass = g->EjectedMass;
   o->LocalIGM = g->LocalIGM;
@@ -313,6 +317,7 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->MetalsStellarMass = g->MetalsStellarMass;
   o->ClassicalMetalsBulgeMass = g->ClassicalMetalsBulgeMass;
   o->SecularMetalsBulgeMass = g->SecularMetalsBulgeMass;
+  o->MetalsStarsExSitu = g->MetalsStarsExSitu;
   o->MetalsHotGas = g->MetalsHotGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
   o->MetalsLocalIGM = g->MetalsLocalIGM;
@@ -323,6 +328,8 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->StarsInstability = g->StarsInstability;
   o->StarsMergeBurst = g->StarsMergeBurst;
     
+    o->LocalIGBHmass = g->LocalIGBHmass;
+    o->LocalIGBHnum = g->LocalIGBHnum;
   
   for(j=0; j<N_BINS; j++)
   {
@@ -454,8 +461,10 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   {
     o->ClassicalBulgeMass[k] = g->ClassicalBulgeMassAge[k];
     o->SecularBulgeMass[k] = g->SecularBulgeMassAge[k];
+    o->StarsExSitu[k] = g->StarsExSituAge[k];
     o->ICS[k] = g->ICS_Age[k];
     o->LocalIGS[k] = g->LocalIGS_Age[k];
+    o->StellarFormationMass[k] = g->StellarFormationMassAge[k];
   }
   o->HotGas = g->HotGas;
   o->EjectedMass = g->EjectedMass;
@@ -469,6 +478,7 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   {
     o->ClassicalMetalsBulgeMass[k] = g->ClassicalMetalsBulgeMassAge[k];
     o->SecularMetalsBulgeMass[k] = g->SecularMetalsBulgeMassAge[k];
+    o->MetalsStarsExSitu[k] = g->MetalsStarsExSituAge[k];
     o->MetalsICS[k] = g->MetalsICS_Age[k];
     o->MetalsLocalIGS[k] = g->MetalsLocalIGS_Age[k];
   }
@@ -479,6 +489,11 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;
   o->StarsMergeBurst = g->StarsMergeBurst;
+    
+    o->ICBHmass = g->ICBHmass;
+    o->ICBHnum = g->ICBHnum;
+    o->LocalIGBHmass = g->LocalIGBHmass;
+    o->LocalIGBHnum = g->LocalIGBHnum;
     
   
   for(j=0; j<N_BINS; j++)

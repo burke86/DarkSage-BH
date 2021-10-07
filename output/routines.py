@@ -42,8 +42,10 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('DiscRadii'                    , (floattype, Nannuli+1)), 
                     ('ColdGas'                      , floattype),
                     ('StellarMass'                  , floattype),
+                    ('StellarFormationMass'         , bulge_arr_type),
                     ('MergerBulgeMass'              , bulge_arr_type),
                     ('InstabilityBulgeMass'         , bulge_arr_type),
+                    ('StarsExSitu'                  , bulge_arr_type),
                     ('HotGas'                       , floattype),
                     ('EjectedMass'                  , floattype),
                     ('LocalIGM'                     , floattype),
@@ -62,10 +64,15 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('DiscHI'                       , (floattype, Nannuli)),
                     ('DiscH2'                       , (floattype, Nannuli)),
                     ('DiscSFR'                      , (floattype, Nannuli)), 
+                    ('ICBHmass'                     , floattype),
+                    ('ICBHnum'                      , np.int32),
+                    ('LocalIGBHmass'                , floattype),
+                    ('LocalIGBHnum'                 , np.int32),
                     ('MetalsColdGas'                , floattype),
                     ('MetalsStellarMass'            , floattype),
                     ('MetalsMergerBulgeMass'        , bulge_arr_type),
                     ('MetalsInstabilityBulgeMass'   , bulge_arr_type),
+                    ('MetalsStarsExSitu'            , bulge_arr_type),
                     ('MetalsHotGas'                 , floattype),
                     ('MetalsEjectedMass'            , floattype),
                     ('MetalsLocalIGM'               , floattype),
@@ -850,3 +857,42 @@ def comoving_distance(z, H_0=67.74, Omega_R=0, Omega_M=0.3089, Omega_L=0.6911):
     integral = np.sum(0.5*(integrand[1:]+integrand[:-1])*np.diff(zprime))
     c = 299792.458
     return c/H_0 * integral
+
+
+def return_fraction_and_SN_ChabrierIMF(m_min=0.1, m_max=100.0, A=0.84342328, k=0.23837777, m_c=0.08, sigma=0.69, ratio_Ia_II=0.2):
+    # array of mass values covering the full range that stars are assumed to fall within
+    m = np.linspace(m_min, m_max, 10001) # solar masses
+
+    # Chabrier IMF
+    IMF = k * m**(-2.3)
+    flow = (m<=1)
+    IMF[flow] = A/m[flow] * np.exp(-np.log10(m[flow]/m_c)**2/(2*sigma**2))
+
+    # lifetimes of stars based on simple scaling + slope of the main sequence of the HR diagram, with the Sun assumed to have a lifetime of 10 Gyr
+    lifetime = 10 * m**(-2.5) # Gyr
+
+    # mass of remnants at the end of evolution
+    m_remnant = 1.0*m
+    f1, f2, f3 = (m>=1)*(m<=7), (m>7)*(m<8), (m>=8)*(m<=50)
+    m_remnant[f1] = 0.444 + 0.084*m[f1]
+    m_remnant[f2] = 0.419 + 0.109*m[f2]
+    m_remnant[f3] = 1.4
+    m_returned = m - m_remnant
+
+    # fraction of returned mass, integrating from the highest mass down
+    dm = m[1]-m[0]
+    integrand = (m_returned*IMF)[::-1]
+    returned_mass_fraction_integrated = 0.5*dm*np.cumsum(integrand[:-1] + integrand[1:])[::-1]
+    returned_mass_fraction_integrated = np.append(returned_mass_fraction_integrated, 0)
+
+    # integrate the IMF from the highest mass down to get the cumulative number density of stars
+    int_IMF = k/1.3 * m**(-1.3)
+    int_IMF -= np.interp(50, m, int_IMF)
+
+    # cumulative number density of supernovae in a stellar population (integrating from the highest mass down)
+    ncum_SN = np.zeros(len(m))
+    ncum_SN[f3] = 1.0*int_IMF[f3]
+    ncum_SN[f1+f2] = ncum_SN[f3][0] + ratio_Ia_II/15.3454 * (int_IMF[f1+f2] - int_IMF[f3][0])
+    ncum_SN[m<1] = np.max(ncum_SN)
+
+    return m, lifetime, returned_mass_fraction_integrated, ncum_SN

@@ -841,9 +841,11 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
   Gal[t].MetalsStellarMass += Gal[p].MetalsStellarMass;
   Gal[t].ClassicalBulgeMass += Gal[p].StellarMass;
   Gal[t].ClassicalMetalsBulgeMass += Gal[p].MetalsStellarMass;
-    
-  Gal[centralgal].ICS += Gal[p].ICS;
-  Gal[centralgal].MetalsICS += Gal[p].MetalsICS;
+  Gal[t].StarsExSitu += Gal[p].StellarMass;
+  Gal[t].MetalsStarsExSitu += Gal[p].MetalsStellarMass;
+
+  Gal[t].ICS += Gal[p].ICS;
+  Gal[t].MetalsICS += Gal[p].MetalsICS;
 
   // If accounting for age, need to deposit all the smaller galaxies' stars into the right age bins for the classical bulge  
   if(AgeStructOut>0)
@@ -853,15 +855,23 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
           Gal[t].ClassicalBulgeMassAge[k] += (Gal[p].ClassicalBulgeMassAge[k] + Gal[p].SecularBulgeMassAge[k]);
           Gal[t].ClassicalMetalsBulgeMassAge[k] += (Gal[p].ClassicalMetalsBulgeMassAge[k] + Gal[p].SecularMetalsBulgeMassAge[k]);
           
+          Gal[t].StarsExSituAge[k] += (Gal[p].ClassicalBulgeMassAge[k] + Gal[p].SecularBulgeMassAge[k]);
+          Gal[t].MetalsStarsExSituAge[k] += (Gal[p].ClassicalMetalsBulgeMassAge[k] + Gal[p].SecularMetalsBulgeMassAge[k]);
+          
+          Gal[t].StellarFormationMassAge[k] += Gal[p].StellarFormationMassAge[k];
+
           for(i=0; i<N_BINS; i++)
           {
               Gal[t].ClassicalBulgeMassAge[k] += Gal[p].DiscStarsAge[i][k];
               Gal[t].ClassicalMetalsBulgeMassAge[k] += Gal[p].DiscStarsMetalsAge[i][k];
+              
+              Gal[t].StarsExSituAge[k] += Gal[p].DiscStarsAge[i][k];
+              Gal[t].MetalsStarsExSituAge[k] += Gal[p].DiscStarsMetalsAge[i][k];
+
           }
           
-          // It's possible this will be redundant from the infall recipe
-          Gal[centralgal].ICS_Age[k] += Gal[p].ICS_Age[k];
-          Gal[centralgal].MetalsICS_Age[k] += Gal[p].MetalsICS_Age[k];
+          Gal[t].ICS_Age[k] += Gal[p].ICS_Age[k];
+          Gal[t].MetalsICS_Age[k] += Gal[p].MetalsICS_Age[k];
       }
   }
 
@@ -870,12 +880,14 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
   Gal[t].HotGas += Gal[p].HotGas;
   Gal[t].MetalsHotGas += Gal[p].MetalsHotGas;
   
-  Gal[centralgal].EjectedMass += Gal[p].EjectedMass;
-  Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsEjectedMass;
+  Gal[t].HotGas += Gal[p].EjectedMass;
+  Gal[t].MetalsHotGas += Gal[p].MetalsEjectedMass;
 
   Gal[t].BlackHoleMass += Gal[p].BlackHoleMass;
   assert(Gal[t].BlackHoleMass>=0.0);
-
+    
+  Gal[t].ICBHnum += Gal[p].ICBHnum;
+  Gal[t].ICBHmass += Gal[p].ICBHmass;
   
 
   for(step = 0; step < STEPS; step++)
@@ -956,37 +968,70 @@ void stars_to_bulge(int t, int k_now)
 
 void disrupt_satellite_to_ICS(int centralgal, int gal, int k_now)
 {  
-  int i, k;
-  Gal[centralgal].HotGas += Gal[gal].ColdGas + Gal[gal].HotGas;
-  Gal[centralgal].MetalsHotGas += Gal[gal].MetalsColdGas + Gal[gal].MetalsHotGas;
-  
-  Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
-  Gal[centralgal].MetalsEjectedMass += Gal[gal].MetalsEjectedMass;
-  
-  Gal[centralgal].ICS += Gal[gal].ICS;
-  Gal[centralgal].MetalsICS += Gal[gal].MetalsICS;
+    int i, k;
+    double SatelliteRadius = get_satellite_radius(gal, centralgal);
 
-  Gal[centralgal].ICS += Gal[gal].StellarMass;
-  Gal[centralgal].MetalsICS += Gal[gal].MetalsStellarMass;
-    
-  if(AgeStructOut>0)
-  {
-    for(k=k_now; k<N_AGE_BINS; k++)
+    if(SatelliteRadius <= Gal[centralgal].Rvir)
     {
-        Gal[centralgal].ICS_Age[k] += (Gal[gal].ClassicalBulgeMassAge[k] + Gal[gal].SecularBulgeMassAge[k] + Gal[gal].ICS_Age[k]);
-        Gal[centralgal].MetalsICS_Age[k] += (Gal[gal].ClassicalMetalsBulgeMassAge[k] + Gal[gal].SecularMetalsBulgeMassAge[k] + Gal[gal].MetalsICS_Age[k]);
-        
-        for(i=0; i<N_BINS; i++)
+        Gal[centralgal].HotGas += (Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass);
+        Gal[centralgal].MetalsHotGas += (Gal[gal].MetalsColdGas + Gal[gal].MetalsHotGas + Gal[gal].MetalsEjectedMass);
+
+        Gal[centralgal].ICS += (Gal[gal].ICS + Gal[gal].StellarMass);
+        Gal[centralgal].MetalsICS += (Gal[gal].MetalsICS + Gal[gal].MetalsStellarMass);
+
+        if(AgeStructOut>0)
         {
-            Gal[centralgal].ICS_Age[k] += Gal[gal].DiscStarsAge[i][k];
-            Gal[centralgal].MetalsICS_Age[k] += Gal[gal].DiscStarsMetalsAge[i][k];
+            for(k=k_now; k<N_AGE_BINS; k++)
+            {
+                Gal[centralgal].ICS_Age[k] += (Gal[gal].ClassicalBulgeMassAge[k] + Gal[gal].SecularBulgeMassAge[k] + Gal[gal].ICS_Age[k]);
+                Gal[centralgal].MetalsICS_Age[k] += (Gal[gal].ClassicalMetalsBulgeMassAge[k] + Gal[gal].SecularMetalsBulgeMassAge[k] + Gal[gal].MetalsICS_Age[k]);
+                
+                for(i=0; i<N_BINS; i++)
+                {
+                    Gal[centralgal].ICS_Age[k] += Gal[gal].DiscStarsAge[i][k];
+                    Gal[centralgal].MetalsICS_Age[k] += Gal[gal].DiscStarsMetalsAge[i][k];
+                }
+            }
         }
+        
+        Gal[centralgal].ICBHnum += (1 + Gal[gal].ICBHnum);
+        Gal[centralgal].ICBHmass += (Gal[gal].BlackHoleMass + Gal[gal].ICBHmass);
+        
     }
-  }
-  
-  // what should we do with the disrupted satellite BH?
+    else
+    {
+
+        Gal[centralgal].LocalIGM += (Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass);
+        Gal[centralgal].MetalsLocalIGM += (Gal[gal].MetalsColdGas + Gal[gal].MetalsHotGas + Gal[gal].MetalsEjectedMass);
+
+        Gal[centralgal].LocalIGS += (Gal[gal].ICS + Gal[gal].StellarMass + Gal[gal].LocalIGS);
+        Gal[centralgal].MetalsLocalIGS += (Gal[gal].MetalsICS + Gal[gal].MetalsStellarMass + Gal[gal].MetalsLocalIGS);
+
+        if(AgeStructOut>0)
+        {
+            for(k=k_now; k<N_AGE_BINS; k++)
+            {
+                Gal[centralgal].LocalIGS_Age[k] += (Gal[gal].ClassicalBulgeMassAge[k] + Gal[gal].SecularBulgeMassAge[k] + Gal[gal].ICS_Age[k]);
+                Gal[centralgal].MetalsLocalIGS_Age[k] += (Gal[gal].ClassicalMetalsBulgeMassAge[k] + Gal[gal].SecularMetalsBulgeMassAge[k] + Gal[gal].MetalsICS_Age[k]);
+                
+                for(i=0; i<N_BINS; i++)
+                {
+                    Gal[centralgal].LocalIGS_Age[k] += Gal[gal].DiscStarsAge[i][k];
+                    Gal[centralgal].MetalsLocalIGS_Age[k] += Gal[gal].DiscStarsMetalsAge[i][k];
+                }
+            }
+        }
+        
+        Gal[centralgal].LocalIGBHnum += (1 + Gal[gal].ICBHnum);
+        Gal[centralgal].LocalIGBHmass += (Gal[gal].BlackHoleMass + Gal[gal].ICBHmass);
+
+    }
+    
+    if(AgeStructOut>0) for(k=k_now; k<N_AGE_BINS; k++) Gal[centralgal].StellarFormationMassAge[k] += Gal[gal].StellarFormationMassAge[k];
+
+    // what should we do with the disrupted satellite BH?
     Gal[gal].mergeIntoGalaxyNr = Gal[centralgal].GalaxyNr;
-  Gal[gal].mergeType = 4;  // mark as disruption to the ICS
+    Gal[gal].mergeType = 4;  // mark as disruption to the ICS
 }
 
 
@@ -1121,6 +1166,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
         stars_angmom += stars * j_bin;
     }
     Gal[merger_centralgal].DiscSFR[k] += stars / dt;
+    Gal[merger_centralgal].StellarFormationMassAge[k_now] += stars;
   }
      
   if(ejected_sum>0.0)

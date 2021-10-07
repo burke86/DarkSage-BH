@@ -138,6 +138,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 
                 stars_sum += stars;
                 Gal[p].DiscSFR[i] += stars / dt;
+                Gal[p].StellarFormationMassAge[k_now] += stars;
                 if(stars>=MIN_STARS_FOR_SN)
                 {
                     NewStars[i] = (1 - RecycleFraction) * stars;

@@ -68,7 +68,7 @@ void bye()
 int main(int argc, char **argv)
 {
     int filenr, tree, halonr, i, k;
-    double k_float, ExpFac;
+    double k_float;
     struct sigaction current_XCPU;
     
     struct stat filestatus;
@@ -133,13 +133,12 @@ int main(int argc, char **argv)
         {
             k_float = (double)LastSnap - (double)i*age_snap_ratio;
             k = (int)k_float;
-            ExpFac = (k_float - (double)k)*AA[k+1] + (1.0 - k_float + (double)k)*AA[k];
-            AgeBinEdge[i] = time_to_present(1.0 / ExpFac - 1.0);
+            AgeBinEdge[i] = time_to_present(ZZ[k]);
         }
         AgeBinEdge[N_AGE_BINS] = time_to_present(ZZ[0]);
     }
     
-//    for(i=0; i<=N_AGE_BINS; i++) printf("i, AgeBinEdge[i] = %i, %e\n", i, AgeBinEdge[i]);
+//    for(i=0; i<=N_AGE_BINS; i++) printf("i, AgeBinEdge[i], Gyr = %i, %e, %e\n", i, AgeBinEdge[i], AgeBinEdge[i]*1e-3*UnitTime_in_s/SEC_PER_MEGAYEAR/Hubble_h);
         
     // Set counts for prograde and retrograde satellite collisions
     RetroCount = 0;
@@ -153,6 +152,23 @@ int main(int argc, char **argv)
         FinalRecycleFraction = 1.0*StellarOutput[0];
     else
         FinalRecycleFraction = 1.0 * RecycleFraction;
+    
+    // running a check on get_RecycleFraction_and_NumSNperMass() returning what I want it to
+//    double test_mass = 1.0;
+//    int tt;
+//    double time_convert = 1.0 / (1e-3 * UnitTime_in_s / SEC_PER_MEGAYEAR / Hubble_h);
+//    for(tt=0; tt<1500; tt++)
+//    {
+//        if(tt%30==0) continue;
+//        get_RecycleFraction_and_NumSNperMass(tt*0.01*time_convert, (tt+1)*0.01*time_convert, StellarOutput);
+////        get_RecycleFraction_and_NumSNperMass(0.0, 0.5*(AgeBinEdge[tt+1] - AgeBinEdge[tt]), StellarOutput);
+////        printf("bin, instant age interval, return fraction = %i, %e, %e\n", tt, 0.5*(AgeBinEdge[tt+1]-AgeBinEdge[tt])/time_convert, StellarOutput[0]);
+////        get_RecycleFraction_and_NumSNperMass(AgeBinEdge[tt], AgeBinEdge[tt+1], StellarOutput);
+//        test_mass -= (StellarOutput[0]*test_mass);
+//    }
+//    printf("test_mass, 1-FinalRecycleFraction = %e, %e\n", test_mass, 1-FinalRecycleFraction);
+//    assert(test_mass == 1-FinalRecycleFraction);
+    
     
     // Used for SupernovaRecipeOn>3.  If DelayedFeedbackOn==1, this will be updated in core_build_model.c.  The value below assumes the instantaneous recycling (and therefore instantaneous feedback) approximation
     SNperMassFormed = 1.0*StellarOutput[1];

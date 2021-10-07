@@ -75,6 +75,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].StellarMass = 0.0;
     Gal[p].ClassicalBulgeMass = 0.0;
     Gal[p].SecularBulgeMass = 0.0;
+    Gal[p].StarsExSitu = 0.0;
     Gal[p].HotGas = 0.0;
     Gal[p].EjectedMass = 0.0;
     Gal[p].LocalIGM = 0.0;
@@ -85,11 +86,17 @@ void init_galaxy(int p, int halonr)
     Gal[p].StarsFromH2 = 0.0;
     Gal[p].StarsInstability = 0.0;
     Gal[p].StarsMergeBurst = 0.0;
+
+    Gal[p].ICBHmass = 0.0;
+    Gal[p].ICBHnum = 0;
+    Gal[p].LocalIGBHmass = 0.0;
+    Gal[p].LocalIGBHnum = 0;
     
     Gal[p].MetalsColdGas = 0.0;
     Gal[p].MetalsStellarMass = 0.0;
     Gal[p].ClassicalMetalsBulgeMass = 0.0;
     Gal[p].SecularMetalsBulgeMass = 0.0;
+    Gal[p].MetalsStarsExSitu = 0.0;
     Gal[p].MetalsHotGas = 0.0;
     Gal[p].MetalsEjectedMass = 0.0;
     Gal[p].MetalsLocalIGM = 0.0;
@@ -163,15 +170,19 @@ void init_galaxy(int p, int halonr)
     
     for(k=0; k<N_AGE_BINS; k++)
     {
+        Gal[p].StellarFormationMassAge[k] = 0.0;
         Gal[p].ClassicalBulgeMassAge[k] = 0.0;
         Gal[p].SecularBulgeMassAge[k] = 0.0;
         Gal[p].ClassicalMetalsBulgeMassAge[k] = 0.0;
         Gal[p].SecularMetalsBulgeMassAge[k] = 0.0;
+        Gal[p].StarsExSituAge[k] = 0.0;
+        
         Gal[p].ICS_Age[k] = 0.0;
         Gal[p].MetalsICS_Age[k] = 0.0;
         Gal[p].LocalIGS_Age[k] = 0.0;
         Gal[p].MetalsLocalIGS_Age[k] = 0.0;
-        
+        Gal[p].MetalsStarsExSituAge[k] = 0.0;
+
         for(j=0; j<N_BINS; j++)
         {
             Gal[p].DiscStarsAge[j][k] = 0.0;
@@ -1010,6 +1021,7 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
     // built-in assumption that stars > 50 solar collapse rapidly to black holes without returning gas to the ISM or causing feedback
     if(m0>50.0) 
     {
+//        printf("get_RecycleFraction_and_NumSNperMass(): requested m0=%e. Needs to be >50 for non-zero output\n");
         stellar_output[0] = 0.0;
         stellar_output[1] = 0.0;
         return;
@@ -1023,7 +1035,7 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
     {
         m1 = 1.0 / pow(t0 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
         if(m1>50.0) m1 = 50.0; 
-        if(m1<1.0)
+        if(m1<=1.0)
         {
             stellar_output[0] = 0.0;
             stellar_output[1] = 0.0;
@@ -1038,8 +1050,12 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
     assert(m1>m0);
     
     double denom = (integrate_m_IMF(0.1,m1) + integrate_mremnant_IMF(m1,100.0));
+    assert(denom < 1.0);
+    assert(denom > 0.0);
     stellar_output[0] = (integrate_m_IMF(m0,m1) - integrate_mremnant_IMF(m0,m1)) / denom;
     stellar_output[1] = get_numSN_perMass(m0,m1) / (denom * SOLAR_MASS * Hubble_h) * UnitMass_in_g; // convert to internal units (inverse mass)
+    assert(stellar_output[0] > 0.0);
+    assert(stellar_output[1] > 0.0);
     return;
 }
 

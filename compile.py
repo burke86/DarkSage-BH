@@ -89,13 +89,8 @@ if len(par_file)>0:
             
     i = np.where(np.array(hard_variable_names)=="N_AGE_BINS")[0][0]
     if int(hard_variable_values[i])>LastSnap:
-        YorN = cmnd_input("\nN_AGE_BINS ("+str(hard_variable_values[i])+") is currently larger than the latest output snapshot ("+str(LastSnap)+").  This will unnecessarily increase RAM and CPU requirements of Dark Sage by artificially creating more temporal bins than in the input merger trees, according to the parameter file.\n------\nWould you like to reset N_AGE_BINS to "+str(LastSnap)+" [y/n]?")
-        
-        while YorN not in yes+no:
-            YorN = cmnd_input("\nPlease enter y or n for the above request")
-        
-        if YorN in yes:
-            hard_variable_values[i] = str(LastSnap)
+        print("\nN_AGE_BINS was requested to be equal to or greater than the number of snapshots, which is not allowed.  Resetting N_AGE_BINS to"+str(LastSnap))
+        hard_variable_values[i] = str(LastSnap)
     
     # Create temporary files, updating the next hard parameter with each iteration
     for var, name in zip(hard_variable_values, hard_variable_names):

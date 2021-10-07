@@ -13,11 +13,12 @@
 double infall_recipe(int centralgal, int ngal, double Zcurr)
 {
   int i, k;
-  double tot_stellarMass, tot_BHMass, tot_coldMass, tot_hotMass, tot_hotMetals, tot_ejected, tot_ejectedMetals;
-  double tot_ICS, tot_ICSMetals, tot_IGS, tot_IGSMetals;
+  double tot_stellarMass, tot_BHMass, tot_coldMass, tot_hotMass, tot_ejected, tot_ejectedMetals;
+  double tot_ICS, tot_IGS, tot_IGSMetals;
   double tot_IGS_Age[N_AGE_BINS], tot_IGSMetals_Age[N_AGE_BINS];
-  double tot_LocalIGM, tot_LocalIGMMetals, FOF_baryons;
+  double tot_LocalIGM, tot_LocalIGMMetals, FOF_baryons, tot_LocalIGBHmass;
   double infallingMass, reionization_modifier, DiscGasSum, Rsat, ExpFac;
+  int tot_LocalIGBHnum;
     
   int k_now = get_stellar_age_bin_index(Age[Gal[centralgal].SnapNum]);
 
@@ -30,20 +31,24 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
 
   // need to add up all the baryonic mass asociated with the full halo 
-  tot_stellarMass = tot_coldMass = tot_hotMass = tot_hotMetals = tot_ejected = tot_BHMass = tot_ejectedMetals = tot_ICS = tot_ICSMetals = tot_LocalIGM = tot_LocalIGMMetals = tot_IGS = tot_IGSMetals = 0.0;
+  tot_stellarMass = tot_coldMass = tot_hotMass = tot_ejected = tot_BHMass = tot_ejectedMetals = tot_ICS = tot_LocalIGM = tot_LocalIGMMetals = tot_IGS = tot_IGSMetals = tot_LocalIGBHmass = 0.0;
   if(AgeStructOut>0) for(k=0; k<N_AGE_BINS; k++) tot_IGS_Age[k] = tot_IGSMetals_Age[k] = 0.0;
+  tot_LocalIGBHnum = 0;
     
 
   for(i = 0; i < ngal; i++)      // Loop over all galaxies in the FoF-halo 
   {
     Rsat = get_satellite_radius(i, centralgal);
       
-    FOF_baryons += (Gal[i].StellarMass + Gal[i].BlackHoleMass + Gal[i].ColdGas + Gal[i].HotGas + Gal[i].EjectedMass + Gal[i].ICS + Gal[i].LocalIGS);
+    FOF_baryons += (Gal[i].StellarMass + Gal[i].BlackHoleMass + Gal[i].ColdGas + Gal[i].HotGas + Gal[i].EjectedMass + Gal[i].ICS + Gal[i].LocalIGS + Gal[i].ICBHmass + Gal[i].LocalIGBHmass);
       
     tot_LocalIGM += Gal[i].LocalIGM;
     tot_LocalIGMMetals += Gal[i].MetalsLocalIGM;
       
-    // sum up local intergalactic stars -- will go to central. Only go through the loop is necessary
+    tot_LocalIGBHmass += Gal[i].LocalIGBHmass;
+    tot_LocalIGBHnum += Gal[i].LocalIGBHnum;
+      
+    // sum up local intergalactic stars -- will go to central. Only go through the loop if necessary
     tot_IGS += Gal[i].LocalIGS;
     tot_IGSMetals += Gal[i].MetalsLocalIGS;
     if(AgeStructOut>0)
@@ -61,21 +66,21 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
         Gal[i].LocalIGM = Gal[i].MetalsLocalIGM = 0.0;
         Gal[i].LocalIGS = Gal[i].MetalsLocalIGS = 0.0;
         if(AgeStructOut>0)  for(k=0; k<N_AGE_BINS; k++)  Gal[i].LocalIGS_Age[k] = Gal[i].MetalsLocalIGS_Age[k] = 0.0;
+        Gal[i].LocalIGBHmass = 0.0;
+        Gal[i].LocalIGBHnum = 0;
     }
       
     // "Total baryons" is only concerned within Rvir
     if(Rsat <= Gal[centralgal].Rvir)
     {
         tot_stellarMass += Gal[i].StellarMass;
-        tot_BHMass += Gal[i].BlackHoleMass;
+        tot_BHMass += (Gal[i].BlackHoleMass + Gal[i].ICBHmass);
         tot_coldMass += Gal[i].ColdGas;
         tot_hotMass += Gal[i].HotGas;
-        tot_hotMetals += Gal[i].MetalsHotGas;
         tot_ejected += Gal[i].EjectedMass;
         tot_ejectedMetals += Gal[i].MetalsEjectedMass;
         
         tot_ICS += Gal[i].ICS;
-        tot_ICSMetals += Gal[i].MetalsICS;
         
         if(i != centralgal) Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central hot reservoir
         
@@ -95,6 +100,11 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
     // The Local IGM is associated with the central -- it is the only one that can acquire gas cosmologically by design.  Its total mass is always defined by the remaining baryon mass needed to fill out the entire FoF.  Use of dmax() and dmin() are for safety. 
     Gal[centralgal].LocalIGM = dmax(tot_LocalIGM, reionization_modifier * BaryonFrac * Gal[centralgal].Len * PartMass - FOF_baryons); // not sure if using reionization_modifier here is appropriate
     Gal[centralgal].MetalsLocalIGM = dmax(dmin(tot_LocalIGMMetals, Gal[centralgal].LocalIGM), BIG_BANG_METALLICITY * Gal[centralgal].LocalIGM);
+    
+    if(!(Gal[centralgal].LocalIGM>=0))
+    {
+        printf("LocalIGM, MetalsLocalIGM, tot_LocalIGM, FOF_baryons, Expected FOF baryons = %e, %e, %e, %e, %e\n", Gal[centralgal].LocalIGM, Gal[centralgal].MetalsLocalIGM, tot_LocalIGM, FOF_baryons, reionization_modifier * BaryonFrac * Gal[centralgal].Len * PartMass);
+    }
     assert(Gal[centralgal].LocalIGM>=0);
     assert(Gal[centralgal].MetalsLocalIGM>=0);
     
@@ -113,6 +123,10 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
           Gal[centralgal].MetalsLocalIGS_Age[k] = tot_IGSMetals_Age[k];
       }
     }
+    
+    // Same goes for local intergalactic black holes
+    Gal[centralgal].LocalIGBHnum = tot_LocalIGBHnum;
+    Gal[centralgal].LocalIGBHmass = tot_LocalIGBHmass;
     
   // Put ejecta from satellites into the hot reservoir of the central
   if(tot_ejected > Gal[centralgal].EjectedMass)

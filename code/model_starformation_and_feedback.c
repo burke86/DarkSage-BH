@@ -10,7 +10,7 @@
 
 
 
-void starformation_and_feedback(int p, int centralgal, double dt, int step, double time)
+void starformation_and_feedback(int p, int centralgal, double dt, int step, double time, int k_now)
 {
   double strdot, stars, reheated_mass, ejected_mass, fac, metallicity, stars_sum, area, SFE_H2, f_H2_const, Sigma_0gas, DiscGasSum, DiscStarsSum, DiscPre, ColdPre;
   double r_inner, r_outer;
@@ -127,6 +127,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
     stars = feedback_mass[2];
     ejected_cold_mass = feedback_mass[3];
 
+    Gal[p].StellarFormationMassAge[k_now] += stars;
     Gal[p].DiscSFR[i] += stars / dt;
 	stars_sum += stars;
     ejected_sum += ejected_mass;
@@ -1524,20 +1525,22 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     // might be more optimal to do this calculation outside this function and feed it in.  Or, even better, build a look-up table at the start of running Dark Sage.  The same calculation is being done many times with the current set-up, which is redundant.  The logic right now is safe though!
     if(k_now==N_AGE_BINS-1) return;
     double ReturnFraction[N_AGE_BINS], SNperMassRemaining[N_AGE_BINS];
+    double time_convert = 1e-3 * UnitTime_in_s / SEC_PER_MEGAYEAR / Hubble_h;
     for(k=N_AGE_BINS-1; k>k_now; k--)
     {
         t0 = 0.5*(AgeBinEdge[k]+AgeBinEdge[k+1]) - (time+0.5*dt); // start of time window considered for the delayed feedback
         if(!(t0>0)) printf("k, AgeBinEdge[k-1], AgeBinEdge[k], AgeBinEdge[k+1], time+0.5*dt  = %i, %e, %e, %e, %e", k, AgeBinEdge[k-1], AgeBinEdge[k], AgeBinEdge[k+1], time+0.5*dt);
         assert(t0>0);
         t1 = t0 + dt; // end of time window
+        assert(t1>t0);
         get_RecycleFraction_and_NumSNperMass(t0, t1, StellarOutput);
-        ReturnFraction[k] = 1.0*StellarOutput[0];
-        SNperMassRemaining[k] = 1.0*StellarOutput[1];
-        if(!(ReturnFraction[k]>=0)) printf("StellarOutput = %e, %e\n", StellarOutput[0], StellarOutput[1]);
+        ReturnFraction[k] = StellarOutput[0];
+        SNperMassRemaining[k] = StellarOutput[1];
+//        if(!(ReturnFraction[k]>=0))  printf("k, ReturnFraction, SNperMassRemaining, t0, t1, k_now, time = %i, %e, %e, %e, %e, %i, %e\n", k, StellarOutput[0], StellarOutput[1], t0*time_convert, t1*time_convert, k_now, time*time_convert);
         assert(ReturnFraction[k]>=0);
-        assert(ReturnFraction[k]<1);
+        assert(ReturnFraction[k]<FinalRecycleFraction);
     }
-                
+        
     double ejected_sum = 0.0;
     double inv_eject_feedback_specific_energy = FeedbackEjectCoupling / (ejected_specific_energy - hot_specific_energy);
         
@@ -1549,17 +1552,29 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         {
             ejected_sum += (FeedbackReheatCoupling * Gal[p].ClassicalBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k] * inv_eject_feedback_specific_energy); // energy from feedback of these stars goes to ejecting hot gas
             metallicity = get_metallicity(Gal[p].ClassicalBulgeMassAge[k], Gal[p].ClassicalMetalsBulgeMassAge[k]);
+            
             return_mass = ReturnFraction[k] * Gal[p].ClassicalBulgeMassAge[k];
             return_metal_mass = ReturnFraction[k] * Gal[p].ClassicalMetalsBulgeMassAge[k];
+            
             Gal[p].ClassicalBulgeMassAge[k] -= return_mass;
             Gal[p].ClassicalBulgeMass -= return_mass;
             Gal[p].StellarMass -= return_mass;
+            
             Gal[p].ClassicalMetalsBulgeMassAge[k] -= return_metal_mass;
             Gal[p].ClassicalMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
+            
             Gal[p].HotGas += return_mass;
             Gal[p].MetalsHotGas += return_metal_mass;
             Gal[p].MetalsHotGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity)); // enrich gas with new metals from this stellar population
+            
+            // ex-situ stars are part of the merger-driven bulge.  Adjust their mass too.
+            return_mass = ReturnFraction[k] * Gal[p].StarsExSituAge[k];
+            return_metal_mass = ReturnFraction[k] * Gal[p].MetalsStarsExSituAge[k];
+            Gal[p].StarsExSituAge[k] -= return_mass;
+            Gal[p].StarsExSitu -= return_mass;
+            Gal[p].MetalsStarsExSituAge[k] -= return_metal_mass;
+            Gal[p].MetalsStarsExSitu -= return_metal_mass;
         }
         
         // same for instability-driven bulge
@@ -1567,14 +1582,18 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         {
             ejected_sum += (FeedbackReheatCoupling * Gal[p].SecularBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k] * inv_eject_feedback_specific_energy);
             metallicity = get_metallicity(Gal[p].SecularBulgeMassAge[k], Gal[p].SecularMetalsBulgeMassAge[k]);
+            
             return_mass = ReturnFraction[k] * Gal[p].SecularBulgeMassAge[k];
             return_metal_mass = ReturnFraction[k] * Gal[p].SecularMetalsBulgeMassAge[k];
+            
             Gal[p].SecularBulgeMassAge[k] -= return_mass;
             Gal[p].SecularBulgeMass -= return_mass;
             Gal[p].StellarMass -= return_mass;
+            
             Gal[p].SecularMetalsBulgeMassAge[k] -= return_metal_mass;
             Gal[p].SecularMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
+            
             Gal[p].HotGas += return_mass;
             Gal[p].MetalsHotGas += return_metal_mass;
             Gal[p].MetalsHotGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
@@ -1585,16 +1604,38 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         {
             ejected_sum += (FeedbackReheatCoupling * Gal[p].ICS_Age[k] * EnergySNcode * SNperMassRemaining[k] * inv_eject_feedback_specific_energy);
             metallicity = get_metallicity(Gal[p].ICS_Age[k], Gal[p].MetalsICS_Age[k]);
+            
             return_mass = ReturnFraction[k] * Gal[p].ICS_Age[k];
             return_metal_mass = ReturnFraction[k] * Gal[p].MetalsICS_Age[k];
+            
             Gal[p].ICS_Age[k] -= return_mass;
             Gal[p].ICS -= return_mass;
+            
             Gal[p].MetalsICS_Age[k] -= return_metal_mass;
             Gal[p].MetalsICS -= return_metal_mass;
+            
             Gal[p].HotGas += return_mass;
             Gal[p].MetalsHotGas += return_metal_mass;
             Gal[p].MetalsHotGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
         }
+        
+        // and for local intergalactic stars
+        if(Gal[p].LocalIGS_Age[k] > 0)
+        {
+            return_mass = ReturnFraction[k] * Gal[p].LocalIGS_Age[k];
+            return_metal_mass = ReturnFraction[k] * Gal[p].MetalsLocalIGS_Age[k];
+            
+            Gal[p].LocalIGS_Age[k] -= return_mass;
+            Gal[p].LocalIGS -= return_mass;
+            
+            Gal[p].MetalsLocalIGS_Age[k] -= return_metal_mass;
+            Gal[p].MetalsLocalIGS -= return_metal_mass;
+            
+            Gal[p].LocalIGM += return_mass;
+            Gal[p].MetalsLocalIGM += return_metal_mass;
+            Gal[p].MetalsLocalIGM += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
+        }
+        
     }
 
     
@@ -1636,12 +1677,15 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             metallicity = get_metallicity(Gal[p].DiscStarsAge[i][k], Gal[p].DiscStarsMetalsAge[i][k]);
             return_mass = ReturnFraction[k] * Gal[p].DiscStarsAge[i][k];
             return_metal_mass = ReturnFraction[k] * Gal[p].DiscStarsMetalsAge[i][k];
+            
             Gal[p].DiscStars[i] -= return_mass;
             Gal[p].DiscStarsAge[i][k] -= return_mass;
             Gal[p].StellarMass -= return_mass;
+            
             Gal[p].DiscStarsMetals[i] -= return_metal_mass;
             Gal[p].DiscStarsMetalsAge[i][k] -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
+            
             Gal[p].DiscGas[i] += return_mass;
             Gal[p].DiscGasMetals[i] += return_metal_mass;
             Gal[p].ColdGas += return_mass;
