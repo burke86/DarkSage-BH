@@ -78,7 +78,7 @@ void construct_galaxies(int halonr, int tree)
 int join_galaxies_of_progenitors(int halonr, int ngalstart)
 {
   int ngal, prog, i, j, first_occupied, lenmax, lenoccmax, centralgal;
-  double previousMvir, previousVvir, previousVmax, SpinMag;
+  double previousMvir, previousVvir, previousVmax, SpinMag, jHotRatio;
   int step;
 
   lenmax = 0;
@@ -211,6 +211,14 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
             }
 
             Gal[ngal].Type = 1;
+              
+            if(Gal[ngal].deltaMvir<0.0)
+            { // for satellites, reduce angular momentum of hot gas when the subhalo loses mass
+                jHotRatio = cbrt(sqr(Gal[ngal].Mvir / previousMvir)); // assumes j propto M^2/3 during stripping
+                assert(jHotRatio<1.0);
+                assert(jHotRatio>0.0);
+                for(j = 0; j < 3; j++) Gal[ngal].SpinHot[j] *= jHotRatio;
+            }
           }
         }
         else
@@ -357,7 +365,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         assert(Gal[p].MetalsHotGas>=0);
 
       // Ram pressure stripping of cold gas from satellites
-      if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0 && (Gal[p].ColdGas+Gal[p].StellarMass)>Gal[p].HotGas)
+      if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0)
           ram_pressure_stripping(centralgal, p, k_now);
         assert(Gal[p].MetalsHotGas>=0);
 

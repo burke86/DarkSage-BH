@@ -485,7 +485,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
 
 void ram_pressure_stripping(int centralgal, int gal, int k_now)
 {
-    double r_gal, r_gal2, v_gal2, rho_IGM, Sigma_gas, area;
+    double r_gal, r_gal2, v_gal2, rho_IGM, Sigma_gas, area, r_ann2;
 //    double ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum];
     double angle = acos(Gal[gal].SpinStars[0]*Gal[gal].SpinGas[0] + Gal[gal].SpinStars[1]*Gal[gal].SpinGas[1] + Gal[gal].SpinStars[2]*Gal[gal].SpinGas[2])*180.0/M_PI;
     double Sigma_disc;
@@ -525,6 +525,7 @@ void ram_pressure_stripping(int centralgal, int gal, int k_now)
         
         area = M_PI * (sqr(Gal[gal].DiscRadii[i+1]) - sqr(Gal[gal].DiscRadii[i]));
         Sigma_gas = Gal[gal].DiscGas[i] / area;
+        r_ann2 = 0.5*(sqr(Gal[gal].DiscRadii[i+1]) + sqr(Gal[gal].DiscRadii[i]));
         
         if(angle<=ThetaThresh)
             Sigma_disc = Sigma_gas + Gal[gal].DiscStars[i] / area;
@@ -560,7 +561,7 @@ void ram_pressure_stripping(int centralgal, int gal, int k_now)
             
             break;
         }
-        else if( ( (Pram >= Pgrav && (RamPressureOn==1 || RamPressureOn==3)) || ((Mstrip>=Gal[gal].DiscGas[i] || MstripZ>=Gal[gal].DiscGasMetals[i]) && RamPressureOn==2) ) && Sigma_gas>0.0 )
+        else if( ( (Pram >= Pgrav && (RamPressureOn==1 || RamPressureOn==3) && ((Gal[gal].ColdGas+Gal[gal].StellarMass)>Gal[gal].HotGas || r_ann2>Gal[gal].R2_hot_av) ) || ((Mstrip>=Gal[gal].DiscGas[i] || MstripZ>=Gal[gal].DiscGasMetals[i]) && RamPressureOn==2) ) && Sigma_gas>0.0 )
         {
             if(HeatedToCentral)
             {
