@@ -81,6 +81,8 @@ def galdtype():
         ('ICBHnum'                      , np.int32),
         ('LocalIGBHmass'                , floattype),
         ('LocalIGBHnum'                 , np.int32),
+        ('VelDispInstabilityBulge'      , floattype),
+        ('HalfMassRadiusInstabilityBulge', floattype),
         ('MetalsColdGas'                , floattype),
         ('MetalsStellarMass'            , floattype),
         ('MetalsMergerBulgeMass'        , floattype),

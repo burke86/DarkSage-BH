@@ -342,6 +342,9 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
       o->DiscSFR[j] = g->DiscSFR[j] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
       o->VelDispStars[j] = g->VelDispStars[j];
   }
+    
+  o->VelDispBulge = g->VelDispBulge;
+  o->HalfMassRadiusInstabilityBulge = (1.0 + sqrt(2.0)) * g->a_InstabBulge;
 
   o->SfrFromH2 = 0.0;
   o->SfrInstab = 0.0;
@@ -481,11 +484,14 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->MetalsStarsExSitu[k] = g->MetalsStarsExSituAge[k];
     o->MetalsICS[k] = g->MetalsICS_Age[k];
     o->MetalsLocalIGS[k] = g->MetalsLocalIGS_Age[k];
+    o->VelDispBulge[k] = g->VelDispBulgeAge[k];
   }
   o->MetalsHotGas = g->MetalsHotGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
   o->MetalsLocalIGM = g->MetalsLocalIGM;
-    
+   
+  o->HalfMassRadiusInstabilityBulge = (1.0 + sqrt(2.0)) * g->a_InstabBulge;
+
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;
   o->StarsMergeBurst = g->StarsMergeBurst;

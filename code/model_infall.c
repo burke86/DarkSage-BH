@@ -34,11 +34,23 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   tot_stellarMass = tot_coldMass = tot_hotMass = tot_ejected = tot_BHMass = tot_ejectedMetals = tot_ICS = tot_LocalIGM = tot_LocalIGMMetals = tot_IGS = tot_IGSMetals = tot_LocalIGBHmass = 0.0;
   if(AgeStructOut>0) for(k=0; k<N_AGE_BINS; k++) tot_IGS_Age[k] = tot_IGSMetals_Age[k] = 0.0;
   tot_LocalIGBHnum = 0;
-    
+  FOF_baryons = 0.0;
 
   for(i = 0; i < ngal; i++)      // Loop over all galaxies in the FoF-halo 
   {
     Rsat = get_satellite_radius(i, centralgal);
+      
+      
+      // After adding instab-bulge dispersion, FOF_baryons started returning NaN for a galaxy. These assert statements were added to catch to source of that problem.  But with these statements, the problem disappeared.  How?  Crashes when they are commented out.
+      assert(Gal[i].StellarMass>=0 && !isinf(Gal[i].StellarMass));
+      assert(Gal[i].BlackHoleMass>=0 && !isinf(Gal[i].BlackHoleMass));
+      assert(Gal[i].ColdGas>=0 && !isinf(Gal[i].ColdGas));
+      assert(Gal[i].HotGas>=0 && !isinf(Gal[i].HotGas));
+      assert(Gal[i].ICS>=0 && !isinf(Gal[i].ICS));
+      assert(Gal[i].LocalIGS>=0 && !isinf(Gal[i].LocalIGS));
+      assert(Gal[i].EjectedMass>=0 && !isinf(Gal[i].EjectedMass));
+      assert(Gal[i].ICBHmass>=0 && !isinf(Gal[i].ICBHmass));
+      assert(Gal[i].LocalIGBHmass>=0 && !isinf(Gal[i].LocalIGBHmass));
       
     FOF_baryons += (Gal[i].StellarMass + Gal[i].BlackHoleMass + Gal[i].ColdGas + Gal[i].HotGas + Gal[i].EjectedMass + Gal[i].ICS + Gal[i].LocalIGS + Gal[i].ICBHmass + Gal[i].LocalIGBHmass);
       
@@ -401,7 +413,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
           r_2 = Gal[gal].Rvir / c; // Di Cintio et al 2014b
           rho_const = M_DM_tot / (log((Gal[gal].Rvir+r_2)/r_2) - Gal[gal].Rvir/(Gal[gal].Rvir+r_2));
           
-          a_SB = 0.2 * Gal[gal].DiskScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
+//          a_SB = 0.2 * Gal[gal].DiskScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
+          a_SB = Gal[gal].a_InstabBulge;
           M_SB_inf = Gal[gal].SecularBulgeMass * sqr((Gal[gal].Rvir+a_SB)/Gal[gal].Rvir);
           
           a_CB = pow(10.0, (log10(Gal[gal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015

@@ -1559,7 +1559,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             Gal[p].ClassicalBulgeMassAge[k] -= return_mass;
             Gal[p].ClassicalBulgeMass -= return_mass;
             Gal[p].StellarMass -= return_mass;
-            
+            assert(Gal[p].ClassicalBulgeMass >= 0);
+
             Gal[p].ClassicalMetalsBulgeMassAge[k] -= return_metal_mass;
             Gal[p].ClassicalMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
@@ -1589,6 +1590,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             Gal[p].SecularBulgeMassAge[k] -= return_mass;
             Gal[p].SecularBulgeMass -= return_mass;
             Gal[p].StellarMass -= return_mass;
+            assert(Gal[p].SecularBulgeMass >= 0);
             
             Gal[p].SecularMetalsBulgeMassAge[k] -= return_metal_mass;
             Gal[p].SecularMetalsBulgeMass -= return_metal_mass;
@@ -1610,7 +1612,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             
             Gal[p].ICS_Age[k] -= return_mass;
             Gal[p].ICS -= return_mass;
-            
+            assert(Gal[p].ICS >= 0);
+
             Gal[p].MetalsICS_Age[k] -= return_metal_mass;
             Gal[p].MetalsICS -= return_metal_mass;
             
@@ -1793,5 +1796,5 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     else
         update_from_ejection(p, centralgal, Gal[centralgal].HotGas);
         
-    
+    update_stellar_dispersion(p);
 }

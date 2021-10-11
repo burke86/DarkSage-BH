@@ -92,6 +92,8 @@ void init_galaxy(int p, int halonr)
     Gal[p].LocalIGBHmass = 0.0;
     Gal[p].LocalIGBHnum = 0;
     
+    Gal[p].VelDispBulge = 0.0;
+    
     Gal[p].MetalsColdGas = 0.0;
     Gal[p].MetalsStellarMass = 0.0;
     Gal[p].ClassicalMetalsBulgeMass = 0.0;
@@ -163,6 +165,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].SNejectRate = 0.0;
     Gal[p].c_beta = MIN_C_BETA;
     Gal[p].R2_hot_av = sqr(Gal[p].Rvir*0.5);
+    Gal[p].a_InstabBulge = 0.08284 * Gal[p].DiskScaleRadius;
     
     Gal[p].infallMvir = -1.0;  //infall properties
     Gal[p].infallVvir = -1.0;
@@ -182,6 +185,8 @@ void init_galaxy(int p, int halonr)
         Gal[p].LocalIGS_Age[k] = 0.0;
         Gal[p].MetalsLocalIGS_Age[k] = 0.0;
         Gal[p].MetalsStarsExSituAge[k] = 0.0;
+        
+        Gal[p].VelDispBulgeAge[k] = 0.0;
 
         for(j=0; j<N_BINS; j++)
         {
@@ -472,6 +477,50 @@ double get_disc_stars(int p)
         DiscMetalsSum += Gal[p].DiscStarsMetals[l];
     }
     
+    
+    // Check the age breakdown of bulges
+    if(AgeStructOut>0 && Gal[p].StellarMass>0.0)
+    {
+        double SecularSum=0.0, ClassicalSum=0.0;
+        double MetalsSecularSum=0.0, MetalsClassicalSum=0.0;
+        VelDispSqrSum = 0.0;
+        for(k=0; k<N_AGE_BINS; k++)
+        {
+            SecularSum += Gal[p].SecularBulgeMassAge[k];
+            MetalsSecularSum += Gal[p].SecularMetalsBulgeMassAge[k];
+            ClassicalSum += Gal[p].ClassicalBulgeMassAge[k];
+            MetalsClassicalSum += Gal[p].ClassicalMetalsBulgeMassAge[k];
+            VelDispSqrSum += (Gal[p].SecularBulgeMassAge[k] * sqr(Gal[p].VelDispBulgeAge[k]));
+        }
+        VelDispNet = sqrt(VelDispSqrSum / SecularSum);
+        
+        if(SecularSum>1.000*Gal[p].SecularBulgeMass || SecularSum<0.999*Gal[p].SecularBulgeMass)
+        {
+//            printf("\nSecular bulge mass not consistent with age bins: SecularSum, Gal[p].SecularBulgeMass = %e, %e\n", SecularSum, Gal[p].SecularBulgeMass);
+            Gal[p].SecularBulgeMass = SecularSum;
+            Gal[p].SecularMetalsBulgeMass = MetalsSecularSum;
+            assert(Gal[p].SecularBulgeMass >= 0);
+
+        }
+
+        if(VelDispNet > 1.001*Gal[p].VelDispBulge || VelDispNet < 0.999*Gal[p].VelDispBulge)
+        {
+            Gal[p].VelDispBulge = VelDispNet;
+            assert(Gal[p].VelDispBulge >= 0);
+        }
+        
+        if(ClassicalSum>1.001*Gal[p].ClassicalBulgeMass || ClassicalSum<0.999*Gal[p].ClassicalBulgeMass)
+        {
+//            printf("Classical bulge mass not consistent with age bins: ClassicalSum, Gal[p].ClassicalBulgeMass = %e, %e\n", ClassicalSum, Gal[p].ClassicalBulgeMass);
+            Gal[p].ClassicalBulgeMass = ClassicalSum;
+            Gal[p].ClassicalMetalsBulgeMass = MetalsClassicalSum;
+            assert(Gal[p].ClassicalBulgeMass >= 0);
+        }
+        
+    }
+    
+    
+    
     DiscAndBulge = DiscStarSum + Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass;
     MetalsDiscAndBulge = DiscMetalsSum + Gal[p].ClassicalMetalsBulgeMass + Gal[p].SecularMetalsBulgeMass;
     
@@ -527,24 +576,7 @@ void check_channel_stars(int p)
         Gal[p].StarsMergeBurst = 0.0;
     }
     
-    // Check the age breakdown of bulges
-    if(AgeStructOut>0 && Gal[p].StellarMass>0.0)
-    {
-        int k;
-        double SecularSum=0.0, ClassicalSum=0.0;
-        for(k=0; k<N_AGE_BINS; k++)
-        {
-            SecularSum += Gal[p].SecularBulgeMassAge[k];
-            ClassicalSum += Gal[p].ClassicalBulgeMassAge[k];
-        }
-        
-        if(SecularSum>1.01*Gal[p].SecularBulgeMass || SecularSum<0.99*Gal[p].SecularBulgeMass)
-            printf("Secular bulge mass not consistent with age bins: SecularSum, Gal[p].SecularBulgeMass = %e, %e\n", SecularSum, Gal[p].SecularBulgeMass);
 
-        if(ClassicalSum>1.01*Gal[p].ClassicalBulgeMass || ClassicalSum<0.99*Gal[p].ClassicalBulgeMass)
-            printf("Classical bulge mass not consistent with age bins: ClassicalSum, Gal[p].ClassicalBulgeMass = %e, %e\n", ClassicalSum, Gal[p].ClassicalBulgeMass);
-        
-    }
 }
 
 double get_disc_ang_mom(int p, int type)
@@ -604,6 +636,7 @@ void update_disc_radii(int p)
     update_stellardisc_scaleradius(p); // need this at the start, as disc scale radii are part of this calculation
     update_gasdisc_scaleradius(p);
     update_rotation_support_scale_radius(p);
+    update_instab_bulge_size(p);
     
     // Determine the distribution of dark matter in the halo =====
     M_DM_tot = Gal[p].Mvir - Gal[p].HotGas - Gal[p].ColdGas - Gal[p].StellarMass - Gal[p].ICS - Gal[p].BlackHoleMass; // One may want to include Ejected Gas in this too
@@ -629,7 +662,8 @@ void update_disc_radii(int p)
     // ===========================================================
     
     // Determine distribution for bulge and ICS ==================
-    a_SB = 0.2 * Gal[p].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
+//    a_SB = 0.2 * Gal[p].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
+    a_SB = Gal[p].a_InstabBulge;
     M_SB_inf = Gal[p].SecularBulgeMass * sqr((Gal[p].Rvir+a_SB)*inv_Rvir);
     
     a_CB = pow(10.0, (log10(Gal[p].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
@@ -740,6 +774,8 @@ void update_disc_radii(int p)
             analytic_j[i] = vrot * r;
             if(i<NUM_R_BINS-1)
             {
+                if(!(analytic_j[i]<analytic_j[i+1])) printf("a_SB, a_SB saved, M_SB = %e, %e, %e\n", a_SB, Gal[p].a_InstabBulge, M_SB);
+                    
                 assert(analytic_j[i]<analytic_j[i+1]);
                 analytic_potential[i] = analytic_potential[i+1] - (analytic_r[i+1]-analytic_r[i]) * 0.5 * (sqr(analytic_j[i+1])/(analytic_fsupport[i+1]*cube(analytic_r[i+1])) + sqr(vrot)/(f_support*r)); // numerically integrating from "infinity" (the largest analytic_r) down to zero, step by step
             }
@@ -1336,7 +1372,8 @@ double get_Mhost_internal(int p, int centralgal, double dr)
             M_hot = hot_stuff * (RonRvir - c_beta * atan(RonRvir/c_beta));
         }
         
-        const double a_SB = 0.2 * Gal[centralgal].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
+//        const double a_SB = 0.2 * Gal[centralgal].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
+        const double a_SB = Gal[centralgal].a_InstabBulge;
         const double M_iBulge = Gal[centralgal].SecularBulgeMass * sqr((Rvir_host+a_SB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_SB));
         
         const double a_CB = pow(10.0, (log10(Gal[centralgal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
@@ -1453,4 +1490,96 @@ void update_rotation_support_scale_radius(int p)
     
     return;
     
+}
+
+
+void update_stellar_dispersion(int p)
+{ // ensure age bins of dispersion are consistent with overall dispersion
+    double sigma2m, m;
+    int k;
+    
+    // THE DISC ALREADY GETS TAKEN CARE OF IN get_disc_stars()
+//    // Do each disc annulus
+//    for(i=0; i<N_BINS; i++)
+//    {
+//        m = 0.0; // annulus mass
+//        sigma2m = 0.0; // vel disp square times mass
+//        
+//        for(k=0; k<N_AGE_BINS; k++)
+//        {
+//            m += Gal[p].DiscStarsAge[i][k];
+//            sigma2m += (Gal[p].DiscStarsAge[i][k] * sqr(Gal[p].VelDispStarsAge[i][k]));
+//        }
+//        
+//        if(m>0)
+//            Gal[p].VelDispStars[i] = sqrt(sigma2m/m);
+//        else
+//            Gal[p].VelDispStars[i] = 0.0;
+//    }
+    
+    
+    // Do the instability-driven bulge
+    if(Gal[p].SecularBulgeMass > 0.0)
+    {
+        m = 0.0;
+        sigma2m = 0.0;
+        
+        for(k=0; k<N_AGE_BINS; k++)
+        {
+            m += Gal[p].SecularBulgeMassAge[k];
+            sigma2m += (Gal[p].SecularBulgeMassAge[k] * sqr(Gal[p].VelDispBulgeAge[k]));
+        }
+        
+//        if(m>0)
+        assert(m>0);
+        Gal[p].VelDispBulge = sqrt(sigma2m/m);
+//        else
+//            Gal[p].VelDispBulge = 0.0;
+        
+        // update the bulge size too
+        update_instab_bulge_size(p);
+    }
+}
+
+void update_instab_bulge_size(int p)
+{
+    if(Gal[p].SecularBulgeMass > 0.0)
+    {   
+        int i;
+        double num_integral = 0.0;
+        double integrand_1;
+        double integrand_2 = Gal[p].Potential[1] * Gal[p].DiscRadii[1] / cube(Gal[p].DiscRadii[1] + Gal[p].a_InstabBulge);
+        for(i=1; i<N_BINS; i++)
+        { // can't do the integrand where r=0 -- the integral is convergent, so assumption is the first annulus doesn't contribute meaningfully
+            if(Gal[p].DiscRadii[i] >= Gal[p].Rvir) break;
+            integrand_1 = 1.0 * integrand_2;
+            integrand_2 = Gal[p].Potential[i+1] * Gal[p].DiscRadii[i+1] / cube(Gal[p].DiscRadii[i+1] + Gal[p].a_InstabBulge);
+            num_integral += (0.5*(integrand_1+integrand_2) * (Gal[p].DiscRadii[i+1]-Gal[p].DiscRadii[i]));
+        }
+        num_integral *= -2.0;
+
+        if(!(num_integral>1e-30))
+        {
+//            printf("num_integral, i = %e, %i\n", num_integral, i);
+//            int j;
+//            for(j=1; j<i; j++) printf("i, Potential, Radius = %i, %e, %e\n", j, Gal[p].Potential[i], Gal[p].DiscRadii[i]);
+            Gal[p].a_InstabBulge = 0.08284 * Gal[p].StellarDiscScaleRadius; // place holder for weird instances
+            assert(Gal[p].a_InstabBulge > 0);
+            assert(! isinf(Gal[p].a_InstabBulge));
+            return;
+        }
+
+        assert(num_integral>0);
+        double ss = sqr(Gal[p].VelDispBulge) / num_integral * sqr(Gal[p].Rvir);
+        double ff = cbrt(0.5*( 3.0 * sqrt(3.0) * sqrt(4.0*cube(Gal[p].Rvir)*ss) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
+        Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)/3.0;// strictly this is the same a_InstabBulge that should go into the numerical integral above. In practice, this solution should be iterative. But the sub-time-steps mean the output will essentially have had 10 iterations in it anyway.
+        assert(Gal[p].a_InstabBulge > 0);
+        
+        if(isinf(Gal[p].a_InstabBulge))
+            printf("num_integral, ff = %e, %e\n", num_integral, ff);
+        
+        assert(! isinf(Gal[p].a_InstabBulge));
+
+//        Gal[p].a_InstabBulge = sqr(Gal[p].VelDispBulge) / num_integral; 
+    }
 }

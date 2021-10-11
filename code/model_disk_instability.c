@@ -183,7 +183,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 	// Merge new-star disc with previous stellar disc
 	if(stars_sum>0.0)
 	{
-        assert(Gal[p].StellarMass==star_init);
+//        assert(Gal[p].StellarMass==star_init);
         
         double NewStarsSum = 0.0;
 		for(i=N_BINS-1; i>=0; i--)
@@ -335,16 +335,17 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 }
                 else if(r_inner > 0.2*Gal[p].StellarDiscScaleRadius || DiskInstabilityOn<2) // Conserve angular momentum while moving stars to restore stability
                 {
-                    j_gain = (DiscBinEdge[i+2]-DiscBinEdge[i])/2.0;
+                    j_gain = (DiscBinEdge[i+2]-DiscBinEdge[i])*0.5;
                     if(i!=0)
                     {
-                        j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i-1])/2.0;
+                        j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i-1])*0.5;
                         m_up = j_lose / (j_gain + j_lose) * unstable_stars;
                         m_down = m_up * j_gain / j_lose;
                         assert((m_up+m_down)<=1.01*unstable_stars && (m_up+m_down)>=0.99*unstable_stars);
                         
                         Gal[p].VelDispStars[i-1] = sqrt( (Gal[p].DiscStars[i-1]*sqr(Gal[p].VelDispStars[i-1]) + m_down*sqr(Gal[p].VelDispStars[i])) / (Gal[p].DiscStars[i-1] + m_down) );
                         assert(Gal[p].VelDispStars[i-1] >= 0);
+                        
                         Gal[p].DiscStars[i-1] += m_down;
                         Gal[p].DiscStarsMetals[i-1] += metallicity * m_down;
                         assert(Gal[p].DiscStarsMetals[i-1]<=Gal[p].DiscStars[i-1]);
@@ -368,27 +369,50 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     }
                     else
                     {
-                        j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i])/2.0;
+                        j_lose = (DiscBinEdge[i+1]-DiscBinEdge[i])*0.5;
                         m_up = j_lose / (j_gain + j_lose) * unstable_stars;
                         m_down = m_up * j_gain / j_lose;
                         assert((m_up+m_down)<=1.01*unstable_stars && (m_up+m_down)>=0.99*unstable_stars);
-                        
-                        // ADD TREATMENT OF INSTABILITY BULGE VELOCITY DISPERSION HERE!!
-                        
+                                                
                         for(s=0; s<3; s++)
                             Gal[p].SpinSecularBulge[s] = Gal[p].SpinSecularBulge[s]*Gal[p].SecularBulgeMass/(Gal[p].SecularBulgeMass+m_down);
+
+                        assert(Gal[p].VelDispBulge >= 0);
+
+                        Gal[p].VelDispBulge = sqrt( (Gal[p].SecularBulgeMass*sqr(Gal[p].VelDispBulge) + m_down*sqr(Gal[p].VelDispStars[i])) / (Gal[p].SecularBulgeMass + m_down) );
+                        
+                        if(!(Gal[p].VelDispBulge >= 0)) 
+                        {
+                            printf("Gal[p].VelDispBulge = %e\n", Gal[p].VelDispBulge);
+                            printf("Gal[p].SecularBulgeMass, m_down, Gal[p].VelDispStars[i] = %e, %e, %e\n", Gal[p].SecularBulgeMass, m_down, Gal[p].VelDispStars[i]);
+                        }
+                        
+                        assert(Gal[p].VelDispBulge >= 0);
+                        
                         Gal[p].SecularBulgeMass += m_down;
                         Gal[p].SecularMetalsBulgeMass += metallicity * m_down;
                         
+                        assert(Gal[p].SecularBulgeMass >= 0);
+
                         if(AgeStructOut>0)
                         {
                             frac_down = m_down / unstable_stars;
                             for(k=k_now; k<N_AGE_BINS; k++)
                             {
-                                Gal[p].SecularBulgeMassAge[k] += unstable_stars_age[k] * frac_down;
-                                Gal[p].SecularMetalsBulgeMassAge[k] += unstable_metals_age[k] * frac_down;
+                                if(Gal[p].SecularBulgeMassAge[k] + frac_down*unstable_stars_age[k] > 0)
+                                {
+                                    Gal[p].VelDispBulgeAge[k] = sqrt( (Gal[p].SecularBulgeMassAge[k]*sqr(Gal[p].VelDispBulgeAge[k]) + frac_down*unstable_stars_age[k]*sqr(Gal[p].VelDispStarsAge[i][k])) / (Gal[p].SecularBulgeMassAge[k] + frac_down*unstable_stars_age[k]) );
+                                    assert(Gal[p].VelDispBulgeAge[k] >= 0);
+                                    
+                                    Gal[p].SecularBulgeMassAge[k] += unstable_stars_age[k] * frac_down;
+                                    Gal[p].SecularMetalsBulgeMassAge[k] += unstable_metals_age[k] * frac_down;
+                                    
+                                    assert(Gal[p].SecularBulgeMassAge[k] >= 0);
+                                }
                             }
                         }
+                        
+                        update_instab_bulge_size(p);
                         
                     }
                     
@@ -418,11 +442,14 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 }
                 else // Transfer unstable stars directly into the instablility-driven.  The annuli are already within it!  Specific for DiskInstabilityOn=2, which is not the normal mode!
                 {
-                    j_lose = (DiscBinEdge[i+1]+DiscBinEdge[i])/2.0;
+                    j_lose = (DiscBinEdge[i+1]+DiscBinEdge[i])*0.5;
                     for(s=0; s<3; s++)
                         Gal[p].SpinSecularBulge[s] = (Gal[p].SpinSecularBulge[s]*Gal[p].SecularBulgeMass + Gal[p].SpinStars[s]*unstable_stars*j_lose) / (Gal[p].SecularBulgeMass + unstable_stars);
                     Gal[p].SecularBulgeMass += unstable_stars;
                     Gal[p].SecularMetalsBulgeMass += metallicity * unstable_stars;
+                    assert(Gal[p].SecularBulgeMass >= 0);
+                    
+                    // Have not included treatment of bulge dispersion here, mostly because this option isn't used
                     
                     if(AgeStructOut>0)
                     {
@@ -430,8 +457,12 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                         {
                             Gal[p].SecularBulgeMassAge[k] += unstable_stars_age[k];
                             Gal[p].SecularMetalsBulgeMassAge[k] += unstable_metals_age[k];
+                            assert(Gal[p].SecularBulgeMassAge[k] >= 0);
                         }
                     }
+                    
+                    update_instab_bulge_size(p);
+
 
                 }
                 
@@ -465,6 +496,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                             assert(Gal[p].VelDispStarsAge[i][k] >= 0);
                         }
                     }
+                    
                 }
 
             }
