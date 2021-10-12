@@ -412,7 +412,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                             }
                         }
                         
-                        update_instab_bulge_size(p);
+//                        update_instab_bulge_size(p);
                         
                     }
                     
@@ -461,7 +461,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                         }
                     }
                     
-                    update_instab_bulge_size(p);
+//                    update_instab_bulge_size(p);
 
 
                 }

@@ -18,6 +18,8 @@ void init_galaxy(int p, int halonr)
     int j, k, step;
     double SpinMag;
     
+    double c_s = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum]) / UnitVelocity_in_cm_per_s;
+    
     if(halonr != Halo[halonr].FirstHaloInFOFgroup)
     {
         printf("Hah?\n");
@@ -92,7 +94,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].LocalIGBHmass = 0.0;
     Gal[p].LocalIGBHnum = 0;
     
-    Gal[p].VelDispBulge = 0.0;
+    Gal[p].VelDispBulge = c_s;
     
     Gal[p].MetalsColdGas = 0.0;
     Gal[p].MetalsStellarMass = 0.0;
@@ -135,7 +137,7 @@ void init_galaxy(int p, int halonr)
         Gal[p].TotSinkGas[j] = 0.0;
         Gal[p].TotSinkStar[j] = 0.0;
         Gal[p].Potential[j+1] = NFW_potential(p, Gal[p].DiscRadii[j+1]);
-        Gal[p].VelDispStars[j] = 0.0;
+        Gal[p].VelDispStars[j] = c_s;
     }
     Gal[p].Potential[0] = Gal[p].Potential[1];
 
@@ -186,13 +188,13 @@ void init_galaxy(int p, int halonr)
         Gal[p].MetalsLocalIGS_Age[k] = 0.0;
         Gal[p].MetalsStarsExSituAge[k] = 0.0;
         
-        Gal[p].VelDispBulgeAge[k] = 0.0;
+        Gal[p].VelDispBulgeAge[k] = c_s; // probably more logical to initialise as expected gas velocity dispersion at the epoch, but shouldn't matter at all for practical purposes
 
         for(j=0; j<N_BINS; j++)
         {
             Gal[p].DiscStarsAge[j][k] = 0.0;
             Gal[p].DiscStarsMetalsAge[j][k] = 0.0;
-            Gal[p].VelDispStarsAge[j][k] = 0.0;
+            Gal[p].VelDispStarsAge[j][k] = c_s;
         }
     }
 
@@ -636,7 +638,7 @@ void update_disc_radii(int p)
     update_stellardisc_scaleradius(p); // need this at the start, as disc scale radii are part of this calculation
     update_gasdisc_scaleradius(p);
     update_rotation_support_scale_radius(p);
-    update_instab_bulge_size(p);
+//    update_instab_bulge_size(p);
     
     // Determine the distribution of dark matter in the halo =====
     M_DM_tot = Gal[p].Mvir - Gal[p].HotGas - Gal[p].ColdGas - Gal[p].StellarMass - Gal[p].ICS - Gal[p].BlackHoleMass; // One may want to include Ejected Gas in this too
@@ -729,7 +731,7 @@ void update_disc_radii(int p)
         const double c_gdisc = Gal[p].Rvir / Gal[p].GasDiscScaleRadius;
         const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) * inv_Rvir;
         const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
-        double vrot, rrat, RonRvir, AvHotPotential, reincTime, intgd1, intgd2;
+        double vrot, rrat, RonRvir, AvHotPotential, reincTime, intgd1, intgd2, BulgeIntegral, ss, ff;
         int kmax;
         double Rhot = sqrt(Gal[p].R2_hot_av);
         M_DM = 1.0; // random initialisation to trigger if statement
@@ -821,12 +823,25 @@ void update_disc_radii(int p)
             }
             
             AvHotPotential = 0.0;
+            BulgeIntegral = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
                 AvHotPotential += 0.5*(analytic_potential_reduced[k] + analytic_potential_reduced[k+1]) * cb_term * ((analytic_r_reduced[k+1]*inv_Rvir - c_beta*atan(analytic_r_reduced[k+1]*inv_Rvir/c_beta)) - (analytic_r_reduced[k]*inv_Rvir - c_beta*atan(analytic_r_reduced[k]*inv_Rvir/c_beta)));
                 assert(AvHotPotential<=0);
+                
+                if(k>0 && Gal[p].SecularBulgeMass>0) BulgeIntegral -= (analytic_r_reduced[k]/cube(analytic_r_reduced[k]+Gal[p].a_InstabBulge)*analytic_potential_reduced[k] + analytic_r_reduced[k+1]/cube(analytic_r_reduced[k+1]+Gal[p].a_InstabBulge)*analytic_potential_reduced[k+1]) * (analytic_r_reduced[k+1]-analytic_r_reduced[k]); // factor of -2 already folded in
+                
                 if(analytic_r_reduced[k+1] > Gal[p].Rvir) break;
             }
+            
+            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
+            {
+                ss = sqr(Gal[p].VelDispBulge) / BulgeIntegral * sqr(Gal[p].Rvir);
+                ff = cbrt(0.5*( 3.0 * sqrt(3.0 * (4.0*cube(Gal[p].Rvir)*ss + 27*sqr(ss))) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
+                Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;
+//                assert(Gal[p].a_InstabBulge < Gal[p].Rvir);
+            }
+            assert(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge));
             
 //            Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
             Gal[p].HotGasPotential = AvHotPotential;
@@ -870,15 +885,33 @@ void update_disc_radii(int p)
             }
             
             AvHotPotential = 0.0;
+            BulgeIntegral = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
             {
                 AvHotPotential += 0.5*(analytic_potential[k] + analytic_potential[k+1]) * cb_term * ((analytic_r[k+1]*inv_Rvir - c_beta*atan(analytic_r[k+1]*inv_Rvir/c_beta)) - (analytic_r[k]*inv_Rvir - c_beta*atan(analytic_r[k]*inv_Rvir/c_beta)));
                 assert(AvHotPotential<=0);
+                
+                if(k>0 && Gal[p].SecularBulgeMass>0) BulgeIntegral -= (analytic_r[k]/cube(analytic_r[k]+Gal[p].a_InstabBulge)*analytic_potential[k] + analytic_r[k+1]/cube(analytic_r[k+1]+Gal[p].a_InstabBulge)*analytic_potential[k+1]) * (analytic_r[k+1]-analytic_r[k]); // factor of -2 already folded in
+                
                 if(analytic_r[k+1] > Gal[p].Rvir) break;
             }
             Gal[p].HotGasPotential = AvHotPotential;
             
+            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
+            {
+                ss = sqr(Gal[p].VelDispBulge) / BulgeIntegral * sqr(Gal[p].Rvir);
+                ff = cbrt(0.5*( 3.0 * sqrt(3.0 * (4.0*cube(Gal[p].Rvir)*ss + 27*sqr(ss))) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
+                Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;
+//                if(!(Gal[p].a_InstabBulge < Gal[p].Rvir)) printf("a_InstabBulge, Rvir = %e, %e\n", Gal[p].a_InstabBulge, Gal[p].Rvir);
+//                assert(Gal[p].a_InstabBulge < Gal[p].Rvir);
+            }
             
+            if(!(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge)))
+            {
+                printf("BulgeIntegral, VelDispBulge, Rvir, ss, ff, a_InstabBulge = %e, %e, %e, %e, %e, %e\n", BulgeIntegral, Gal[p].VelDispBulge, Gal[p].Rvir, ss, ff, Gal[p].a_InstabBulge);
+            }                
+            assert(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge));
+
 //            Gal[p].HotGasPotential = dmax(analytic_potential[0], gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc));
             Gal[p].EjectedPotential = dmax(0.9999*Gal[p].HotGasPotential, gsl_spline_eval(spline2, Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which it should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
             
@@ -1537,12 +1570,13 @@ void update_stellar_dispersion(int p)
 //            Gal[p].VelDispBulge = 0.0;
         
         // update the bulge size too
-        update_instab_bulge_size(p);
+//        update_instab_bulge_size(p);
     }
 }
 
 void update_instab_bulge_size(int p)
 {
+    return;
     if(Gal[p].SecularBulgeMass > 0.0)
     {   
         int i;
@@ -1572,7 +1606,7 @@ void update_instab_bulge_size(int p)
         assert(num_integral>0);
         double ss = sqr(Gal[p].VelDispBulge) / num_integral * sqr(Gal[p].Rvir);
         double ff = cbrt(0.5*( 3.0 * sqrt(3.0) * sqrt(4.0*cube(Gal[p].Rvir)*ss) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
-        Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)/3.0;// strictly this is the same a_InstabBulge that should go into the numerical integral above. In practice, this solution should be iterative. But the sub-time-steps mean the output will essentially have had 10 iterations in it anyway.
+        Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;// strictly this is the same a_InstabBulge that should go into the numerical integral above. In practice, this solution should be iterative. But the sub-time-steps mean the output will essentially have had 10 iterations in it anyway.
         assert(Gal[p].a_InstabBulge > 0);
         
         if(isinf(Gal[p].a_InstabBulge))
