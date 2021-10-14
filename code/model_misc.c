@@ -634,6 +634,7 @@ void update_disc_radii(int p)
     double v2_spherical, v2_sdisc, v2_gdisc;
     
     const double inv_Rvir = 1.0/Gal[p].Rvir;
+    const double sigma2_ibulge = 3.0*sqr(Gal[p].VelDispBulge);
     
     update_stellardisc_scaleradius(p); // need this at the start, as disc scale radii are part of this calculation
     update_gasdisc_scaleradius(p);
@@ -731,7 +732,7 @@ void update_disc_radii(int p)
         const double c_gdisc = Gal[p].Rvir / Gal[p].GasDiscScaleRadius;
         const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) * inv_Rvir;
         const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
-        double vrot, rrat, RonRvir, AvHotPotential, reincTime, intgd1, intgd2, BulgeIntegral, ss, ff;
+        double vrot, rrat, RonRvir, AvHotPotential, reincTime, intgd1, intgd2, sigma2_low, sigma2_try;//, BulgeIntegral, ss, ff;
         int kmax;
         double Rhot = sqrt(Gal[p].R2_hot_av);
         M_DM = 1.0; // random initialisation to trigger if statement
@@ -823,25 +824,42 @@ void update_disc_radii(int p)
             }
             
             AvHotPotential = 0.0;
-            BulgeIntegral = 0.0;
+//            BulgeIntegral = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
                 AvHotPotential += 0.5*(analytic_potential_reduced[k] + analytic_potential_reduced[k+1]) * cb_term * ((analytic_r_reduced[k+1]*inv_Rvir - c_beta*atan(analytic_r_reduced[k+1]*inv_Rvir/c_beta)) - (analytic_r_reduced[k]*inv_Rvir - c_beta*atan(analytic_r_reduced[k]*inv_Rvir/c_beta)));
                 assert(AvHotPotential<=0);
                 
-                if(k>0 && Gal[p].SecularBulgeMass>0) BulgeIntegral -= (analytic_r_reduced[k]/cube(analytic_r_reduced[k]+Gal[p].a_InstabBulge)*analytic_potential_reduced[k] + analytic_r_reduced[k+1]/cube(analytic_r_reduced[k+1]+Gal[p].a_InstabBulge)*analytic_potential_reduced[k+1]) * (analytic_r_reduced[k+1]-analytic_r_reduced[k]); // factor of -2 already folded in
+//                if(k>0 && Gal[p].SecularBulgeMass>0) BulgeIntegral -= (analytic_r_reduced[k]/cube(analytic_r_reduced[k]+Gal[p].a_InstabBulge)*analytic_potential_reduced[k] + analytic_r_reduced[k+1]/cube(analytic_r_reduced[k+1]+Gal[p].a_InstabBulge)*analytic_potential_reduced[k+1]) * (analytic_r_reduced[k+1]-analytic_r_reduced[k]); // factor of -2 already folded in
                 
                 if(analytic_r_reduced[k+1] > Gal[p].Rvir) break;
             }
             
-            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
+            for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
-                ss = sqr(Gal[p].VelDispBulge) / BulgeIntegral * sqr(Gal[p].Rvir);
-                ff = cbrt(0.5*( 3.0 * sqrt(3.0 * (4.0*cube(Gal[p].Rvir)*ss + 27*sqr(ss))) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
-                Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;
-//                assert(Gal[p].a_InstabBulge < Gal[p].Rvir);
+                sigma2_try = (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * 0.4 * analytic_r_reduced[k+1];
+                if(sigma2_try > sigma2_ibulge)
+                { // calculate a_bulge here!
+                    if(k>0)
+                        sigma2_low = (analytic_potential_reduced[k] - analytic_potential_reduced[k-1]) / (analytic_r_reduced[k] - analytic_r_reduced[k-1]) * 0.4 * analytic_r_reduced[k];
+                    else
+                        sigma2_low = 0.0;
+                    assert(sigma2_low < sigma2_try);
+                    assert(sigma2_low <= sigma2_ibulge);
+                    Gal[p].a_InstabBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
+                    break;
+                }
             }
-            assert(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge));
+               
+                
+//            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
+//            {
+//                ss = sqr(Gal[p].VelDispBulge) / BulgeIntegral * sqr(Gal[p].Rvir);
+//                ff = cbrt(0.5*( 3.0 * sqrt(3.0 * (4.0*cube(Gal[p].Rvir)*ss + 27*sqr(ss))) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
+//                Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;
+////                assert(Gal[p].a_InstabBulge < Gal[p].Rvir);
+//            }
+//            assert(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge));
             
 //            Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
             Gal[p].HotGasPotential = AvHotPotential;
@@ -885,31 +903,47 @@ void update_disc_radii(int p)
             }
             
             AvHotPotential = 0.0;
-            BulgeIntegral = 0.0;
+//            BulgeIntegral = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
             {
                 AvHotPotential += 0.5*(analytic_potential[k] + analytic_potential[k+1]) * cb_term * ((analytic_r[k+1]*inv_Rvir - c_beta*atan(analytic_r[k+1]*inv_Rvir/c_beta)) - (analytic_r[k]*inv_Rvir - c_beta*atan(analytic_r[k]*inv_Rvir/c_beta)));
                 assert(AvHotPotential<=0);
                 
-                if(k>0 && Gal[p].SecularBulgeMass>0) BulgeIntegral -= (analytic_r[k]/cube(analytic_r[k]+Gal[p].a_InstabBulge)*analytic_potential[k] + analytic_r[k+1]/cube(analytic_r[k+1]+Gal[p].a_InstabBulge)*analytic_potential[k+1]) * (analytic_r[k+1]-analytic_r[k]); // factor of -2 already folded in
+//                if(k>0 && Gal[p].SecularBulgeMass>0) BulgeIntegral -= (analytic_r[k]/cube(analytic_r[k]+Gal[p].a_InstabBulge)*analytic_potential[k] + analytic_r[k+1]/cube(analytic_r[k+1]+Gal[p].a_InstabBulge)*analytic_potential[k+1]) * (analytic_r[k+1]-analytic_r[k]); // factor of -2 already folded in
                 
                 if(analytic_r[k+1] > Gal[p].Rvir) break;
             }
             Gal[p].HotGasPotential = AvHotPotential;
             
-            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
+            for(k=0; k<NUM_R_BINS-1; k++)
             {
-                ss = sqr(Gal[p].VelDispBulge) / BulgeIntegral * sqr(Gal[p].Rvir);
-                ff = cbrt(0.5*( 3.0 * sqrt(3.0 * (4.0*cube(Gal[p].Rvir)*ss + 27*sqr(ss))) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
-                Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;
-//                if(!(Gal[p].a_InstabBulge < Gal[p].Rvir)) printf("a_InstabBulge, Rvir = %e, %e\n", Gal[p].a_InstabBulge, Gal[p].Rvir);
-//                assert(Gal[p].a_InstabBulge < Gal[p].Rvir);
+                sigma2_try = (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * 0.4 * analytic_r[k+1];
+                if(sigma2_try > sigma2_ibulge)
+                { // calculate a_bulge here!
+                    if(k>0)
+                        sigma2_low = (analytic_potential[k] - analytic_potential[k-1]) / (analytic_r[k] - analytic_r[k-1]) * 0.4 * analytic_r[k];
+                    else
+                        sigma2_low = 0.0;
+                    assert(sigma2_low < sigma2_try);
+                    assert(sigma2_low <= sigma2_ibulge);
+                    Gal[p].a_InstabBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
+                    break;
+                }
             }
             
-            if(!(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge)))
-            {
-                printf("BulgeIntegral, VelDispBulge, Rvir, ss, ff, a_InstabBulge = %e, %e, %e, %e, %e, %e\n", BulgeIntegral, Gal[p].VelDispBulge, Gal[p].Rvir, ss, ff, Gal[p].a_InstabBulge);
-            }                
+//            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
+//            {
+//                ss = sqr(Gal[p].VelDispBulge) / BulgeIntegral * sqr(Gal[p].Rvir);
+//                ff = cbrt(0.5*( 3.0 * sqrt(3.0 * (4.0*cube(Gal[p].Rvir)*ss + 27*sqr(ss))) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
+//                Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;
+////                if(!(Gal[p].a_InstabBulge < Gal[p].Rvir)) printf("a_InstabBulge, Rvir = %e, %e\n", Gal[p].a_InstabBulge, Gal[p].Rvir);
+////                assert(Gal[p].a_InstabBulge < Gal[p].Rvir);
+//            }
+            
+//            if(!(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge)))
+//            {
+//                printf("BulgeIntegral, VelDispBulge, Rvir, ss, ff, a_InstabBulge = %e, %e, %e, %e, %e, %e\n", BulgeIntegral, Gal[p].VelDispBulge, Gal[p].Rvir, ss, ff, Gal[p].a_InstabBulge);
+//            }                
             assert(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge));
 
 //            Gal[p].HotGasPotential = dmax(analytic_potential[0], gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc));
@@ -1058,8 +1092,9 @@ void update_gasdisc_scaleradius(int p)
 
 double NFW_potential(int p, double r)
 {
-    double radius_sum = Gal[p].Rvir + Gal[p].HaloScaleRadius;
-    double pot_energy = -Gal[p].Mvir * log(1.0 + r/Gal[p].HaloScaleRadius) / (r * (log(radius_sum/Gal[p].HaloScaleRadius) - Gal[p].Rvir/radius_sum) );
+//    double radius_sum = Gal[p].Rvir + Gal[p].HaloScaleRadius;
+//    double pot_energy = -Gal[p].Mvir * log(1.0 + r/Gal[p].HaloScaleRadius) / (r * (log(radius_sum/Gal[p].HaloScaleRadius) - Gal[p].Rvir/radius_sum) );
+    double pot_energy = - G * Gal[p].Mvir / r * log(1.0 + r/Gal[p].HaloScaleRadius) / (log(1.0+Gal[p].Rvir/Gal[p].HaloScaleRadius) - Gal[p].Rvir/(Gal[p].Rvir+Gal[p].HaloScaleRadius));
     assert(pot_energy<=0);
     return pot_energy;
 }
