@@ -168,6 +168,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].c_beta = MIN_C_BETA;
     Gal[p].R2_hot_av = sqr(Gal[p].Rvir*0.5);
     Gal[p].a_InstabBulge = 0.08284 * Gal[p].DiskScaleRadius;
+    Gal[p].R_ICS_av = 0.0;
     
     Gal[p].infallMvir = -1.0;  //infall properties
     Gal[p].infallVvir = -1.0;
@@ -672,15 +673,16 @@ void update_disc_radii(int p)
     a_CB = pow(10.0, (log10(Gal[p].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
     M_CB_inf = Gal[p].ClassicalBulgeMass * sqr((Gal[p].Rvir+a_CB)*inv_Rvir);
     
-    a_ICS = 0.0;
-    if(Gal[p].ClassicalBulgeMass>0.0)
-        a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
-    else if(a_SB>0.0)
-        a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)
-    else if(Gal[p].ICS > 0.0)
-    {
-        printf("Issue with ICS size, ICS = %e\n", Gal[p].ICS);
-    }
+//    a_ICS = 0.0;
+//    if(Gal[p].ClassicalBulgeMass>0.0)
+//        a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
+//    else if(a_SB>0.0)
+//        a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)
+//    else if(Gal[p].ICS > 0.0)
+//    {
+//        printf("Issue with ICS size, ICS = %e\n", Gal[p].ICS);
+//    }
+    a_ICS = get_a_ICS(p, Gal[p].Rvir, Gal[p].R_ICS_av);
     M_ICS_inf = Gal[p].ICS * sqr((Gal[p].Rvir+a_ICS)*inv_Rvir);
     // ===========================================================
     
@@ -1651,4 +1653,52 @@ void update_instab_bulge_size(int p)
 
 //        Gal[p].a_InstabBulge = sqr(Gal[p].VelDispBulge) / num_integral; 
     }
+}
+
+
+double get_a_ICS(int p, double Rvir, double R_ICS_av)
+{
+    double left, right, a_try, R_try, dif;
+    int i;
+    
+    // Make sure average ICS radius is reasonable.  Should asymptote to this value for a truncated Hernquist sphere of arbitrarily large scale radius (i.e. where a>>Rvir, rho(r>Rvir)=0)
+    if(p!=-1)
+    {
+        assert(Gal[p].Rvir == Rvir);
+        if(!(Gal[p].R_ICS_av == R_ICS_av))
+            printf("Gal[p].R_ICS_av, R_ICS_av = %e, %e\n", Gal[p].R_ICS_av, R_ICS_av);
+        assert(Gal[p].R_ICS_av == R_ICS_av);
+        if(Gal[p].R_ICS_av > 0.66*Gal[p].Rvir)
+            Gal[p].R_ICS_av = 0.66*Gal[p].Rvir;
+    }
+    
+    double R_target = R_ICS_av / Rvir; // note that radius is normalised by Rvir for this function
+    if(R_target <= 0) 
+        return 0.0;
+    else if(R_target > 0.66)
+        R_target = 0.66;
+    
+    left = 0.0;
+    right = 100.0;
+    
+    for(i=0; i<100; i++)
+    {
+        a_try = 0.5*(left+right);
+        R_try = a_try * (2*sqr(a_try+1)*log(1/a_try + 1) - 2*a_try - 3);
+        
+        dif = fabs(R_try-R_target)/R_target;
+        if(dif <= 1e-3)
+            break;
+        else if(R_try<R_target)
+            left = 1.0*a_try;
+        else
+            right = 1.0*a_try;
+     
+    }
+    
+    if(i==100)
+        printf("get_a_ICS hit iteration limit: R_try, R_target = %e, %e\n", R_try, R_target);
+    assert(a_try>=0);
+    
+    return a_try * Rvir; // return back to physical units
 }

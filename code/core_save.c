@@ -345,11 +345,18 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
     
   o->VelDispBulge = g->VelDispBulge;
     
-    double aa, bb, cc;
+    double aa, bb, cc, a_ICS;
     aa = 2*sqr(g->a_InstabBulge) + 4*(g->a_InstabBulge)*(g->Rvir) + sqr(g->Rvir);
     bb = -2 * (g->a_InstabBulge) * sqr(g->Rvir);
     cc = -sqr(g->a_InstabBulge) * sqr(g->Rvir);
   o->HalfMassRadiusInstabilityBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
+    
+    a_ICS = get_a_ICS(-1, g->Rvir, g->R_ICS_av);
+    aa = 2*sqr(a_ICS) + 4*(a_ICS)*(g->Rvir) + sqr(g->Rvir);
+    bb = -2 * a_ICS * sqr(g->Rvir);
+    cc = -sqr(a_ICS) * sqr(g->Rvir);
+    o->HalfMassRadiusICS = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
+
 
   o->SfrFromH2 = 0.0;
   o->SfrInstab = 0.0;
@@ -495,11 +502,17 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   o->MetalsEjectedMass = g->MetalsEjectedMass;
   o->MetalsLocalIGM = g->MetalsLocalIGM;
    
-    double aa, bb, cc;
+    double aa, bb, cc, a_ICS;
     aa = 2*sqr(g->a_InstabBulge) + 4*(g->a_InstabBulge)*(g->Rvir) + sqr(g->Rvir);
     bb = -2 * (g->a_InstabBulge) * sqr(g->Rvir);
     cc = -sqr(g->a_InstabBulge) * sqr(g->Rvir);
   o->HalfMassRadiusInstabilityBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
+    
+    a_ICS = get_a_ICS(-1, g->Rvir, g->R_ICS_av);
+    aa = 2*sqr(a_ICS) + 4*(a_ICS)*(g->Rvir) + sqr(g->Rvir);
+    bb = -2 * a_ICS * sqr(g->Rvir);
+    cc = -sqr(a_ICS) * sqr(g->Rvir);
+    o->HalfMassRadiusICS = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
     
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;

@@ -98,6 +98,7 @@ void rotate(double *pos, double axis[3], double angle);
 void update_rotation_support_scale_radius(int p);
 void update_stellar_dispersion(int p);
 void update_instab_bulge_size(int p);
+double get_a_ICS(int p, double Rvir, double R_ICS_av);
 
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas, int k_now);
 void disrupt_satellite_to_ICS(int centralgal, int gal, int k_now);

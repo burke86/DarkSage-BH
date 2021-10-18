@@ -106,6 +106,7 @@ struct GALAXY_OUTPUT
     int LocalIGBHnum;
     float VelDispBulge;
     float HalfMassRadiusInstabilityBulge;
+    float HalfMassRadiusICS;
     
     // inflow/outflow tracking
 //    float AccretedGasMass;
@@ -232,7 +233,8 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
     int LocalIGBHnum;
     float VelDispBulge[N_AGE_BINS];
     float HalfMassRadiusInstabilityBulge;
- 
+    float HalfMassRadiusICS;
+
   // metals
   float MetalsColdGas;
   float MetalsStellarMass;
@@ -346,6 +348,7 @@ struct GALAXY
     int LocalIGBHnum;
     double VelDispBulge;
     double a_InstabBulge;
+    double R_ICS_av;
     
     // inflow/outflow tracking
     double AccretedGasMass;

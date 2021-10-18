@@ -173,7 +173,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
   double reionization_modifier, strippedGas, strippedGasMetals, metallicity;
   double tidal_strippedGas, tidal_strippedGasMetals;
   double strippedBaryons, strippedICS, strippedICSmetals, strippedICS_age, stripped_ICSmetals_age;
-  double r_gal;
+  double r_gal, a_ICS, a_new;
   int k;
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
     
@@ -294,6 +294,11 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             else
                 strippedICSmetals = strippedICS * get_metallicity(Gal[gal].ICS, Gal[gal].MetalsICS);
             
+            // what happens to R_ICS for the satellite?
+            a_ICS = get_a_ICS(gal, Gal[gal].Rvir, Gal[gal].R_ICS_av);
+            a_new = sqrt(Gal[gal].ICS/(Gal[gal].ICS-strippedICS)) * (Gal[gal].Rvir + a_ICS) - Gal[gal].Rvir;
+            Gal[gal].R_ICS_av = dmin(0.66, a_new * (2*sqr(a_new+1)*log(1/a_new + 1) - 2*a_new - 3)) * Gal[gal].Rvir;
+            assert(!isinf(Gal[gal].R_ICS_av) && !isnan(Gal[gal].R_ICS_av) && Gal[gal].R_ICS_av>=0);
             Gal[gal].ICS -= strippedICS;
             Gal[gal].MetalsICS -= strippedICSmetals;
           
@@ -306,7 +311,10 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             }
             else
             {
+                Gal[centralgal].R_ICS_av = Gal[centralgal].R_ICS_av * Gal[centralgal].ICS + r_gal * strippedICS; // mass*radius
+                assert(!isinf(Gal[centralgal].R_ICS_av) && !isnan(Gal[centralgal].R_ICS_av) && Gal[centralgal].R_ICS_av>=0);
                 Gal[centralgal].ICS += strippedICS;
+                if(Gal[centralgal].ICS > 0) Gal[centralgal].R_ICS_av /= Gal[centralgal].ICS; // back to average radius
                 Gal[centralgal].MetalsICS += strippedICSmetals;
             }
         }
@@ -338,11 +346,15 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             }
             else
             {
+                Gal[centralgal].R_ICS_av = Gal[centralgal].R_ICS_av * Gal[centralgal].ICS + r_gal * Gal[gal].ICS; // mass*radius
+                assert(!isinf(Gal[centralgal].R_ICS_av) && !isnan(Gal[centralgal].R_ICS_av) && Gal[centralgal].R_ICS_av>=0);
                 Gal[centralgal].ICS += Gal[gal].ICS;
+                if(Gal[centralgal].ICS > 0) Gal[centralgal].R_ICS_av /= Gal[centralgal].ICS; // back to average radius
                 Gal[centralgal].MetalsICS += Gal[gal].MetalsICS;
             }
             
             Gal[gal].ICS = 0.0;
+            Gal[gal].R_ICS_av = 0.0;
             Gal[gal].MetalsICS = 0.0;
         }
     }

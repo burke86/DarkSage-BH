@@ -975,8 +975,13 @@ void disrupt_satellite_to_ICS(int centralgal, int gal, int k_now)
     {
         Gal[centralgal].HotGas += (Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass);
         Gal[centralgal].MetalsHotGas += (Gal[gal].MetalsColdGas + Gal[gal].MetalsHotGas + Gal[gal].MetalsEjectedMass);
-
+        
+        // update ICS size and mass
+        
+        Gal[centralgal].R_ICS_av = Gal[centralgal].R_ICS_av * Gal[centralgal].ICS + SatelliteRadius * (Gal[gal].ICS + Gal[gal].StellarMass); // mass*radius
+        assert(!isinf(Gal[centralgal].R_ICS_av) && !isnan(Gal[centralgal].R_ICS_av) && Gal[centralgal].R_ICS_av>=0);
         Gal[centralgal].ICS += (Gal[gal].ICS + Gal[gal].StellarMass);
+        if(Gal[centralgal].ICS > 0) Gal[centralgal].R_ICS_av /= Gal[centralgal].ICS; // back to average radius
         Gal[centralgal].MetalsICS += (Gal[gal].MetalsICS + Gal[gal].MetalsStellarMass);
 
         if(AgeStructOut>0)

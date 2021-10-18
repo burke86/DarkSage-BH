@@ -70,6 +70,7 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('LocalIGBHnum'                 , np.int32),
                     ('VelDispInstabilityBulge'      , bulge_arr_type),
                     ('HalfMassRadiusInstabilityBulge', floattype),
+                    ('HalfMassRadiusIntraClusterStars', floattype),
                     ('MetalsColdGas'                , floattype),
                     ('MetalsStellarMass'            , floattype),
                     ('MetalsMergerBulgeMass'        , bulge_arr_type),
