@@ -218,6 +218,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
   {
     stars_to_bulge(merger_centralgal, k_now);
     Gal[merger_centralgal].LastMajorMerger = time;
+    Gal[merger_centralgal].NumMajorMergers += 1;
     Gal[p].mergeType = 2;  // Mark as major merger
       
     if(BetaBurst<=0)
@@ -230,6 +231,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
   }
   else
   {
+    Gal[merger_centralgal].NumMinorMergers += 1;
     Gal[merger_centralgal].LastMinorMerger = time;
     Gal[p].mergeType = 1;  // Mark as minor merger
   }
@@ -456,7 +458,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
 {
   int step, i, s, k;
-  double DiscGasSum, CentralGasOrig, ExpFac, dPos[3], dVel[3];
+  double DiscGasSum, CentralGasOrig, ExpFac, dPos[3], dVel[3], pos_mag, radial_velocity;
     ExpFac = AA[Gal[t].SnapNum]; // Expansion factor needed for determining physical distances for calculating j
     
 	CentralGasOrig = get_disc_gas(t);
@@ -490,8 +492,12 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
     dVel[s] = Gal[p].Vel[s]-Gal[t].Vel[s];
   }
 
+  pos_mag = sqrt(sqr(dPos[0]) + sqr(dPos[1]) + sqr(dPos[2]));
+    
   // Satellite's specific angular momentum
   double sat_sam[3];
+    
+  double msig2_sum = 0.0; // mass * velocity dispersion squared, summed over relevant components for updating merger-driven bulge's velocity dispersion
     
   if(mass_ratio<ThreshMajorMerger) // Minor mergers, combine discs by conserving angular momentum
   {
@@ -513,7 +519,7 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
             sat_sam_mag *= fabs(cos_angle_sat_disc); // Project satellite's (gas) angular momentum onto central's disc
             
             // Consider that the satellite will have rotation and hence it will have a distribution of angular momentum to contribute
-            sat_sam_max =  sat_sam_mag  +  Gal[p].Vvir * fabs(cos_angle_sat_disc) * sqrt(sqr(dPos[0]) + sqr(dPos[1]) + sqr(dPos[2]));
+            sat_sam_max =  sat_sam_mag  +  Gal[p].Vvir * fabs(cos_angle_sat_disc) * pos_mag;
             sat_sam_min = 2.0*sat_sam_mag - sat_sam_max;
             if(sat_sam_min<0.0)
             sat_sam_min = 0.0;
@@ -596,6 +602,8 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
         Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s]) / (Gal[t].ClassicalBulgeMass + Gal[p].StellarMass);
         
     }
+      radial_velocity = (dVel[0]*dPos[0] + dVel[1]*dPos[1] + dVel[2]*dPos[2]) / pos_mag ;
+      msig2_sum += (Gal[p].StellarMass * sqr(radial_velocity));
       
   }
   else // Major mergers -- a more complex treatment of the gas could be done in future versions
@@ -814,19 +822,42 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
 //	assert(DiscGasSum <= 1.01*Gal[t].ColdGas && DiscGasSum >= Gal[t].ColdGas/1.01);
 
       
-        // Set spin of classical bulge.  The mass itself will be transfered there in stars_to_bulge
-        // IN THE PROCESS OF EDITING
-        for(s=0; s<3; s++)
-        {
-            Gal[t].SpinClassicalBulge[s] = (j_p[s]*Gal[p].StellarMass + j_t[s]*Gal[t].StellarMass) / (Gal[p].StellarMass + Gal[t].StellarMass);
-            // should probably consider the spin of the components of the galaxies, but in principle the orbital J considered above should dominate most of the time
-            
-//            Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s] + get_disc_ang_mom(t,1)*Gal[t].SpinStars[s] + j_p[s]*m_p + j_t[s]*m_t) / (Gal[p].StellarMass+Gal[t].StellarMass);
-            if(!(Gal[t].SpinClassicalBulge[s] == Gal[t].SpinClassicalBulge[s] && Gal[t].SpinClassicalBulge[s] != INFINITY && Gal[t].SpinClassicalBulge[s] != -INFINITY))
-              Gal[t].SpinClassicalBulge[s] = 0.0; // This is necessary to catch issues with this field
-        }
+        
     }
+      
+    // Set spin of classical bulge.  The mass itself will be transfered there in stars_to_bulge
+    // IN THE PROCESS OF EDITING
+    for(s=0; s<3; s++)
+    {
+          Gal[t].SpinClassicalBulge[s] = (j_p[s]*Gal[p].StellarMass + j_t[s]*Gal[t].StellarMass) / (Gal[p].StellarMass + Gal[t].StellarMass);
+          // should probably consider the spin of the components of the galaxies, but in principle the orbital J considered above should dominate most of the time
+          
+//            Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s] + get_disc_ang_mom(t,1)*Gal[t].SpinStars[s] + j_p[s]*m_p + j_t[s]*m_t) / (Gal[p].StellarMass+Gal[t].StellarMass);
+        if(!(Gal[t].SpinClassicalBulge[s] == Gal[t].SpinClassicalBulge[s] && Gal[t].SpinClassicalBulge[s] != INFINITY && Gal[t].SpinClassicalBulge[s] != -INFINITY))
+            Gal[t].SpinClassicalBulge[s] = 0.0; // This is necessary to catch issues with this field
+    }
+            
+      msig2_sum += (Gal[p].StellarMass * sqr(dCOM_p[0]*dvCOM_p[0] + dCOM_p[1]*dvCOM_p[1] + dCOM_p[2]*dvCOM_p[2]) / (sqr(dCOM_p[0]) + sqr(dCOM_p[1]) + sqr(dCOM_p[2])) );
+      msig2_sum += (Gal[t].StellarMass * sqr(dCOM_t[0]*dvCOM_t[0] + dCOM_t[1]*dvCOM_t[1] + dCOM_t[2]*dvCOM_t[2]) / (sqr(dCOM_t[0]) + sqr(dCOM_t[1]) + sqr(dCOM_t[2])) );
+
+     
+    // satellite's internal rotation will get thrown in dispersion once merged in a major merger.
+    // the same thing happens for the central, but it is taken care of in stars_to_bulge()
+//    double annulus_radius, annulus_velocity;
+//    for(i=0; i<N_BINS; i++)
+//    {
+//        annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
+//        annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
+//        msig2_sum += (Gal[p].DiscStars[i] * sqr(annulus_velocity)); // can only be summed this way because this motion is initially orthogonal to the disc dispersion.  Really 
+//    }
+      
   }
+    
+  // update term used to calculate merger-driven bulge's velocity dispersion
+  msig2_sum += (Gal[t].ClassicalBulgeMass * sqr(Gal[t].VelDispMergerBulge));
+  msig2_sum += (Gal[p].ClassicalBulgeMass * sqr(Gal[p].VelDispMergerBulge));
+  msig2_sum += (Gal[p].SecularBulgeMass * sqr(Gal[p].VelDispBulge));
+  for(i=0; i<N_BINS; i++) msig2_sum += (Gal[p].DiscStars[i] * sqr(Gal[p].VelDispStars[i]));
 
 
   Gal[t].StarsFromH2 += Gal[p].StarsFromH2;
@@ -843,6 +874,8 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
   Gal[t].ClassicalMetalsBulgeMass += Gal[p].MetalsStellarMass;
   Gal[t].StarsExSitu += Gal[p].StellarMass;
   Gal[t].MetalsStarsExSitu += Gal[p].MetalsStellarMass;
+    
+  Gal[t].VelDispMergerBulge = sqrt(msig2_sum / Gal[t].ClassicalBulgeMass);
 
   Gal[t].ICS += Gal[p].ICS;
   Gal[t].MetalsICS += Gal[p].MetalsICS;
@@ -914,6 +947,13 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
 void stars_to_bulge(int t, int k_now)
 {
   int step, i, k;
+    
+  // set velocity dispersion of bulge based on the quadrature sum of galaxy components
+  double msig2_sum = 0.0;
+  msig2_sum += (Gal[t].ClassicalBulgeMass * sqr(Gal[t].VelDispMergerBulge));
+  msig2_sum += (Gal[t].SecularBulgeMass * sqr(Gal[t].VelDispBulge));
+  for(i=0; i<N_BINS; i++) msig2_sum += (Gal[t].DiscStars[i] * sqr(Gal[t].VelDispStars[i]));
+  Gal[t].VelDispMergerBulge = sqrt(msig2_sum / Gal[t].StellarMass);
     
   // generate bulge 
   Gal[t].ClassicalBulgeMass = Gal[t].StellarMass;

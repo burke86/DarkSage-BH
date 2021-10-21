@@ -344,6 +344,7 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   }
     
   o->VelDispBulge = g->VelDispBulge;
+    o->VelDispMergerBulge = g->VelDispMergerBulge;
     
     double aa, bb, cc, a_ICS;
     aa = 2*sqr(g->a_InstabBulge) + 4*(g->a_InstabBulge)*(g->Rvir) + sqr(g->Rvir);
@@ -394,6 +395,9 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
 
   o->LastMajorMerger = g->LastMajorMerger * UnitTime_in_Megayears;
   o->LastMinorMerger = g->LastMinorMerger * UnitTime_in_Megayears;
+    o->NumMajorMergers = g->NumMajorMergers;
+    o->NumMinorMergers = g->NumMinorMergers;
+    
   o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
   o->SNejectRate = g->SNejectRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
 
@@ -486,6 +490,7 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   o->LocalIGM = g->LocalIGM;
   o->BlackHoleMass = g->BlackHoleMass;
   
+    o->VelDispMergerBulge = g->VelDispMergerBulge;
 
   o->MetalsColdGas = g->MetalsColdGas;
   o->MetalsStellarMass = g->MetalsStellarMass;
@@ -577,6 +582,9 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   o->LastMajorMerger = g->LastMajorMerger * UnitTime_in_Megayears;
   o->LastMinorMerger = g->LastMinorMerger * UnitTime_in_Megayears;
     
+    o->NumMajorMergers = g->NumMajorMergers;
+    o->NumMinorMergers = g->NumMinorMergers;
+
     o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;    
     o->SNejectRate = g->SNejectRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
     

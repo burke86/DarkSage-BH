@@ -95,6 +95,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].LocalIGBHnum = 0;
     
     Gal[p].VelDispBulge = c_s;
+    Gal[p].VelDispMergerBulge = c_s;
     
     Gal[p].MetalsColdGas = 0.0;
     Gal[p].MetalsStellarMass = 0.0;
@@ -163,6 +164,8 @@ void init_galaxy(int p, int halonr)
     Gal[p].MaxRadioModeAccretionRate = 0.0;
     Gal[p].LastMajorMerger = -1.0;
     Gal[p].LastMinorMerger = -1.0;
+    Gal[p].NumMajorMergers = 0;
+    Gal[p].NumMinorMergers = 0;
     Gal[p].SNreheatRate = 0.0;
     Gal[p].SNejectRate = 0.0;
     Gal[p].c_beta = MIN_C_BETA;

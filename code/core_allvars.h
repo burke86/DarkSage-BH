@@ -105,6 +105,7 @@ struct GALAXY_OUTPUT
     float LocalIGBHmass;
     int LocalIGBHnum;
     float VelDispBulge;
+    float VelDispMergerBulge;
     float HalfMassRadiusInstabilityBulge;
     float HalfMassRadiusICS;
     
@@ -158,6 +159,8 @@ struct GALAXY_OUTPUT
   float Heating;
   float LastMajorMerger;
   float LastMinorMerger;
+    int NumMajorMergers;
+    int NumMinorMergers;
   float SNreheatRate;
   float SNejectRate;
     
@@ -232,6 +235,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
     float LocalIGBHmass;
     int LocalIGBHnum;
     float VelDispBulge[N_AGE_BINS];
+    float VelDispMergerBulge;
     float HalfMassRadiusInstabilityBulge;
     float HalfMassRadiusICS;
 
@@ -265,7 +269,9 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float Heating;
   float LastMajorMerger;
   float LastMinorMerger;
-  float SNreheatRate;
+    int NumMajorMergers;
+    int NumMinorMergers;
+    float SNreheatRate;
   float SNejectRate;
     
   //infall properties
@@ -346,7 +352,8 @@ struct GALAXY
     int ICBHnum;
     double LocalIGBHmass;
     int LocalIGBHnum;
-    double VelDispBulge;
+    double VelDispBulge; // this one is the instability-driven bulge.  Might want to edit name!
+    double VelDispMergerBulge;
     double a_InstabBulge;
     double R_ICS_av;
     
@@ -409,6 +416,8 @@ struct GALAXY
   double MaxRadioModeAccretionRate;
   double LastMajorMerger;
   double LastMinorMerger;
+    int NumMajorMergers;
+    int NumMinorMergers;
     double SNreheatRate;
     double SNejectRate;    
     double c_beta;
