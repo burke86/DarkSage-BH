@@ -171,6 +171,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].c_beta = MIN_C_BETA;
     Gal[p].R2_hot_av = sqr(Gal[p].Rvir*0.5);
     Gal[p].a_InstabBulge = 0.08284 * Gal[p].DiskScaleRadius;
+    Gal[p].a_MergerBulge = 0.08284 * Gal[p].DiskScaleRadius; // initialisation here should be largely irrelevant; just a placeholder
     Gal[p].R_ICS_av = 0.0;
     
     Gal[p].infallMvir = -1.0;  //infall properties
@@ -639,6 +640,7 @@ void update_disc_radii(int p)
     
     const double inv_Rvir = 1.0/Gal[p].Rvir;
     const double sigma2_ibulge = 3.0*sqr(Gal[p].VelDispBulge);
+    const double sigma2_mbulge = 3.0*sqr(Gal[p].VelDispMergerBulge);
     
     update_stellardisc_scaleradius(p); // need this at the start, as disc scale radii are part of this calculation
     update_gasdisc_scaleradius(p);
@@ -673,7 +675,8 @@ void update_disc_radii(int p)
     a_SB = Gal[p].a_InstabBulge;
     M_SB_inf = Gal[p].SecularBulgeMass * sqr((Gal[p].Rvir+a_SB)*inv_Rvir);
     
-    a_CB = pow(10.0, (log10(Gal[p].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
+//    a_CB = pow(10.0, (log10(Gal[p].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
+    a_CB = Gal[p].a_MergerBulge;
     M_CB_inf = Gal[p].ClassicalBulgeMass * sqr((Gal[p].Rvir+a_CB)*inv_Rvir);
     
 //    a_ICS = 0.0;
@@ -740,6 +743,7 @@ void update_disc_radii(int p)
         double vrot, rrat, RonRvir, AvHotPotential, reincTime, intgd1, intgd2, sigma2_low, sigma2_try;//, BulgeIntegral, ss, ff;
         int kmax;
         double Rhot = sqrt(Gal[p].R2_hot_av);
+        double j2_mbulge = sqr(Gal[p].SpinClassicalBulge[0]) + sqr(Gal[p].SpinClassicalBulge[1]) + sqr(Gal[p].SpinClassicalBulge[2]);
         M_DM = 1.0; // random initialisation to trigger if statement
         
         for(i=NUM_R_BINS-1; i>0; i--)
@@ -840,20 +844,37 @@ void update_disc_radii(int p)
                 if(analytic_r_reduced[k+1] > Gal[p].Rvir) break;
             }
             
+            // Calculate size of instability-driven bulge
+            sigma2_low = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
                 sigma2_try = (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * 0.4 * analytic_r_reduced[k+1];
                 if(sigma2_try > sigma2_ibulge)
                 { // calculate a_bulge here!
-                    if(k>0)
-                        sigma2_low = (analytic_potential_reduced[k] - analytic_potential_reduced[k-1]) / (analytic_r_reduced[k] - analytic_r_reduced[k-1]) * 0.4 * analytic_r_reduced[k];
-                    else
-                        sigma2_low = 0.0;
                     assert(sigma2_low < sigma2_try);
                     assert(sigma2_low <= sigma2_ibulge);
                     Gal[p].a_InstabBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
                     break;
                 }
+                
+                sigma2_low = sigma2_try;
+            }
+            
+            // Calculate size of merger-driven bulge
+            sigma2_low = 0.0;
+            for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
+            {
+                sigma2_try = 0.4 *( (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * analytic_r_reduced[k+1] - j2_mbulge/sqr(analytic_r_reduced[k+1]));
+                
+                if(sigma2_try > sigma2_mbulge)
+                { // calculate a_bulge here!
+                    assert(sigma2_low < sigma2_try);
+                    assert(sigma2_low <= sigma2_mbulge);
+                    Gal[p].a_MergerBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_mbulge - sigma2_low) / (sigma2_try-sigma2_low);
+                    break;
+                }
+                
+                sigma2_low = sigma2_try;
             }
                
                 
@@ -920,20 +941,38 @@ void update_disc_radii(int p)
             }
             Gal[p].HotGasPotential = AvHotPotential;
             
+            // Calculate size of instability-driven bulge
+            sigma2_low = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
             {
                 sigma2_try = (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * 0.4 * analytic_r[k+1];
                 if(sigma2_try > sigma2_ibulge)
                 { // calculate a_bulge here!
-                    if(k>0)
-                        sigma2_low = (analytic_potential[k] - analytic_potential[k-1]) / (analytic_r[k] - analytic_r[k-1]) * 0.4 * analytic_r[k];
-                    else
-                        sigma2_low = 0.0;
                     assert(sigma2_low < sigma2_try);
                     assert(sigma2_low <= sigma2_ibulge);
                     Gal[p].a_InstabBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
                     break;
                 }
+                
+                sigma2_low = sigma2_try;
+            }
+            
+            
+            // Calculate size of merger-driven bulge
+            sigma2_low = 0.0;
+            for(k=0; k<NUM_R_BINS-1; k++)
+            {
+                sigma2_try = 0.4 *( (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * analytic_r[k+1] - j2_mbulge/sqr(analytic_r[k+1]));
+                
+                if(sigma2_try > sigma2_mbulge)
+                { // calculate a_bulge here!
+                    assert(sigma2_low < sigma2_try);
+                    assert(sigma2_low <= sigma2_mbulge);
+                    Gal[p].a_MergerBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_mbulge - sigma2_low) / (sigma2_try-sigma2_low);
+                    break;
+                }
+                
+                sigma2_low = sigma2_try;
             }
             
 //            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
@@ -1449,7 +1488,8 @@ double get_Mhost_internal(int p, int centralgal, double dr)
         const double a_SB = Gal[centralgal].a_InstabBulge;
         const double M_iBulge = Gal[centralgal].SecularBulgeMass * sqr((Rvir_host+a_SB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_SB));
         
-        const double a_CB = pow(10.0, (log10(Gal[centralgal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
+//        const double a_CB = pow(10.0, (log10(Gal[centralgal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
+        const double a_CB = Gal[centralgal].a_MergerBulge;
         const double M_mBulge = Gal[centralgal].ClassicalBulgeMass * sqr((Rvir_host+a_CB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_CB));
         
         double a_ICS = 0.0;

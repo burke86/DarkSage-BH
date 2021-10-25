@@ -84,6 +84,7 @@ def galdtype():
         ('VelDispInstabilityBulge'      , floattype),
         ('VelDispMergerBulge'           , floattype),
         ('HalfMassRadiusInstabilityBulge', floattype),
+        ('HalfMassRadiusMergerBulge',     floattype),
         ('HalfMassRadiusIntraClusterStars', floattype),
         ('MetalsColdGas'                , floattype),
         ('MetalsStellarMass'            , floattype),

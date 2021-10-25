@@ -107,6 +107,7 @@ struct GALAXY_OUTPUT
     float VelDispBulge;
     float VelDispMergerBulge;
     float HalfMassRadiusInstabilityBulge;
+    float HalfMassRadiusMergerBulge;
     float HalfMassRadiusICS;
     
     // inflow/outflow tracking
@@ -237,6 +238,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
     float VelDispBulge[N_AGE_BINS];
     float VelDispMergerBulge;
     float HalfMassRadiusInstabilityBulge;
+    float HalfMassRadiusMergerBulge;
     float HalfMassRadiusICS;
 
   // metals
@@ -355,6 +357,7 @@ struct GALAXY
     double VelDispBulge; // this one is the instability-driven bulge.  Might want to edit name!
     double VelDispMergerBulge;
     double a_InstabBulge;
+    double a_MergerBulge;
     double R_ICS_av;
     
     // inflow/outflow tracking

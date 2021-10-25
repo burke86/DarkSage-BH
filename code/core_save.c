@@ -352,6 +352,11 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
     cc = -sqr(g->a_InstabBulge) * sqr(g->Rvir);
   o->HalfMassRadiusInstabilityBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
     
+    aa = 2*sqr(g->a_MergerBulge) + 4*(g->a_MergerBulge)*(g->Rvir) + sqr(g->Rvir);
+    bb = -2 * (g->a_MergerBulge) * sqr(g->Rvir);
+    cc = -sqr(g->a_MergerBulge) * sqr(g->Rvir);
+  o->HalfMassRadiusMergerBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
+
     a_ICS = get_a_ICS(-1, g->Rvir, g->R_ICS_av);
     aa = 2*sqr(a_ICS) + 4*(a_ICS)*(g->Rvir) + sqr(g->Rvir);
     bb = -2 * a_ICS * sqr(g->Rvir);
@@ -512,6 +517,11 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     bb = -2 * (g->a_InstabBulge) * sqr(g->Rvir);
     cc = -sqr(g->a_InstabBulge) * sqr(g->Rvir);
   o->HalfMassRadiusInstabilityBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
+    
+    aa = 2*sqr(g->a_MergerBulge) + 4*(g->a_MergerBulge)*(g->Rvir) + sqr(g->Rvir);
+    bb = -2 * (g->a_MergerBulge) * sqr(g->Rvir);
+    cc = -sqr(g->a_MergerBulge) * sqr(g->Rvir);
+  o->HalfMassRadiusMergerBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
     
     a_ICS = get_a_ICS(-1, g->Rvir, g->R_ICS_av);
     aa = 2*sqr(a_ICS) + 4*(a_ICS)*(g->Rvir) + sqr(g->Rvir);

@@ -429,7 +429,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
           a_SB = Gal[gal].a_InstabBulge;
           M_SB_inf = Gal[gal].SecularBulgeMass * sqr((Gal[gal].Rvir+a_SB)/Gal[gal].Rvir);
           
-          a_CB = pow(10.0, (log10(Gal[gal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
+//          a_CB = pow(10.0, (log10(Gal[gal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
+          a_CB = Gal[gal].a_MergerBulge;
           M_CB_inf = Gal[gal].ClassicalBulgeMass * sqr((Gal[gal].Rvir+a_CB)/Gal[gal].Rvir);
           
           left = 0.0;
