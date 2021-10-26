@@ -744,6 +744,7 @@ void update_disc_radii(int p)
         int kmax;
         double Rhot = sqrt(Gal[p].R2_hot_av);
         double j2_mbulge = sqr(Gal[p].SpinClassicalBulge[0]) + sqr(Gal[p].SpinClassicalBulge[1]) + sqr(Gal[p].SpinClassicalBulge[2]);
+        double a_av, a_new, a_av_prev;
         M_DM = 1.0; // random initialisation to trigger if statement
         
         for(i=NUM_R_BINS-1; i>0; i--)
@@ -845,36 +846,57 @@ void update_disc_radii(int p)
             }
             
             // Calculate size of instability-driven bulge
-            sigma2_low = 0.0;
+//            sigma2_low = 0.0;
+            a_av_prev = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
-                sigma2_try = (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * 0.4 * analytic_r_reduced[k+1];
-                if(sigma2_try > sigma2_ibulge)
-                { // calculate a_bulge here!
-                    assert(sigma2_low < sigma2_try);
-                    assert(sigma2_low <= sigma2_ibulge);
-                    Gal[p].a_InstabBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
-                    break;
+//                sigma2_try = (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * 0.4 * analytic_r_reduced[k+1];
+//                if(sigma2_try > sigma2_ibulge)
+//                { // calculate a_bulge here!
+//                    assert(sigma2_low < sigma2_try);
+//                    assert(sigma2_low <= sigma2_ibulge);
+//                    Gal[p].a_InstabBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
+//                    break;
+//                }
+//                
+//                sigma2_low = sigma2_try;
+                
+                a_new = 3.0 / ( (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) / sigma2_ibulge - 1.0/analytic_r_reduced[k+1]) - analytic_r_reduced[k+1];
+                a_av = (k*a_av + a_new) / (k+1);
+                if( fabs(a_av - a_av_prev) <= 0.01*a_av ) // going for a 1% tolerance
+                {
+                    Gal[p].a_InstabBulge = a_av;
+                    break; 
                 }
                 
-                sigma2_low = sigma2_try;
+                a_av_prev = a_av;
             }
             
             // Calculate size of merger-driven bulge
-            sigma2_low = 0.0;
+//            sigma2_low = 0.0;
+            a_av_prev = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
-                sigma2_try = 0.4 *( (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * analytic_r_reduced[k+1] - j2_mbulge/sqr(analytic_r_reduced[k+1]));
-                
-                if(sigma2_try > sigma2_mbulge)
-                { // calculate a_bulge here!
-                    assert(sigma2_low < sigma2_try);
-                    assert(sigma2_low <= sigma2_mbulge);
-                    Gal[p].a_MergerBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_mbulge - sigma2_low) / (sigma2_try-sigma2_low);
-                    break;
+//                sigma2_try = 0.4 *( (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * analytic_r_reduced[k+1] - j2_mbulge/sqr(analytic_r_reduced[k+1]));
+//                
+//                if(sigma2_try > sigma2_mbulge)
+//                { // calculate a_bulge here!
+//                    assert(sigma2_low < sigma2_try);
+//                    assert(sigma2_low <= sigma2_mbulge);
+//                    Gal[p].a_MergerBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_mbulge - sigma2_low) / (sigma2_try-sigma2_low);
+//                    break;
+//                }
+//                
+//                sigma2_low = sigma2_try;
+                a_new = 3.0 / ( ((analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) - j2_mbulge/cube(analytic_r_reduced[k+1])) / sigma2_mbulge - 1.0/analytic_r_reduced[k+1]) - analytic_r_reduced[k+1];
+                a_av = (k*a_av + a_new) / (k+1);
+                if( fabs(a_av - a_av_prev) <= 0.01*a_av ) // going for a 1% tolerance
+                {
+                    Gal[p].a_MergerBulge = a_av;
+                    break; 
                 }
                 
-                sigma2_low = sigma2_try;
+                a_av_prev = a_av;
             }
                
                 
@@ -942,37 +964,57 @@ void update_disc_radii(int p)
             Gal[p].HotGasPotential = AvHotPotential;
             
             // Calculate size of instability-driven bulge
-            sigma2_low = 0.0;
+            a_av_prev = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
             {
-                sigma2_try = (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * 0.4 * analytic_r[k+1];
-                if(sigma2_try > sigma2_ibulge)
-                { // calculate a_bulge here!
-                    assert(sigma2_low < sigma2_try);
-                    assert(sigma2_low <= sigma2_ibulge);
-                    Gal[p].a_InstabBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
-                    break;
+//                sigma2_try = (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * 0.4 * analytic_r[k+1];
+//                if(sigma2_try > sigma2_ibulge)
+//                { // calculate a_bulge here!
+//                    assert(sigma2_low < sigma2_try);
+//                    assert(sigma2_low <= sigma2_ibulge);
+//                    Gal[p].a_InstabBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
+//                    break;
+//                }
+//                
+//                sigma2_low = sigma2_try;
+                
+                a_new = 3.0 / ( (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) / sigma2_ibulge - 1.0/analytic_r[k+1]) - analytic_r[k+1];
+                a_av = (k*a_av + a_new) / (k+1);
+                if( fabs(a_av - a_av_prev) <= 0.01*a_av ) // going for a 1% tolerance
+                {
+                    Gal[p].a_InstabBulge = a_av;
+                    break; 
                 }
                 
-                sigma2_low = sigma2_try;
+                a_av_prev = a_av;
             }
             
             
             // Calculate size of merger-driven bulge
-            sigma2_low = 0.0;
+            a_av_prev = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
             {
-                sigma2_try = 0.4 *( (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * analytic_r[k+1] - j2_mbulge/sqr(analytic_r[k+1]));
+//                sigma2_try = 0.4 *( (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * analytic_r[k+1] - j2_mbulge/sqr(analytic_r[k+1]));
+//                
+//                if(sigma2_try > sigma2_mbulge)
+//                { // calculate a_bulge here!
+//                    assert(sigma2_low < sigma2_try);
+//                    assert(sigma2_low <= sigma2_mbulge);
+//                    Gal[p].a_MergerBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_mbulge - sigma2_low) / (sigma2_try-sigma2_low);
+//                    break;
+//                }
+//                
+//                sigma2_low = sigma2_try;
                 
-                if(sigma2_try > sigma2_mbulge)
-                { // calculate a_bulge here!
-                    assert(sigma2_low < sigma2_try);
-                    assert(sigma2_low <= sigma2_mbulge);
-                    Gal[p].a_MergerBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_mbulge - sigma2_low) / (sigma2_try-sigma2_low);
-                    break;
+                a_new = 3.0 / ( ((analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) - j2_mbulge/cube(analytic_r[k+1])) / sigma2_mbulge - 1.0/analytic_r[k+1]) - analytic_r[k+1];
+                a_av = (k*a_av + a_new) / (k+1);
+                if( fabs(a_av - a_av_prev) <= 0.01*a_av ) // going for a 1% tolerance
+                {
+                    Gal[p].a_MergerBulge = a_av;
+                    break; 
                 }
                 
-                sigma2_low = sigma2_try;
+                a_av_prev = a_av;
             }
             
 //            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
