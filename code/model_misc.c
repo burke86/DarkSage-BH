@@ -1092,42 +1092,40 @@ void update_disc_radii(int p)
 
 void update_stellardisc_scaleradius(int p)
 {
+    // find the radii that encompass 10%, 20%, ..., 90% of the disc mass, convert to an equivalent exponential scale length, then average over these
     int i, j;
-    double SMcum_norm[N_BINS+1];
-    double DiscStarSum = get_disc_stars(p);
+    double cum_mass_frac[N_BINS+1];
+    double DiscMass = get_disc_stars(p);
     
-    SMcum_norm[0] = 0.0;
+    double Rscale_sum = 0.0;
+    int i_min = 1;
+    
+    cum_mass_frac[0] = 0.0;
+    
     // Can't update the disc size if there are no stars in the disc
-    if(DiscStarSum>0.0)
+    if(DiscMass>0.0)
     {
-        for(i=1; i<N_BINS+1; i++)
-        {
-            if(i==0)
-                SMcum_norm[i] = (Gal[p].DiscStars[i-1]/DiscStarSum);
-            else
-                SMcum_norm[i] = (Gal[p].DiscStars[i-1]/DiscStarSum) + SMcum_norm[i-1];
-            if(SMcum_norm[i] >= 0.5)
-                break;
-        }
-
-        for(j=i; j<N_BINS+1; j++)
-        {
-            SMcum_norm[j] = (Gal[p].DiscStars[j-1]/DiscStarSum) + SMcum_norm[j-1];
-            if(SMcum_norm[j] >= 0.9)
-                break;
-        }
-
-        // These are exponential scale radii that correspond to the actual r50 and r90 values of the disc
-        double Rscale50 = (Gal[p].DiscRadii[i]*(0.5-SMcum_norm[i-1]) + Gal[p].DiscRadii[i-1]*(SMcum_norm[i]-0.5)) / (SMcum_norm[i]-SMcum_norm[i-1]) * 0.59581;
-        double Rscale90 = (Gal[p].DiscRadii[j]*(0.9-SMcum_norm[j-1]) + Gal[p].DiscRadii[j-1]*(SMcum_norm[j]-0.9)) / (SMcum_norm[j]-SMcum_norm[j-1]) * 0.25709;
+        double inv_DiscMass = 1.0 / DiscMass;
         
-        // Take a weighted average of those scale radii for the disc's actual value.
-        Gal[p].StellarDiscScaleRadius = (Rscale50 + RadiusWeight*Rscale90) / (RadiusWeight+1.0); 
+        for(j=0; j<9; j++)
+        {
+            for(i=i_min; i<N_BINS+1; i++)
+            {
+                cum_mass_frac[i] = (Gal[p].DiscStars[i-1] * inv_DiscMass) + cum_mass_frac[i-1];
+                if(cum_mass_frac[i] >= DiscScalePercentValues[j])
+                {
+                    i_min = i;
+                    Rscale_sum += (Gal[p].DiscRadii[i]*(DiscScalePercentValues[j]-cum_mass_frac[i-1]) + Gal[p].DiscRadii[i-1]*(cum_mass_frac[i]-DiscScalePercentValues[j])) / (cum_mass_frac[i]-cum_mass_frac[i-1]) * DiscScalePercentConversion[j];
+                    break;
+                }
+            }
+        }
+
+        Gal[p].StellarDiscScaleRadius = Rscale_sum / 9.0;
     }
     
-    if(Gal[p].StellarDiscScaleRadius<=0.0)
+    if(Gal[p].StellarDiscScaleRadius <= 0.0)
     {
-//        printf("BUG: StellarDiscScaleRadius reassigned from %e to DiskScale Radius -- %e, %e\n", Gal[p].StellarDiscScaleRadius, DiscStarSum, Gal[p].DiskScaleRadius);
         Gal[p].StellarDiscScaleRadius = 1.0 * Gal[p].DiskScaleRadius; // Some functions still need a number for the scale radius even if there aren't any stars actually in the disc.
     }
 }
@@ -1135,43 +1133,41 @@ void update_stellardisc_scaleradius(int p)
 
 void update_gasdisc_scaleradius(int p)
 {
+    // find the radii that encompass 10%, 20%, ..., 90% of the disc mass, convert to an equivalent exponential scale length, then average over these
     int i, j;
-    double GMcum_norm[N_BINS+1];
-    double DiscGasSum = get_disc_gas(p);
+    double cum_mass_frac[N_BINS+1];
+    double DiscMass = get_disc_gas(p);
     
-    GMcum_norm[0] = 0.0;
+    double Rscale_sum = 0.0;
+    int i_min = 1;
+    
+    cum_mass_frac[0] = 0.0;
+    
     // Can't update the disc size if there are no stars in the disc
-    if(DiscGasSum>0.0)
+    if(DiscMass>0.0)
     {
-        for(i=1; i<N_BINS+1; i++)
+        double inv_DiscMass = 1.0 / DiscMass;
+        
+        for(j=0; j<9; j++)
         {
-            if(i==0)
-            GMcum_norm[i] = (Gal[p].DiscGas[i-1]/DiscGasSum);
-            else
-            GMcum_norm[i] = (Gal[p].DiscGas[i-1]/DiscGasSum) + GMcum_norm[i-1];
-            if(GMcum_norm[i] >= 0.5)
-            break;
+            for(i=i_min; i<N_BINS+1; i++)
+            {
+                cum_mass_frac[i] = (Gal[p].DiscGas[i-1] * inv_DiscMass) + cum_mass_frac[i-1];
+                if(cum_mass_frac[i] >= DiscScalePercentValues[j])
+                {
+                    i_min = i;
+                    Rscale_sum += (Gal[p].DiscRadii[i]*(DiscScalePercentValues[j]-cum_mass_frac[i-1]) + Gal[p].DiscRadii[i-1]*(cum_mass_frac[i]-DiscScalePercentValues[j])) / (cum_mass_frac[i]-cum_mass_frac[i-1]) * DiscScalePercentConversion[j];
+                    break;
+                }
+            }
         }
-        
-        for(j=i; j<N_BINS+1; j++)
-        {
-            GMcum_norm[j] = (Gal[p].DiscGas[j-1]/DiscGasSum) + GMcum_norm[j-1];
-            if(GMcum_norm[j] >= 0.9)
-                break;
-        }
-        
-        // These are exponential scale radii that correspond to the actual r50 and r90 values of the disc
-        double Rscale50 = (Gal[p].DiscRadii[i]*(0.5-GMcum_norm[i-1]) + Gal[p].DiscRadii[i-1]*(GMcum_norm[i]-0.5)) / (GMcum_norm[i]-GMcum_norm[i-1]) * 0.59581;
-        double Rscale90 = (Gal[p].DiscRadii[j]*(0.9-GMcum_norm[j-1]) + Gal[p].DiscRadii[j-1]*(GMcum_norm[j]-0.9)) / (GMcum_norm[j]-GMcum_norm[j-1]) * 0.25709;
-        
-        // Take a weighted average of those scale radii for the disc's actual value.
-        Gal[p].GasDiscScaleRadius = (Rscale50 + RadiusWeight*Rscale90) / (RadiusWeight+1.0); 
+
+        Gal[p].GasDiscScaleRadius = Rscale_sum / 9.0;
     }
     
-    if(Gal[p].GasDiscScaleRadius<=0.0)
+    if(Gal[p].GasDiscScaleRadius <= 0.0)
     {
-//        printf("BUG: GasDiscScaleRadius reassigned from %e to DiskScale Radius\n", Gal[p].GasDiscScaleRadius);
-        Gal[p].GasDiscScaleRadius = 1.0 * Gal[p].DiskScaleRadius; // Some functions still need a number for the scale radius even if there isn't any gas actually in the disc.
+        Gal[p].GasDiscScaleRadius = 1.0 * Gal[p].DiskScaleRadius; // Some functions still need a number for the scale radius even if there aren't any stars actually in the disc.
     }
 }
 

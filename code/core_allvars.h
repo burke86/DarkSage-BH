@@ -599,6 +599,8 @@ int RetroCount, ProCount;
 double FinalRecycleFraction;
 double SNperMassFormed;
 double HalfBoxLen;
+double DiscScalePercentConversion[9];
+double DiscScalePercentValues[9];
 
 #ifdef MINIMIZE_IO
 extern char *ptr_treedata, *ptr_galaxydata, *ptr_galsnapdata[ABSOLUTEMAXSNAPS];
