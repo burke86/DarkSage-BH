@@ -830,25 +830,11 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 	// Combine the discs
 	if(cos_angle_sdisc_comb<1.0)
     {
-//        for(i=0; i<N_BINS; i++) 
-//            for(k=k_now; k<N_AGE_BINS; k++)
-//                assert(Gal[p].DiscStarsMetalsAge[i][k] <= Gal[p].DiscStarsAge[i][k]);
 		project_disc_with_dispersion(Gal[p].DiscStars, Gal[p].DiscStarsMetals, Gal[p].VelDispStars, Gal[p].DiscStarsAge, Gal[p].DiscStarsMetalsAge, Gal[p].VelDispStarsAge, cos_angle_sdisc_comb, p, k_now, Disc1, Disc1Metals, Disc1VelDisp, Disc1Age, Disc1MetalsAge, Disc1VelDispAge);
-//		project_disc(Gal[p].DiscStarsMetals, cos_angle_sdisc_comb, p, Disc1Metals);
         
         // using old functions here as I don't need to project dispersion
 		project_disc(NewStars, cos_angle_new_comb, p, Disc2);
 		project_disc(NewStarsMetals, cos_angle_new_comb, p, Disc2Metals);
-        
-        // moving this code to inside the new project_disc_with_dispersion() function
-//        if(AgeStructOut>0)
-//        {
-//            for(k=k_now; k<N_AGE_BINS; k++)
-//            {
-//                project_disc_age(Gal[p].DiscStarsAge, cos_angle_sdisc_comb, p, k, Disc1Age[k]);
-//                project_disc_age(Gal[p].DiscStarsMetalsAge, cos_angle_sdisc_comb, p, k, Disc1MetalsAge[k]);
-//            }
-//        }
 		
         Gal[p].StellarMass = Gal[p].SecularBulgeMass + Gal[p].ClassicalBulgeMass;
         Gal[p].MetalsStellarMass = Gal[p].SecularMetalsBulgeMass + Gal[p].ClassicalMetalsBulgeMass;
@@ -945,12 +931,6 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
 	if(J_retro>0.0)
 	{
         
-//		project_disc(Gal[p].DiscStars, (J_sum - 2.0*J_retro)/J_sum, p, Disc1);
-//		project_disc(Gal[p].DiscStarsMetals, (J_sum - 2.0*J_retro)/J_sum, p, Disc1Metals);
-        
-//        for(i=0; i<N_BINS; i++) 
-//            for(k=k_now; k<N_AGE_BINS; k++)
-//                assert(Gal[p].DiscStarsMetalsAge[i][k] <= Gal[p].DiscStarsAge[i][k]);
         project_disc_with_dispersion(Gal[p].DiscStars, Gal[p].DiscStarsMetals, Gal[p].VelDispStars, Gal[p].DiscStarsAge, Gal[p].DiscStarsMetalsAge, Gal[p].VelDispStarsAge, (J_sum - 2.0*J_retro)/J_sum, p, k_now, Disc1, Disc1Metals, Disc1VelDisp, Disc1Age, Disc1MetalsAge, Disc1VelDispAge);
         
 		for(i=0; i<N_BINS; i++)
@@ -973,22 +953,7 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
                 }
             }
 		}
-        
-//        if(AgeStructOut>0)
-//        {
-//            for(k=k_now; k<N_AGE_BINS; k++)
-//            {
-//                project_disc_age(Gal[p].DiscStarsAge, (J_sum - 2.0*J_retro)/J_sum, p, k, Disc1Age[k]);
-//                project_disc_age(Gal[p].DiscStarsMetalsAge, (J_sum - 2.0*J_retro)/J_sum, p, k, Disc1MetalsAge[k]);
-//                
-//                for(i=0; i<N_BINS; i++)
-//                {
-//                    Gal[p].DiscStarsAge[i][k] = Disc1Age[i][k];
-//                    Gal[p].DiscStarsMetalsAge[i][k] = Disc1MetalsAge[i][k];
-//                }
-//            }
-//        }
-	}
+    }
 	
 	// Set the new spin direction of the stellar disc
 	for(i=0; i<3; i++)
@@ -999,8 +964,6 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
     }
     
     DiscStarSum = get_disc_stars(p);
-//    if(DiscStarSum > 1.01*(Gal[p].StellarMass-Gal[p].SecularBulgeMass-Gal[p].ClassicalBulgeMass) || DiscStarSum < (Gal[p].StellarMass-Gal[p].SecularBulgeMass-Gal[p].ClassicalBulgeMass)/1.01)
-//        printf("Stellar Disc, bulge, total = %e, %e, %e\n", DiscStarSum, Gal[p].SecularBulgeMass+Gal[p].ClassicalBulgeMass, Gal[p].StellarMass);
     
     if(DiscStarSum>0.0) assert(DiscStarSum+Gal[p].SecularBulgeMass+Gal[p].ClassicalBulgeMass <= 1.01*Gal[p].StellarMass && DiscStarSum+Gal[p].SecularBulgeMass+Gal[p].ClassicalBulgeMass >= Gal[p].StellarMass/1.01);
 
@@ -1008,9 +971,6 @@ void combine_stellar_discs(int p, double NewStars[N_BINS], double NewStarsMetals
     {
 		if(Gal[p].DiscStarsMetals[i] > Gal[p].DiscStars[i]) printf("DiscStars, Metals = %e, %e\n", Gal[p].DiscStars[i], Gal[p].DiscStarsMetals[i]);
 		assert(Gal[p].DiscStarsMetals[i] <= Gal[p].DiscStars[i]);
-        
-//        for(k=k_now; k<N_AGE_BINS; k++)
-//            assert(Gal[p].DiscStarsMetalsAge[i][k] <= Gal[p].DiscStarsAge[i][k]);
     }
 
     update_stellardisc_scaleradius(p);
@@ -1262,83 +1222,6 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
     }
 }
 
-
-void project_disc_age(double DiscMassAge[N_BINS][N_AGE_BINS], double cos_angle, int p, int k, double *NewDiscAge)
-{ // Essentially a copy of project_disc but designed for working with discs with an age axis
-    // ISN'T THIS INEFFICIENT?  SEEMS TO TREAT EACH AGE BIN LIKE AN INDIVIDUAL DISC, WHEN THE PROJECTION IS THE SAME FOR EACH AGE BIN.  REDUNDANT CALCULATIONS MUST SURELY BE BEING REPEATED.
-    double high_bound, ratio_last_bin;
-    int i, j, j_old, l;
-        
-    cos_angle = fabs(cos_angle); // This function will not deal with retrograde motion so needs an angle less than pi/2
-    
-    if(cos_angle > 0.99)
-    { // angle is irrelevant, just return the original disc to prevent floating-point nonsense
-        for(i=0; i<N_BINS; i++) NewDiscAge[i] = DiscMassAge[i][k];
-        return;
-    }
-    
-    j_old = 0;
-
-    for(i=0; i<N_BINS; i++)
-    {
-        if(!(DiscMassAge[i][k]>=0.0)) printf("i, k, DiscMassAge[i][k] = %i, %i, %e\n", i, k, DiscMassAge[i][k]);
-        assert(DiscMassAge[i][k]>=0.0);
-
-        high_bound = DiscBinEdge[i+1] / cos_angle;
-        j = j_old;
-        
-        while(DiscBinEdge[j]<high_bound)
-        {
-            j++;
-            if(j==N_BINS) break;
-        } 
-        j -= 1;
-        
-
-        NewDiscAge[i] = 0.0;
-        for(l=j_old; l<j; l++) 
-        {
-            NewDiscAge[i] += DiscMassAge[l][k];
-            DiscMassAge[l][k] = 0.0;
-        }
-        
-        if(i!=N_BINS-1)
-        {
-            if(j!=N_BINS-1)
-            {
-                ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (DiscBinEdge[j+1] - DiscBinEdge[j]));
-                assert(ratio_last_bin<=1.0);
-                if(!(ratio_last_bin>0))
-                    printf("j, ratio_last_bin, high_bound, DiscBinEdge[j], DiscBinEdge[j+1] = %i, %e, %e, %e, %e\n", j, ratio_last_bin, high_bound, DiscBinEdge[j], DiscBinEdge[j+1]);
-                assert(ratio_last_bin>0);
-            }
-            else if(high_bound < Gal[p].Rvir*Gal[p].Vvir)
-            {
-                ratio_last_bin = sqr((high_bound - DiscBinEdge[j]) / (Gal[p].Rvir*Gal[p].Vvir - DiscBinEdge[j]));
-                assert(ratio_last_bin<=1.0);
-                assert(ratio_last_bin>0);
-            }
-            else
-                ratio_last_bin = 1.0;
-            
-
-            assert(ratio_last_bin>0);
-            assert(DiscMassAge[j][k]>=0);
-            NewDiscAge[i] += ratio_last_bin * DiscMassAge[j][k];
-            DiscMassAge[j][k] -= ratio_last_bin * DiscMassAge[j][k];
-        }
-        else
-        {
-            NewDiscAge[i] = DiscMassAge[i][k];
-        }
-        
-        if(!(NewDiscAge[i]>=0.0)) printf("NewDiscAge[i] = %e\n", NewDiscAge[i]);
-        assert(NewDiscAge[i]>=0.0);
-
-        j_old = j;
-    }
-}
-
 void update_HI_H2(int p)
 {
     double area, f_H2, f_H2_HI, Pressure, f_sigma;
@@ -1365,7 +1248,7 @@ void update_HI_H2(int p)
             if(Gal[p].DiscGas[i]<=0.0) continue;
             assert(Gal[p].DiscGas[i]>0.0);
             
-            if(H2prescription==1)
+            if(H2prescription==1 || H2prescription==2)
             {
                 Zp = Z / 0.0142; // Might also want solar metal fraction to be variable too
                 
@@ -1389,17 +1272,21 @@ void update_HI_H2(int p)
                     f_H2_HI = 0.0;
                 
             }
-            else
+            
+            if(H2prescription!=1)
             {
                 if(angle <= ThetaThresh)
                 {
-//                    f_sigma =  sigma_gas / (0.5*Gal[p].Vvir*exp(-(Gal[p].DiscRadii[i]+Gal[p].DiscRadii[i+1])/4.0/Gal[p].StellarDiscScaleRadius)); // Haven't used the actual average radius of each annulus here...
                     f_sigma =  sigma_gas / Gal[p].VelDispStars[i];
                     Pressure = 0.5*M_PI*G * Gal[p].DiscGas[i] * (Gal[p].DiscGas[i] + f_sigma*Gal[p].DiscStars[i]) / sqr(area) * Hubble_h * Hubble_h;
                 }
                 else
                     Pressure = 0.5*M_PI*G * sqr(Gal[p].DiscGas[i]/area) * Hubble_h * Hubble_h;
-                f_H2_HI = H2FractionFactor * pow(Pressure/P_0, H2FractionExponent);
+                
+                if(H2prescription==2)
+                    f_H2_HI = dmax(f_H2_HI, H2FractionFactor * pow(Pressure/P_0, H2FractionExponent));
+                else
+                    f_H2_HI = H2FractionFactor * pow(Pressure/P_0, H2FractionExponent);
 
             }
 
@@ -1420,56 +1307,6 @@ void update_HI_H2(int p)
                 f_neutral = 0.5 * (full_ratio + 2.0 - sqrt(full_ratio*(full_ratio+4.0)));
                 Gal[p].DiscH2[i] = f_H2 * f_neutral * Gal[p].DiscGas[i];
                 Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
-                
-//                annulus_ion_term = sqr(Gal[p].DiscGas[i]/area)  / (1 + Y_He/X_H);
-//                assert(annulus_ion_term>=0.0);
-                
-    //            f_neutral = 0.77; // initialise the ionzied fraction, will be solved iteratively
-//                for(iter=0; iter<iter_max; iter++)
-//                {
-//                    printf("iter, f_neutral = %i, %e\n", iter, f_neutral);
-                    
-//                assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
-//                f_H2 = fH2_defswap * f_neutral; //Changes f_H2 from being H2/HI to H2/Cold Gas
-                
-
-
-                
-//                f_neutral_new = 1.0 - galaxy_ion_term * annulus_ion_term * cbrt(Gal[p].DiscH2[i]);
-//                full_ratio = galaxy_ion_term * annulus_ion_term / Gal[p].DiscH2[i];
-//                full_ratio_squared = sqr(full_ratio);
-//                solution_ratio = cbrt(9*full_ratio_squared + sqrt(81*sqr(full_ratio_squared) + 12*cube(full_ratio)) );
-//                f_neutral_new = 1.0 - 0.38157*solution_ratio/full_ratio + 0.87358/solution_ratio;
-//                
-//                if(f_neutral_new > 1.0) 
-//                {
-//                    f_neutral_new = 1.0;
-////                        break;
-//                }
-//                
-//                if(!(f_neutral_new >= 0.0 && f_neutral_new <= 1.0 && Gal[p].DiscGas[i]>0.0)) 
-//                {
-//                    printf("i, p = %i, %i\n", i, p);
-//                    printf("galaxy_ion_term, annulus_ion_term = %e, %e\n", galaxy_ion_term, annulus_ion_term);
-//                    printf("full_ratio, solution_ratio = %e, %e\n", full_ratio, solution_ratio);
-//                    printf("area, X_H, Gal[p].DiscGas[i] = %e, %e, %e\n", area, X_H, Gal[p].DiscGas[i]);
-//                    printf("Gal[p].DiscH2[i] = %e\n", Gal[p].DiscH2[i]);
-//                    printf("cbrt(Gal[p].DiscH2[i]) = %e\n", cbrt(Gal[p].DiscH2[i]));
-//                    printf("f_neutral_new, fabs(f_neutral_new), f_H2_HI = %e, %e, %e\n\n", f_neutral_new, fabs(f_neutral_new), f_H2_HI);
-//                }
-//                assert(Gal[p].DiscGas[i]>0.0);
-//                assert(f_neutral_new <= 1.0);
-//                assert(fabs(f_neutral_new) >= 0.0);
-//                assert(f_neutral_new >= 0.0);
-//                
-//                if(fabs(f_neutral_new-f_neutral) <= tol*f_neutral) break;
-//                
-//                if(iter==iter_max-1) 
-//                    printf("Hit max iterations solving for ionized and molecular fractions. Last solutions = %e, %e\n\n", f_neutral, f_neutral_new);
-//                
-//                f_neutral = 1.0*f_neutral_new;
-
-//                }
             }
             else
             {

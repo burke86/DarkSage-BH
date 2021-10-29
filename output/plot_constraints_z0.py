@@ -191,6 +191,15 @@ try:
     ax[1].set_xlabel(r'$\log_{10}(m_*~[{\rm M}_{\odot}])$')
     ax[1].set_ylabel(r'$12 + \log_{10}({\rm O/H})$')
     ax[1].set_yticks(np.arange(8.25,9.5,0.25))
+    
+    # Add relation from Bellstedt+21
+    logZ_obs = -1.67 + 6.32e-2 - 3.08e-2 + 3.62e-3 - 1.57e-4\
+                + (4.25e-1 - 3.69e-3 + 3.86e-3 - 4.16e-3 + 2.38e-5) * (x_obs-10.)\
+                + (1.42e-2 - 1.38e-1 + 5.24e-2 - 6.88e-3 + 3.37e-4) * (x_obs-10.)**2\
+                + (-2.67e-2 - 7.2e-2 + 3.58e-2 - 6.00e-3 + 4.20e-4) * (x_obs-10.)**3
+    y_obs = 8.69 + logZ_obs - np.log10(0.0142)
+    ax[1].plot(x_obs, y_obs, 'y-', lw=2, label=r'Bellstedt et al.~(2021)')
+
     ax[1].legend(loc='lower right', frameon=False, ncol=1, bbox_to_anchor=(1.01,0))
 
     fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)

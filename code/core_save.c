@@ -387,6 +387,7 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->DiskScaleRadius = g->DiskScaleRadius;
   o->CoolScaleRadius = g->CoolScaleRadius;
   o->StellarDiscScaleRadius = g->StellarDiscScaleRadius;
+  o->GasDiscScaleRadius = g->GasDiscScaleRadius;
   o->RotSupportScaleRadius = g->RotSupportScaleRadius;
 
   if (g->Cooling > 0.0)
@@ -578,6 +579,7 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   o->DiskScaleRadius = g->DiskScaleRadius;
   o->CoolScaleRadius = g->CoolScaleRadius;
   o->StellarDiscScaleRadius = g->StellarDiscScaleRadius;
+  o->GasDiscScaleRadius = g->GasDiscScaleRadius;
   o->RotSupportScaleRadius = g->RotSupportScaleRadius;
 
   if (g->Cooling > 0.0)

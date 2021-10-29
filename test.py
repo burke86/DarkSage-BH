@@ -106,6 +106,7 @@ def galdtype():
         ('MMWScaleRadius'               , floattype),
         ('CoolingScaleRadius'           , floattype),
         ('StellarDiscScaleRadius'       , floattype),
+        ('GasDiscScaleRadius'           , floattype),
         ('RotSupportScaleRadius'        , floattype),
         ('Cooling'                      , floattype),
         ('Heating'                      , floattype),

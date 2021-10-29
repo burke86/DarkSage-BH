@@ -758,71 +758,6 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
         for(i=0; i<3; i++)
             Gal[t].SpinGas[i] = NewSpin[i];
         
-	
-//		DiscGasSum = get_disc_gas(p);
-//		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
-//
-//		cos_angle_t = Gal[t].SpinGas[0]*NewSpin[0] + Gal[t].SpinGas[1]*NewSpin[1] + Gal[t].SpinGas[2]*NewSpin[2];
-//		cos_angle_p = Gal[p].SpinGas[0]*NewSpin[0] + Gal[p].SpinGas[1]*NewSpin[1] + Gal[p].SpinGas[2]*NewSpin[2];
-//		
-//		DiscGasSum = get_disc_gas(p);
-//		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
-//		
-//		project_disc(Gal[t].DiscGas, cos_angle_t, t, NewDiscT);		
-//		project_disc(Gal[p].DiscGas, cos_angle_p, p, NewDiscP);
-//		project_disc(Gal[t].DiscGasMetals, cos_angle_t, t, NewDiscMetalsT);		
-//		project_disc(Gal[p].DiscGasMetals, cos_angle_p, p, NewDiscMetalsP);
-//        
-//		for(i=0; i<N_BINS; i++)
-//		{
-//			Gal[p].DiscGas[i] = NewDiscP[i];
-//			Gal[p].DiscGasMetals[i] = NewDiscMetalsP[i]; // Evidently I need these to prevent an error -- project_gas must actually change the DiscGas values.
-//			Gal[t].DiscGas[i] = NewDiscT[i] + NewDiscP[i];
-//			Gal[t].DiscGasMetals[i] = NewDiscMetalsT[i] + NewDiscMetalsP[i];
-//			assert(Gal[t].DiscGasMetals[i] <= Gal[t].DiscGas[i]);
-//			assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
-//			
-//            if(NewDiscP[i] > 0.0)
-//                disc_mass_ratio[i] = NewDiscT[i] / NewDiscP[i];
-//            else
-//                disc_mass_ratio[i] = 0.0;
-//            
-//			if(disc_mass_ratio[i] > 1.0)
-//				disc_mass_ratio[i] = 1.0 / disc_mass_ratio[i];
-//            
-//            assert(disc_mass_ratio[i]<=1.0 && disc_mass_ratio[i]>=0.0);
-//		}
-//        
-//		DiscGasSum = get_disc_gas(p);
-//		assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
-//		DiscGasSum = get_disc_gas(t);
-//		assert(DiscGasSum <= 1.01*Gal[t].ColdGas && DiscGasSum >= Gal[t].ColdGas/1.01);
-//		
-//		// Output expected mass of each annulus after retrograde gas is dealt with
-//		for(i=0; i<N_BINS; i++)
-//		{
-//			if(cos_angle_t < 0.0)
-//				PostRetroGas[i] = NewDiscP[i] - NewDiscT[i];
-//			else if(cos_angle_p < 0.0)
-//				PostRetroGas[i] = NewDiscT[i] - NewDiscP[i];
-//			else
-//				PostRetroGas[i] = Gal[t].DiscGas[i];
-//				
-//			if(PostRetroGas[i] < 0.0) 
-//				PostRetroGas[i] = 0.0;
-//		}
-//        
-//        // Set the new spin direction of the gas
-//        for(i=0; i<3; i++) Gal[t].SpinGas[i] = NewSpin[i];
-//    }
-//    else
-//        for(i=0; i<N_BINS; i++) PostRetroGas[i] = Gal[t].DiscGas[i];
-//
-//	DiscGasSum = get_disc_gas(t);
-//	assert(DiscGasSum <= 1.01*Gal[t].ColdGas && DiscGasSum >= Gal[t].ColdGas/1.01);
-
-      
-        
     }
       
     // Set spin of classical bulge.  The mass itself will be transfered there in stars_to_bulge
@@ -832,24 +767,12 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
           Gal[t].SpinClassicalBulge[s] = (j_p[s]*Gal[p].StellarMass + j_t[s]*Gal[t].StellarMass) / (Gal[p].StellarMass + Gal[t].StellarMass);
           // should probably consider the spin of the components of the galaxies, but in principle the orbital J considered above should dominate most of the time
           
-//            Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s] + get_disc_ang_mom(t,1)*Gal[t].SpinStars[s] + j_p[s]*m_p + j_t[s]*m_t) / (Gal[p].StellarMass+Gal[t].StellarMass);
         if(!(Gal[t].SpinClassicalBulge[s] == Gal[t].SpinClassicalBulge[s] && Gal[t].SpinClassicalBulge[s] != INFINITY && Gal[t].SpinClassicalBulge[s] != -INFINITY))
             Gal[t].SpinClassicalBulge[s] = 0.0; // This is necessary to catch issues with this field
     }
             
       msig2_sum += (Gal[p].StellarMass * sqr(dCOM_p[0]*dvCOM_p[0] + dCOM_p[1]*dvCOM_p[1] + dCOM_p[2]*dvCOM_p[2]) / (sqr(dCOM_p[0]) + sqr(dCOM_p[1]) + sqr(dCOM_p[2])) );
       msig2_sum += (Gal[t].StellarMass * sqr(dCOM_t[0]*dvCOM_t[0] + dCOM_t[1]*dvCOM_t[1] + dCOM_t[2]*dvCOM_t[2]) / (sqr(dCOM_t[0]) + sqr(dCOM_t[1]) + sqr(dCOM_t[2])) );
-
-     
-    // satellite's internal rotation will get thrown in dispersion once merged in a major merger.
-    // the same thing happens for the central, but it is taken care of in stars_to_bulge()
-//    double annulus_radius, annulus_velocity;
-//    for(i=0; i<N_BINS; i++)
-//    {
-//        annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
-//        annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
-//        msig2_sum += (Gal[p].DiscStars[i] * sqr(annulus_velocity)); // can only be summed this way because this motion is initially orthogonal to the disc dispersion.  Really 
-//    }
       
   }
     
@@ -928,6 +851,7 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
 //    Gal[t].SfrBulge[step] += Gal[p].SfrDisk[step] + Gal[p].SfrBulge[step];
     Gal[t].SfrBulgeColdGas[step] += Gal[p].SfrDiskColdGas[step] + Gal[p].SfrBulgeColdGas[step];
     Gal[t].SfrBulgeColdGasMetals[step] += Gal[p].SfrDiskColdGasMetals[step] + Gal[p].SfrBulgeColdGasMetals[step];
+      Gal[t].SfrMerge[step] += (Gal[p].SfrFromH2[step] + Gal[p].SfrInstab[step] + Gal[p].SfrMerge[step]);
   }
 
   DiscGasSum = get_disc_gas(t);

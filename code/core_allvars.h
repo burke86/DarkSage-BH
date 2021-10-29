@@ -154,7 +154,7 @@ struct GALAXY_OUTPUT
   float DiskScaleRadius;
   float CoolScaleRadius;
   float StellarDiscScaleRadius;
-//  float GasDiscScaleRadius;
+  float GasDiscScaleRadius;
     float RotSupportScaleRadius;
   float Cooling;
   float Heating;
@@ -266,6 +266,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float DiskScaleRadius;
   float CoolScaleRadius;
   float StellarDiscScaleRadius;
+    float GasDiscScaleRadius;
   float RotSupportScaleRadius;
   float Cooling;
   float Heating;
