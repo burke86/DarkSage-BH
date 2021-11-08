@@ -350,16 +350,11 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         // Can't use more cold gas than is available, so balance SF and feedback 
         if(((1-RecycleFraction)*stars + reheated_mass + ejected_cold_mass)>max_consume && (stars + reheated_mass + ejected_cold_mass)>0.0)
         {
-//            if(SupernovaRecipeOn<3)
-//            {
                 fac = max_consume / ((1-RecycleFraction) * stars + reheated_mass + ejected_cold_mass);
                 stars *= fac;
                 reheated_mass *= fac;
                 energy_feedback *= fac;
                 ejected_cold_mass *= fac;
-//            }
-//            else
-//                reheated_mass = max_consume - (1-RecycleFraction)*stars; // Note the important change here that recycled gas can immediately be reheated!  Stars also isn't rescaled!
         }
         
         
@@ -380,9 +375,6 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
           ejected_mass = 0.0;
           ejected_cold_mass = 0.0;
         }
-        
-//        if(reheated_mass < MIN_STARFORMATION)
-//            reheated_mass = 0.0; // Limit doesn't have to be the same as MIN_STARFORMATION, but needs to be something reasonable
     
         if(SupernovaRecipeOn < 3)
         {
@@ -390,14 +382,8 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
         }
         else
         {
-//            excess_energy = energy_feedback - reheat_specific_energy * reheated_mass - eject_specific_energy * ejected_cold_mass;
-//            ejected_mass = FeedbackEjectCoupling * excess_energy / (ejected_specific_energy - hot_specific_energy); 
             ejected_mass = 0.0; // surely always zero now
         }
-        
-        
-//        if(ejected_mass < MIN_STARFORMATION)
-//            ejected_mass = 0.0;
         
     }
     else // I haven't actually dealt with the situation of Supernovae being turned off here.  But do I even want to turn SN off?
@@ -411,127 +397,8 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
     feedback_mass[1] = ejected_mass;
     feedback_mass[2] = stars;
     feedback_mass[3] = ejected_cold_mass;
-    
-    
-    // calculate change in reincorporation time due to new ejected gas
-//    if(ejected_cold_mass>0 && ReincorpotationModel==3)
-//        update_reinc_timescale(p, i, ejected_cold_mass, reheated_mass, annulus_velocity, v_wind2, two_vv, escape_velocity2, annulus_radius);
-    
+        
 }
-
-
-//void update_reinc_timescale(int p, int i, double ejected_cold_mass, double reheated_mass, double annulus_velocity, double v_wind2, double two_vv, double escape_velocity2, double annulus_radius)
-//{
-//    int ii, j, len_eff, j_start;
-//    int len_arr = 50; // number of entries in arrays used to numerically integrate potential-dependent integrand for reincorporation time
-//    double v_ejec, potential_final, r_final, time_out, time_in, r_arr[len_arr], potential_arr[len_arr], r_max, Rhot, dr, denom, annulus_potential;
-//    v_ejec = (reheated_mass/ejected_cold_mass + 1) * (pow(sqr(annulus_velocity) + v_wind2 + two_vv, 1.5) - pow(escape_velocity2, 1.5)) / (3.0 * two_vv); // average velocity of gas that escapes the halo
-//    
-//    potential_final = 0.5*sqr(v_ejec) + Gal[p].Potential[i]; // the potential energy the escaping gas has before it stops and turns around
-//    // extrapolate potential assuming any additional mass internal to radii greater than Rvir is negligible
-//    r_final = - G * Gal[p].Mvir / potential_final;
-//    
-//    r_max = 10.0*Gal[p].Mvir; // maximum radius ejected gas is assumed to reach, arbitarily large
-//    
-//    if(potential_final >= 0.0 || r_final > r_max)
-//    {
-//        potential_final = 0.0;
-//        r_final = r_max;
-//    }
-//    else if(potential_final <= Gal[p].EjectedPotential || r_final < Gal[p].Rvir)
-//    {
-//        potential_final = Gal[p].EjectedPotential;
-//        r_final = 1.0 * Gal[p].Rvir;
-//    }
-//    
-//    // build array of radii and potential        
-//    j = 0;
-//    Rhot = sqrt(Gal[p].R2_hot_av);
-//    annulus_potential = 0.5*(Gal[p].Potential[i] + Gal[p].Potential[i+1]);
-//    if(Rhot < annulus_radius && Gal[p].HotGasPotential < annulus_potential)
-//    {
-//        r_arr[j] = Rhot;
-//        potential_arr[j] = Gal[p].HotGasPotential;
-//        j += 1;
-//    }
-//
-//    r_arr[j] = annulus_radius;
-//    potential_arr[j] = annulus_potential;
-//    j_start = j;
-//
-//    len_eff = len_arr;
-//    for(ii=i+1; ii<=N_BINS; ii++)
-//    {                
-//        if(r_final<=r_arr[j])
-//            break;
-//        
-//        if((Rhot > r_arr[j]) && (Rhot < Gal[p].DiscRadii[ii]) && (Gal[p].HotGasPotential > potential_arr[j]) && (Gal[p].HotGasPotential < Gal[p].Potential[ii]))
-//        {
-//            j += 1;
-//            r_arr[j] = Rhot;
-//            potential_arr[j] = Gal[p].HotGasPotential;
-//            assert(r_arr[j] > r_arr[j-1]);
-//        }
-//        
-//
-//        if((r_final > r_arr[j]) && (r_final < Gal[p].DiscRadii[ii]) && (potential_final > potential_arr[j]) && (potential_final < Gal[p].Potential[ii]))
-//        {
-//            j += 1;
-//            r_arr[j] = r_final;
-//            potential_arr[j] = potential_final;
-//            len_eff = j;
-//            break;
-//        }
-//        
-//        j += 1;
-//        r_arr[j] = Gal[p].DiscRadii[ii];
-//        potential_arr[j] = Gal[p].Potential[ii];
-//        assert(r_arr[j] > r_arr[j-1]);
-//    }
-//    
-//    if(len_arr == len_eff)
-//    {
-//        if(r_final > Gal[p].DiscRadii[N_BINS])
-//        {
-//            dr = (r_final - Gal[p].DiscRadii[N_BINS]) / (len_arr - 1 - j);
-//            assert(dr>0);
-//            for(ii=j+1; ii<len_arr; ii++)
-//            {
-//                r_arr[ii] = Gal[p].DiscRadii[N_BINS] + dr * (ii-j);
-//                potential_arr[ii] = - G * Gal[p].Mvir / r_arr[ii];
-//            }
-//        }
-//        else
-//            len_eff = j+1;
-//        
-//    }
-//    
-//    // form integrand and numerically integrate
-//    time_out = 0.0;
-//    for(j=j_start; j<len_eff-1; j++)
-//    {
-//        denom = sqrt( -2*Gal[p].Potential[i] + potential_arr[j] + potential_arr[j+1] + sqr(v_ejec) );
-//        if(!(denom>0)) break;
-//        if(r_arr[j+1] < r_arr[j]) printf("j, len_eff, len_arr, r_arr[j-1, j, j+1] = %i, %i, %i, %e, %e, %e\n", j, len_eff, len_arr, r_arr[j-1], r_arr[j], r_arr[j+1]); 
-//        time_out += (r_arr[j+1] - r_arr[j]) / denom;
-//    }
-//    if(!(time_out >= 0)) printf("time_out = %e\n", time_out);
-//    assert(time_out >= 0);
-//    
-//    time_in = 0.0;
-//    for(j=len_eff-1; j>0; j--) // should break before getting to 0 unless the potential of the annulus that the feedback took place in exceeds the hot gas potential
-//    {
-//        denom = sqrt( 2*potential_final - potential_arr[j] - potential_arr[j-1] );
-//        if(!(denom>0)) break;
-//        time_in += (r_arr[j] - r_arr[j-1]) / denom;
-//        if(r_arr[j-1] <= Rhot) break;
-//    }
-//    assert(time_in >= 0);
-//
-//    // set new reincorporation time
-//    Gal[p].ReincTime = (Gal[p].EjectedMass * Gal[p].ReincTime + ejected_cold_mass * (time_in+time_out)) / (Gal[p].EjectedMass + ejected_cold_mass);
-//}
-
 
 
 void update_from_star_formation(int p, double stars, double metallicity, int i)
@@ -1373,7 +1240,6 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         get_RecycleFraction_and_NumSNperMass(t0, t1, StellarOutput);
         ReturnFraction[k] = StellarOutput[0];
         SNperMassRemaining[k] = StellarOutput[1];
-//        if(!(ReturnFraction[k]>=0))  printf("k, ReturnFraction, SNperMassRemaining, t0, t1, k_now, time = %i, %e, %e, %e, %e, %i, %e\n", k, StellarOutput[0], StellarOutput[1], t0*time_convert, t1*time_convert, k_now, time*time_convert);
         assert(ReturnFraction[k]>=0);
         assert(ReturnFraction[k]<FinalRecycleFraction);
     }
@@ -1611,11 +1477,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         }
         
         assert(reheated_mass>=0);
-        
-        // calculate change in reincorporation time due to new ejected gas
-//        if(ejected_cold_mass>0 && ReincorpotationModel==3)
-//            update_reinc_timescale(p, i, ejected_cold_mass, reheated_mass, annulus_velocity, v_wind2, two_vv, escape_velocity2, annulus_radius);
-        
+ 
         // apply feedback
         metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
         

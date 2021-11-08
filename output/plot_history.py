@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore")
 
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/571r/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/28x/'
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/29o/'
 sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
@@ -122,8 +122,8 @@ for i in range(Nsnap):
     if len(G)==0: continue
     res = (G['LenMax']>=100)
     
-    SFRD[i] = np.sum(G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst']) / vol
-    SFRD_resolved[i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[res]) / vol
+    SFRD[i] = np.sum(G['SfrFromH2']+G['SfrInstab']+G['SfrMerge']) / vol
+    SFRD_resolved[i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMerge'])[res]) / vol
     
     SMD[i] = (np.sum(G['StellarMass']) + np.sum(G['IntraClusterStars'])) * 1e10/h / vol
     SMD_resolved[i] = (np.sum(G['StellarMass'][res]) + np.sum(G['IntraClusterStars'][res])) * 1e10/h / vol
@@ -157,7 +157,7 @@ for i in range(Nsnap):
 
     for j in range(Nbins):
         f = np.in1d(G['RootGalaxyIndex'], RootID_lists[j])
-        SFRDbyMass[j,i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[f])
+        SFRDbyMass[j,i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMerge'])[f])
         SMDbyMass[j,i] = np.sum((G['StellarMass']+G['IntraClusterStars'])[f]) if Nage<=1 else np.sum((G['StellarMass']+np.sum(G['IntraClusterStars'],axis=1))[f])
         ZMDbyMass[j,i] = np.sum((G['MetalsStellarMass']+G['MetalsIntraClusterStars'])[f]) if Nage<=1 else np.sum((G['MetalsStellarMass']+np.sum(G['MetalsIntraClusterStars'],axis=1))[f])
 

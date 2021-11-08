@@ -71,7 +71,6 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         else
             Kappa = sqrt(2.0*DiscBinEdge[i+1]/cube(r_outer) * (DiscBinEdge[i+1]-DiscBinEdge[i])/(r_outer-r_inner));
         
-//        sigma_R = 0.5*Gal[p].Vvir*exp_f(-r_av/2.0/Gal[p].StellarDiscScaleRadius);
         sigma_R = Gal[p].VelDispStars[i];
 
         Q_gas = c_s * Kappa * (sqr(r_outer) - sqr(r_inner)) / G / Gal[p].DiscGas[i];
@@ -178,13 +177,10 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 	if(gas_sink>0.0 && AGNrecipeOn > 0)
 		quasar_mode_wind(p, gas_sink, centralgal);
 	
-//    for(i=0; i<N_BINS; i++) SNgas_copy[i] = SNgas[i];
     
 	// Merge new-star disc with previous stellar disc
 	if(stars_sum>0.0)
-	{
-//        assert(Gal[p].StellarMass==star_init);
-        
+	{        
         double NewStarsSum = 0.0;
 		for(i=N_BINS-1; i>=0; i--)
         {
@@ -195,7 +191,6 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         for(i=0; i<3; i++) old_spin[i] = Gal[p].SpinStars[i];
 		combine_stellar_discs(p, NewStars, NewStarsMetals, time);
         cos_angle = Gal[p].SpinStars[0]*old_spin[0] + Gal[p].SpinStars[1]*old_spin[1] + Gal[p].SpinStars[2]*old_spin[2];
-//        project_disc(SNgas_copy, cos_angle, p, SNgas_proj);
         
 		Gal[p].SfrInstab[step] += stars_sum / dt;
         Gal[p].StarsInstability += NewStarsSum;
@@ -203,11 +198,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         assert(NewStarsSum<=1.001*stars_sum);
         check_channel_stars(p);
    	}
-//    else
-//    {
-//        for(i=0; i<N_BINS; i++) SNgas_proj[i] = 0.0;
-//    }
-	
+
 	// Deal with stellar instabilities
 	for(i=N_BINS-1; i>=0; i--)
 	{
@@ -223,14 +214,10 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         else
             Kappa = sqrt(2.0*DiscBinEdge[i+1]/cube(r_outer) * (DiscBinEdge[i+1]-DiscBinEdge[i])/(r_outer-r_inner));
         
-//        sigma_R = 0.5*Gal[p].Vvir*exp_f(-r_av/2.0/Gal[p].StellarDiscScaleRadius);
         sigma_R = Gal[p].VelDispStars[i];
         
-//        if(Gal[p].DiscGas[i]-SNgas[i]>0.0 && angle<=ThetaThresh)
         if(Gal[p].DiscGas[i]>0.0 && angle<=ThetaThresh)
         {
-//            Q_star = Kappa * sigma_R * 0.935 * (sqr(r_outer) - sqr(r_inner)) / G / (Gal[p].DiscStars[i]+SNgas_proj[i]);
-//            Q_gas = c_s * Kappa * (sqr(r_outer) - sqr(r_inner)) / G / (Gal[p].DiscGas[i]-SNgas[i]);
             Q_star = Kappa * sigma_R * 0.935 * (sqr(r_outer) - sqr(r_inner)) / (G * Gal[p].DiscStars[i]);
             Q_gas = c_s * Kappa * (sqr(r_outer) - sqr(r_inner)) / (G * Gal[p].DiscGas[i]);
             
@@ -411,9 +398,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                                 }
                             }
                         }
-                        
-//                        update_instab_bulge_size(p);
-                        
+                                                
                     }
                     
                     Gal[p].VelDispStars[i+1] = sqrt( (Gal[p].DiscStars[i+1]*sqr(Gal[p].VelDispStars[i+1]) + m_up*sqr(Gal[p].VelDispStars[i])) / (Gal[p].DiscStars[i+1] + m_up) );
@@ -461,8 +446,6 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                         }
                     }
                     
-//                    update_instab_bulge_size(p);
-
 
                 }
                 
@@ -472,7 +455,6 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                     vel_disp_factor = (1.0 - StarSinkRate) * Q_star_min/Q_star + StarSinkRate;
                     
                     // recalculate Q and factor to ensure everything is consistent
-    //                Q_star = Kappa * sigma_R * 0.935 * (sqr(r_outer) - sqr(r_inner)) / (G * Gal[p].DiscStars[i]);
                     vel_disp_factor_again = Q_star_min/(Kappa * sigma_R * 0.935 * (sqr(r_outer) - sqr(r_inner)) / (G * Gal[p].DiscStars[i]));
                     if(!(vel_disp_factor > 0.99*vel_disp_factor_again && vel_disp_factor < 1.01*vel_disp_factor_again)) 
                     {
@@ -504,7 +486,6 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 		}
 	}
     
-    //if(Gal[p].Type==0) update_disc_radii(p);
     update_stellardisc_scaleradius(p);
     
 }
@@ -542,7 +523,6 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
 
   
 	// Let gas sink -- one may well want to change this formula
-//    gas_sink = dmin(1.0 - Gal[p].DiscH2[i]/Gal[p].DiscGas[i], GasSinkRate) * unstable_gas;
     gas_sink = GasSinkRate * unstable_gas;
     if(!(gas_sink<=unstable_gas && gas_sink >=0.0)) printf("gas_sink, unstable_gas = %e, %e\n", gas_sink, unstable_gas);
     assert(gas_sink<=unstable_gas && gas_sink >=0.0);
@@ -619,7 +599,6 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
         metallicity_new = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
 		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
 
-//        assert(reheated_mass + ejected_cold_mass <= Gal[p].DiscGas[i]);
         assert(Gal[p].MetalsHotGas>=0);
 	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i, ejected_cold_mass);
         update_from_ejection(p, centralgal, ejected_mass);
@@ -695,8 +674,7 @@ void precess_gas(int p, double dt)
             for(i=0; i<3; i++) Gal[p].SpinGas[i] = -StarSpin[i];
         else
         {
-            double axis[3], axis_mag;//, NewSpin[3];
-//            double sin_angle_precess = sin(acos(cos_angle_precess));
+            double axis[3], axis_mag;
             axis[0] = Gal[p].SpinGas[1]*StarSpin[2] - Gal[p].SpinGas[2]*StarSpin[1];
             axis[1] = Gal[p].SpinGas[2]*StarSpin[0] - Gal[p].SpinGas[0]*StarSpin[2];
             axis[2] = Gal[p].SpinGas[0]*StarSpin[1] - Gal[p].SpinGas[1]*StarSpin[0];
@@ -704,17 +682,6 @@ void precess_gas(int p, double dt)
                 for(i=0; i<3; i++) axis[i] *= -1.0;
             axis_mag = sqrt(sqr(axis[0])+sqr(axis[1])+sqr(axis[2]));
             rotate(Gal[p].SpinGas, axis, acos(cos_angle_precess));
-//            for(i=0; i<3; i++) axis[i] /= axis_mag;
-//            double dot = axis[0]*Gal[p].SpinGas[0] + axis[1]*Gal[p].SpinGas[1] + axis[2]*Gal[p].SpinGas[2];
-//            NewSpin[0] = axis[0]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[0]*cos_angle_precess + (axis[1]*Gal[p].SpinGas[2] - axis[2]*Gal[p].SpinGas[1])*sin_angle_precess;
-//            NewSpin[1] = axis[1]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[1]*cos_angle_precess + (axis[2]*Gal[p].SpinGas[0] - axis[0]*Gal[p].SpinGas[2])*sin_angle_precess;
-//            NewSpin[2] = axis[2]*dot*(1.0-cos_angle_precess) + Gal[p].SpinGas[2]*cos_angle_precess + (axis[0]*Gal[p].SpinGas[1] - axis[1]*Gal[p].SpinGas[0])*sin_angle_precess;
-//            for(i=0; i<3; i++)
-//            {
-//                assert(NewSpin[i]==NewSpin[i]);
-//                Gal[p].SpinGas[i] = NewSpin[i];
-//                
-//            }
         }
         
         // check instability here?

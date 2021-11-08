@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/29k/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/29o/
 
 FirstFile                   0
 LastFile                    7
@@ -19,8 +19,8 @@ LastFile                    7
 %-> 37 42 47 54 62 72 84 101 109 119 125 131
 
 
-NumOutputs        1
--> 131
+NumOutputs        2
+-> 128 131
 
 %------------------------------------------
 %----- Simulation information  ------------
@@ -45,7 +45,7 @@ BoxLen          75.0
 %------------------------------------------
 
 SFprescription              0        ;0: proportional to H2; 1: as 0 but all gas for low H2 fraction a la Fu et al 2010; 2: Threshold cold mass (closest to SAGE implementation)
-H2prescription              0       ;0: mid-plane pressure; 1: metallicity-dependent (McKee & Krumholz 2010)
+H2prescription              0       ;0: mid-plane pressure; 1: metallicity-dependent (McKee & Krumholz 2010); 2: max H2 of 0 and 1
 AGNrecipeOn                 2        ;0: switch off; 1: empirical model; 2: Bondi-Hoyle model; 3: cold cloud accretion model
 SupernovaRecipeOn           3        ;0: switch off; 1: scale with local density; 2: uniform reheated fraction; 3: energy-based local feedback; 4: energy-based distributive feedback
 ReionizationOn              1        ;0: switch off
@@ -84,6 +84,14 @@ ExponentBin                 1.4     ; The factor in spec ang mom between bins
 %----- Parameters of physical model -------
 %------------------------------------------
 
+
+%%%= TRUE FREE PARAMETERS =%%%
+RadiativeEfficiency         0.1     ; fraction of inertia lost by material accreted onto black holes. ~0.0572 for non-spinning BHs, ~0.321 for maximally spinning BHs
+GasSinkRate                 0.7    ; fraction of unstable gas that radially migrates rather than forming stars
+%%%= ==================== =%%%
+
+
+
 SfrEfficiency               1.0
 
 %%%= For SupernovaRecipeOn=1 =%%%
@@ -109,8 +117,7 @@ CoolingScaleConst           1.26
 
 RadioModeEfficiency         1.0
 QuasarModeEfficiency        1.0
-BlackHoleGrowthRate         0.0     ; retired, was for specific BH growth during mergers 
-RadiativeEfficiency         0.1     ; fraction of inertia lost by material accreted onto black holes. ~0.0572 for non-spinning BHs, ~0.321 for maximally spinning BHs
+BlackHoleGrowthRate         0.0     ; RETIRED, was for specific BH growth during mergers 
 
 
 %%%= For H2prescription=0 =%%%
@@ -125,10 +132,7 @@ ClumpExponent               0.7     ; Controls the clump factor which affects H2
 %%%= ==================== =%%%
 
 
-RadiusWeight                1.0     ; the relative weighting of r90 to r50 in calculating the stellar disc scale radius
-
 QTotMin                     1.0    ;threshold Toomre Q value for instabilities
-GasSinkRate                 0.7    ; fraction of unstable gas that radially migrates rather than forming stars
 ThetaThresh                 10.0   ;threshold angle for gas and stellar discs to be coplanar
 
 DegPerTdyn                  5.0    ;degrees the gas disc precesses to come in line with stars per dynamical time
@@ -136,8 +140,8 @@ DegPerTdyn                  5.0    ;degrees the gas disc precesses to come in li
 ThreshMajorMerger            0.1        ;major merger when mass ratio greater than this
 ThresholdSatDisruption        2.0        ;Mvir-to-baryonic mass ratio threshold for satellite merger or disruption
 
-AlphaBurst                  0.0     ;normalisation of fraction of gas consumed in a merger starburst
-BetaBurst                   0.0    ;exponent of gas consumed in a merger starburst. SETTING TO 0 REMOVES MERGER STARBURSTS ENTIRELY, THE NEW DEFAULT
+AlphaBurst                  0.0     ; RETIRED, normalisation of fraction of gas consumed in a merger starburst
+BetaBurst                   0.0    ; RETIRED, exponent of gas consumed in a merger starburst. Setting to 0 turns off merger starbursts
 
 Yield                        0.02908
 RecycleFraction                0.43    ;fraction of SF mass instantaneously recycled back to cold, for DelayedFeedbackOn=0

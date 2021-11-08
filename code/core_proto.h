@@ -89,7 +89,6 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt);
 double get_satellite_potential(int p, int centralgal);
 double get_satellite_radius(int p, int centralgal);
 double Hubble_sqr_z(int snap);
-//void update_reinc_timescale(int p, int i, double ejected_cold_mass, double reheated_mass, double annulus_velocity, double v_wind2, double two_vv, double escape_velocity2, double annulus_radius); // likely immediately retired
 void update_reincorporation_time(int p, double new_ejected_mass);
 double get_satellite_mass(int p);
 double get_Mhost_internal(int p, int centralgal, double dr);

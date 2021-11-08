@@ -273,10 +273,6 @@ void read_parameter_file(char *fname)
     addr[nt] = &ClumpExponent;
     id[nt++] = DOUBLE;
     
-    strcpy(tag[nt], "RadiusWeight");
-    addr[nt] = &RadiusWeight;
-    id[nt++] = DOUBLE;
-    
     strcpy(tag[nt], "QTotMin");
     addr[nt] = &QTotMin;
     id[nt++] = DOUBLE;

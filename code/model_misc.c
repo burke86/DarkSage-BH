@@ -649,7 +649,6 @@ void update_disc_radii(int p)
     
     // Determine the distribution of dark matter in the halo =====
     M_DM_tot = Gal[p].Mvir - Gal[p].HotGas - Gal[p].ColdGas - Gal[p].StellarMass - Gal[p].ICS - Gal[p].BlackHoleMass; // One may want to include Ejected Gas in this too
-//    double baryon_fraction = (Gal[p].HotGas + Gal[p].ColdGas + Gal[p].StellarMass + Gal[p].ICS + Gal[p].BlackHoleMass) / Gal[p].Mvir;
     
     if(M_DM_tot < 0.0) M_DM_tot = 0.0;
     
@@ -671,29 +670,17 @@ void update_disc_radii(int p)
     // ===========================================================
     
     // Determine distribution for bulge and ICS ==================
-//    a_SB = 0.2 * Gal[p].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
     a_SB = Gal[p].a_InstabBulge;
     M_SB_inf = Gal[p].SecularBulgeMass * sqr((Gal[p].Rvir+a_SB)*inv_Rvir);
     
-//    a_CB = pow(10.0, (log10(Gal[p].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
     a_CB = Gal[p].a_MergerBulge;
     M_CB_inf = Gal[p].ClassicalBulgeMass * sqr((Gal[p].Rvir+a_CB)*inv_Rvir);
-    
-//    a_ICS = 0.0;
-//    if(Gal[p].ClassicalBulgeMass>0.0)
-//        a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
-//    else if(a_SB>0.0)
-//        a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)
-//    else if(Gal[p].ICS > 0.0)
-//    {
-//        printf("Issue with ICS size, ICS = %e\n", Gal[p].ICS);
-//    }
+
     a_ICS = get_a_ICS(p, Gal[p].Rvir, Gal[p].R_ICS_av);
     M_ICS_inf = Gal[p].ICS * sqr((Gal[p].Rvir+a_ICS)*inv_Rvir);
     // ===========================================================
     
     M_D = 0.0;
-//    left = 0.0;
     
     BTT = (Gal[p].ClassicalBulgeMass+Gal[p].SecularBulgeMass)/(Gal[p].StellarMass+Gal[p].ColdGas);
 
@@ -807,7 +794,6 @@ void update_disc_radii(int p)
 
         
         gsl_interp_accel *acc = gsl_interp_accel_alloc();
-//        printf("i=%i\,", i);
         if(i>0) // reducing bins to avoid numerical issues with oversampling centre
         {
             const int NUM_R_BINS_REDUCED = NUM_R_BINS - i;
@@ -834,32 +820,18 @@ void update_disc_radii(int p)
             }
             
             AvHotPotential = 0.0;
-//            BulgeIntegral = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
                 AvHotPotential += 0.5*(analytic_potential_reduced[k] + analytic_potential_reduced[k+1]) * cb_term * ((analytic_r_reduced[k+1]*inv_Rvir - c_beta*atan(analytic_r_reduced[k+1]*inv_Rvir/c_beta)) - (analytic_r_reduced[k]*inv_Rvir - c_beta*atan(analytic_r_reduced[k]*inv_Rvir/c_beta)));
                 assert(AvHotPotential<=0);
-                
-//                if(k>0 && Gal[p].SecularBulgeMass>0) BulgeIntegral -= (analytic_r_reduced[k]/cube(analytic_r_reduced[k]+Gal[p].a_InstabBulge)*analytic_potential_reduced[k] + analytic_r_reduced[k+1]/cube(analytic_r_reduced[k+1]+Gal[p].a_InstabBulge)*analytic_potential_reduced[k+1]) * (analytic_r_reduced[k+1]-analytic_r_reduced[k]); // factor of -2 already folded in
-                
+                                
                 if(analytic_r_reduced[k+1] > Gal[p].Rvir) break;
             }
             
             // Calculate size of instability-driven bulge
-//            sigma2_low = 0.0;
             a_av_prev = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
-//                sigma2_try = (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * 0.4 * analytic_r_reduced[k+1];
-//                if(sigma2_try > sigma2_ibulge)
-//                { // calculate a_bulge here!
-//                    assert(sigma2_low < sigma2_try);
-//                    assert(sigma2_low <= sigma2_ibulge);
-//                    Gal[p].a_InstabBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
-//                    break;
-//                }
-//                
-//                sigma2_low = sigma2_try;
                 
                 a_new = 3.0 / ( (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) / sigma2_ibulge - 1.0/analytic_r_reduced[k+1]) - analytic_r_reduced[k+1];
                 a_av = (k*a_av + a_new) / (k+1);
@@ -873,21 +845,9 @@ void update_disc_radii(int p)
             }
             
             // Calculate size of merger-driven bulge
-//            sigma2_low = 0.0;
             a_av_prev = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
-//                sigma2_try = 0.4 *( (analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * analytic_r_reduced[k+1] - j2_mbulge/sqr(analytic_r_reduced[k+1]));
-//                
-//                if(sigma2_try > sigma2_mbulge)
-//                { // calculate a_bulge here!
-//                    assert(sigma2_low < sigma2_try);
-//                    assert(sigma2_low <= sigma2_mbulge);
-//                    Gal[p].a_MergerBulge = analytic_r_reduced[k] + (analytic_r_reduced[k+1] - analytic_r_reduced[k]) * (sigma2_mbulge - sigma2_low) / (sigma2_try-sigma2_low);
-//                    break;
-//                }
-//                
-//                sigma2_low = sigma2_try;
                 a_new = 3.0 / ( ((analytic_potential_reduced[k+1] - analytic_potential_reduced[k]) / (analytic_r_reduced[k+1] - analytic_r_reduced[k]) - j2_mbulge/cube(analytic_r_reduced[k+1])) / sigma2_mbulge - 1.0/analytic_r_reduced[k+1]) - analytic_r_reduced[k+1];
                 a_av = (k*a_av + a_new) / (k+1);
                 if( fabs(a_av - a_av_prev) <= 0.01*a_av ) // going for a 1% tolerance
@@ -899,17 +859,6 @@ void update_disc_radii(int p)
                 a_av_prev = a_av;
             }
                
-                
-//            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
-//            {
-//                ss = sqr(Gal[p].VelDispBulge) / BulgeIntegral * sqr(Gal[p].Rvir);
-//                ff = cbrt(0.5*( 3.0 * sqrt(3.0 * (4.0*cube(Gal[p].Rvir)*ss + 27*sqr(ss))) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
-//                Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;
-////                assert(Gal[p].a_InstabBulge < Gal[p].Rvir);
-//            }
-//            assert(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge));
-            
-//            Gal[p].HotGasPotential = gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc);
             Gal[p].HotGasPotential = AvHotPotential;
             Gal[p].EjectedPotential = gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc);
             
@@ -951,14 +900,11 @@ void update_disc_radii(int p)
             }
             
             AvHotPotential = 0.0;
-//            BulgeIntegral = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
             {
                 AvHotPotential += 0.5*(analytic_potential[k] + analytic_potential[k+1]) * cb_term * ((analytic_r[k+1]*inv_Rvir - c_beta*atan(analytic_r[k+1]*inv_Rvir/c_beta)) - (analytic_r[k]*inv_Rvir - c_beta*atan(analytic_r[k]*inv_Rvir/c_beta)));
                 assert(AvHotPotential<=0);
-                
-//                if(k>0 && Gal[p].SecularBulgeMass>0) BulgeIntegral -= (analytic_r[k]/cube(analytic_r[k]+Gal[p].a_InstabBulge)*analytic_potential[k] + analytic_r[k+1]/cube(analytic_r[k+1]+Gal[p].a_InstabBulge)*analytic_potential[k+1]) * (analytic_r[k+1]-analytic_r[k]); // factor of -2 already folded in
-                
+                                
                 if(analytic_r[k+1] > Gal[p].Rvir) break;
             }
             Gal[p].HotGasPotential = AvHotPotential;
@@ -967,17 +913,6 @@ void update_disc_radii(int p)
             a_av_prev = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
             {
-//                sigma2_try = (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * 0.4 * analytic_r[k+1];
-//                if(sigma2_try > sigma2_ibulge)
-//                { // calculate a_bulge here!
-//                    assert(sigma2_low < sigma2_try);
-//                    assert(sigma2_low <= sigma2_ibulge);
-//                    Gal[p].a_InstabBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_ibulge - sigma2_low) / (sigma2_try-sigma2_low);
-//                    break;
-//                }
-//                
-//                sigma2_low = sigma2_try;
-                
                 a_new = 3.0 / ( (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) / sigma2_ibulge - 1.0/analytic_r[k+1]) - analytic_r[k+1];
                 a_av = (k*a_av + a_new) / (k+1);
                 if( fabs(a_av - a_av_prev) <= 0.01*a_av ) // going for a 1% tolerance
@@ -993,19 +928,7 @@ void update_disc_radii(int p)
             // Calculate size of merger-driven bulge
             a_av_prev = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
-            {
-//                sigma2_try = 0.4 *( (analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) * analytic_r[k+1] - j2_mbulge/sqr(analytic_r[k+1]));
-//                
-//                if(sigma2_try > sigma2_mbulge)
-//                { // calculate a_bulge here!
-//                    assert(sigma2_low < sigma2_try);
-//                    assert(sigma2_low <= sigma2_mbulge);
-//                    Gal[p].a_MergerBulge = analytic_r[k] + (analytic_r[k+1] - analytic_r[k]) * (sigma2_mbulge - sigma2_low) / (sigma2_try-sigma2_low);
-//                    break;
-//                }
-//                
-//                sigma2_low = sigma2_try;
-                
+            {                
                 a_new = 3.0 / ( ((analytic_potential[k+1] - analytic_potential[k]) / (analytic_r[k+1] - analytic_r[k]) - j2_mbulge/cube(analytic_r[k+1])) / sigma2_mbulge - 1.0/analytic_r[k+1]) - analytic_r[k+1];
                 a_av = (k*a_av + a_new) / (k+1);
                 if( fabs(a_av - a_av_prev) <= 0.01*a_av ) // going for a 1% tolerance
@@ -1017,27 +940,10 @@ void update_disc_radii(int p)
                 a_av_prev = a_av;
             }
             
-//            if(BulgeIntegral > 1e-30 && Gal[p].SecularBulgeMass>0)
-//            {
-//                ss = sqr(Gal[p].VelDispBulge) / BulgeIntegral * sqr(Gal[p].Rvir);
-//                ff = cbrt(0.5*( 3.0 * sqrt(3.0 * (4.0*cube(Gal[p].Rvir)*ss + 27*sqr(ss))) + 2.0*cube(Gal[p].Rvir) + 27*ss ));
-//                Gal[p].a_InstabBulge = (ff + sqr(Gal[p].Rvir)/ff - 2*Gal[p].Rvir)*0.33333333;
-////                if(!(Gal[p].a_InstabBulge < Gal[p].Rvir)) printf("a_InstabBulge, Rvir = %e, %e\n", Gal[p].a_InstabBulge, Gal[p].Rvir);
-////                assert(Gal[p].a_InstabBulge < Gal[p].Rvir);
-//            }
-            
-//            if(!(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge)))
-//            {
-//                printf("BulgeIntegral, VelDispBulge, Rvir, ss, ff, a_InstabBulge = %e, %e, %e, %e, %e, %e\n", BulgeIntegral, Gal[p].VelDispBulge, Gal[p].Rvir, ss, ff, Gal[p].a_InstabBulge);
-//            }                
             assert(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge));
 
-//            Gal[p].HotGasPotential = dmax(analytic_potential[0], gsl_spline_eval(spline2, 0.5*Gal[p].Rvir, acc));
             Gal[p].EjectedPotential = dmax(0.9999*Gal[p].HotGasPotential, gsl_spline_eval(spline2, Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which it should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
             
-//            if(Gal[p].EjectedPotential < Gal[p].HotGasPotential)
-//                for(k=0; k<NUM_R_BINS; k++) printf("r, Potential = %e, %e\n", analytic_r[k], analytic_potential[k]);
-
             // calculate reioncorpotation time for freshly ejected gas, based on the current potential
             if(ReincorpotationModel==3)
             {
@@ -1061,16 +967,7 @@ void update_disc_radii(int p)
         }
 
     }
-    
-    // calculate potential energy as a function of radius (in the disc plane)
-//    double potential_sum = 0.0;
-//    i = NUM_R_BINS-1;
-//    for(k=N_BINS; k>=0; k--)
-//    {
-//        while(analytic_r[i])
-//            potential_sum -= 
-//    }
-    
+        
     if(Gal[p].Potential[0]>=0) Gal[p].Potential[0] = Gal[p].Potential[1];
     
     
@@ -1174,8 +1071,6 @@ void update_gasdisc_scaleradius(int p)
 
 double NFW_potential(int p, double r)
 {
-//    double radius_sum = Gal[p].Rvir + Gal[p].HaloScaleRadius;
-//    double pot_energy = -Gal[p].Mvir * log(1.0 + r/Gal[p].HaloScaleRadius) / (r * (log(radius_sum/Gal[p].HaloScaleRadius) - Gal[p].Rvir/radius_sum) );
     double pot_energy = - G * Gal[p].Mvir / r * log(1.0 + r/Gal[p].HaloScaleRadius) / (log(1.0+Gal[p].Rvir/Gal[p].HaloScaleRadius) - Gal[p].Rvir/(Gal[p].Rvir+Gal[p].HaloScaleRadius));
     assert(pot_energy<=0);
     return pot_energy;
@@ -1207,7 +1102,6 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
     // built-in assumption that stars > 50 solar collapse rapidly to black holes without returning gas to the ISM or causing feedback
     if(m0>50.0) 
     {
-//        printf("get_RecycleFraction_and_NumSNperMass(): requested m0=%e. Needs to be >50 for non-zero output\n");
         stellar_output[0] = 0.0;
         stellar_output[1] = 0.0;
         return;
@@ -1321,21 +1215,6 @@ double get_numSN_perMass(double m0, double m1)
 }
 
 
-// Not sure this is acutally useful with my design!
-//double m_returned(double m_initial)
-//{
-//    // calculate the mass returned to the ISM from a star of initial mass m_initial.  Assumes both input and output are in solar masses (not Dark Sage internal mass units).
-//    if(m_initial>=1 && m_initial<=7)
-//        return 0.444 + 0.084 * m_initial;
-//    else if(m_initial>7 && m_initial<8)
-//        return 0.419 + 0.109*m_initial;
-//    else if(m_initial>=8 && m_initial<=50)
-//        return 1.4;
-//    else
-//        return 0.0;
-//}
-
-
 double get_satellite_potential(int p, int centralgal)
 {
     if(p==centralgal) return 0.0; // not a satellite in this case
@@ -1354,8 +1233,6 @@ double get_satellite_potential(int p, int centralgal)
         
     else if(r < Gal[centralgal].DiscRadii[N_BINS-1])
     {
-//            printf("Interp with N: r, DiscRadii0, DiscRadiiLast, Potential0, PotentialLast = %e, %e, %e, %e, %e\n", r, Gal[centralgal].DiscRadii[0], Gal[centralgal].DiscRadii[N_BINS], Gal[centralgal].Potential[0], Gal[centralgal].Potential[N_BINS]);
-//            for(i=1; i<N_BINS; i++) printf("i, Radius, Potential = %i, %e, %e\n", i, Gal[centralgal].DiscRadii[i], Gal[centralgal].Potential[i]);
         
         // interpolate satellite's potential using its position and the central's potential profile
         gsl_interp_accel *acc = gsl_interp_accel_alloc();
@@ -1406,48 +1283,6 @@ double get_satellite_potential(int p, int centralgal)
         }
 
     }
-    
-    
-    
-//    else // I probably don't need to call an interpolation function here, but not obvious that doing the interpolation manually would be any faster
-//    {
-//        if(Gal[centralgal].DiscRadii[N_BINS] < 0.5*Gal[centralgal].Rvir)
-//        {
-//            printf("Interp with 3\n");
-//            double radius_arr[3], potential_arr[3];
-//            radius_arr[0] = 1.0*Gal[centralgal].DiscRadii[N_BINS];
-//            radius_arr[1] = 0.5*Gal[centralgal].Rvir;
-//            radius_arr[2] = 1.0*Gal[centralgal].Rvir;
-//            potential_arr[0] = 1.0*Gal[centralgal].Potential[N_BINS];
-//            potential_arr[1] = 1.0*Gal[centralgal].HotGasPotential;
-//            potential_arr[2] = 1.0*Gal[centralgal].EjectedPotential;
-//            
-//            gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, 3);
-//            gsl_spline_init(spline, radius_arr, potential_arr, 3);
-//            Potential = gsl_spline_eval(spline, r, acc);
-//            gsl_spline_free (spline);
-//            gsl_interp_accel_free (acc);
-//            return Potential;
-//            
-//        }
-//        else
-//        {
-//            printf("Interp with 2\n");
-//            double radius_arr[2], potential_arr[2];
-//            radius_arr[0] = 1.0*Gal[centralgal].DiscRadii[N_BINS];
-//            radius_arr[1] = 1.0*Gal[centralgal].Rvir;
-//            potential_arr[0] = 1.0*Gal[centralgal].Potential[N_BINS];
-//            potential_arr[1] = 1.0*Gal[centralgal].EjectedPotential;
-//            
-//            gsl_spline *spline = gsl_spline_alloc(gsl_interp_cspline, 2);
-//            gsl_spline_init(spline, radius_arr, potential_arr, 2);
-//            Potential = gsl_spline_eval(spline, r, acc);
-//            gsl_spline_free (spline);
-//            gsl_interp_accel_free (acc);
-//            return Potential;
-//        }
-//    }
-    
 }
 
 double get_satellite_radius(int p, int centralgal)
@@ -1522,11 +1357,9 @@ double get_Mhost_internal(int p, int centralgal, double dr)
             M_hot = hot_stuff * (RonRvir - c_beta * atan(RonRvir/c_beta));
         }
         
-//        const double a_SB = 0.2 * Gal[centralgal].StellarDiscScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
         const double a_SB = Gal[centralgal].a_InstabBulge;
         const double M_iBulge = Gal[centralgal].SecularBulgeMass * sqr((Rvir_host+a_SB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_SB));
         
-//        const double a_CB = pow(10.0, (log10(Gal[centralgal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
         const double a_CB = Gal[centralgal].a_MergerBulge;
         const double M_mBulge = Gal[centralgal].ClassicalBulgeMass * sqr((Rvir_host+a_CB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_CB));
         
@@ -1600,19 +1433,7 @@ void update_rotation_support_scale_radius(int p)
             rad_50 = rad - (f_rot - 0.5) / (f_rot - f_rot_old) * (rad - rad_old);
             Gal[p].RotSupportScaleRadius = rad_50 * 1.442695; // multiplicative factor = -1/ln(0.5)
             assert(Gal[p].RotSupportScaleRadius > 0);
-            
-//            if(Gal[p].RotSupportScaleRadius > 100*Gal[p].StellarDiscScaleRadius)
-//            {
-//                printf("\nupdate_rotation_support_scale_radius() T1\n");
-//                printf("Gal[p].RotSupportScaleRadius, Gal[p].StellarDiscScaleRadius = %e, %e\n", Gal[p].RotSupportScaleRadius, Gal[p].StellarDiscScaleRadius);
-//                printf("i, rad, f_rot, v_circ = %i, %e, %e, %e\n", i, rad, f_rot, v_circ);
-//                
-//                if(Gal[p].DiscStars[i] > 0)
-//                    printf("StarVelDisp, Gal[p].DiscStars[i] = %e, %e\n", Gal[p].VelDispStars[i], Gal[p].DiscStars[i]);
-//                else
-//                    printf("GasVelDisp = %e\n", (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s);
-//            }
-            
+                        
             return;
         }
         
@@ -1625,20 +1446,6 @@ void update_rotation_support_scale_radius(int p)
     Gal[p].RotSupportScaleRadius = - rad / log(1.0 - f_rot);
     assert(Gal[p].RotSupportScaleRadius > 0);
     
-//    if(Gal[p].RotSupportScaleRadius > 100*Gal[p].StellarDiscScaleRadius)
-//    {
-//        i = N_BINS-1;
-//        printf("\nupdate_rotation_support_scale_radius() T2\n");
-//        printf("Gal[p].RotSupportScaleRadius, Gal[p].StellarDiscScaleRadius = %e, %e\n", Gal[p].RotSupportScaleRadius, Gal[p].StellarDiscScaleRadius);
-//        printf("i, rad, f_rot, v_circ = %i, %e, %e, %e\n", i, rad, f_rot, v_circ);
-//        
-//        if(Gal[p].DiscStars[i] > 0)
-//            printf("StarVelDisp, Gal[p].DiscStars[i] = %e, %e\n", Gal[p].VelDispStars[i], Gal[p].DiscStars[i]);
-//        else
-//            printf("GasVelDisp = %e\n", (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s);
-//        
-//    }
-    
     return;
     
 }
@@ -1648,26 +1455,6 @@ void update_stellar_dispersion(int p)
 { // ensure age bins of dispersion are consistent with overall dispersion
     double sigma2m, m;
     int k;
-    
-    // THE DISC ALREADY GETS TAKEN CARE OF IN get_disc_stars()
-//    // Do each disc annulus
-//    for(i=0; i<N_BINS; i++)
-//    {
-//        m = 0.0; // annulus mass
-//        sigma2m = 0.0; // vel disp square times mass
-//        
-//        for(k=0; k<N_AGE_BINS; k++)
-//        {
-//            m += Gal[p].DiscStarsAge[i][k];
-//            sigma2m += (Gal[p].DiscStarsAge[i][k] * sqr(Gal[p].VelDispStarsAge[i][k]));
-//        }
-//        
-//        if(m>0)
-//            Gal[p].VelDispStars[i] = sqrt(sigma2m/m);
-//        else
-//            Gal[p].VelDispStars[i] = 0.0;
-//    }
-    
     
     // Do the instability-driven bulge
     if(Gal[p].SecularBulgeMass > 0.0)
@@ -1712,9 +1499,6 @@ void update_instab_bulge_size(int p)
 
         if(!(num_integral>1e-30))
         {
-//            printf("num_integral, i = %e, %i\n", num_integral, i);
-//            int j;
-//            for(j=1; j<i; j++) printf("i, Potential, Radius = %i, %e, %e\n", j, Gal[p].Potential[i], Gal[p].DiscRadii[i]);
             Gal[p].a_InstabBulge = 0.08284 * Gal[p].StellarDiscScaleRadius; // place holder for weird instances
             assert(Gal[p].a_InstabBulge > 0);
             assert(! isinf(Gal[p].a_InstabBulge));
@@ -1731,8 +1515,6 @@ void update_instab_bulge_size(int p)
             printf("num_integral, ff = %e, %e\n", num_integral, ff);
         
         assert(! isinf(Gal[p].a_InstabBulge));
-
-//        Gal[p].a_InstabBulge = sqr(Gal[p].VelDispBulge) / num_integral; 
     }
 }
 

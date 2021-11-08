@@ -59,7 +59,7 @@ struct GALAXY_OUTPUT
   int   mergeIntoSnapNum;
   float   dT;
 
-  // properties of subhalo at the last time this galaxy was a central galaaxy 
+  // properties of subhalo at the last time this galaxy was a central galaxy 
   float Pos[3];
   float Vel[3];
   float Spin[3];
@@ -146,9 +146,6 @@ struct GALAXY_OUTPUT
   float SfrMerge;
   float SfrDiskZ;
   float SfrBulgeZ;
-//  float SfZ_H2;
-//  float SfZ_Instab;
-//  float SfZ_Merge;
   
   // misc 
   float DiskScaleRadius;
@@ -401,12 +398,6 @@ struct GALAXY
   double SfrDiskColdGasMetals[STEPS];
   double SfrBulgeColdGas[STEPS];
   double SfrBulgeColdGasMetals[STEPS];
-//  double Sf_H2_ColdGas[STEPS];
-//  double Sf_Instab_ColdGas[STEPS];
-//  double Sf_Merge_ColdGas[STEPS];
-//  double Sf_H2_ColdGasMetals[STEPS];
-//  double Sf_Instab_ColdGasMetals[STEPS];
-//  double Sf_Merge_ColdGasMetals[STEPS];
 
   // misc 
   double DiskScaleRadius;
@@ -552,7 +543,6 @@ extern double H2FractionFactor;
 extern double H2FractionExponent;
 extern double ClumpFactor;
 extern double ClumpExponent;
-extern double RadiusWeight;
 extern double QTotMin;
 extern double GasSinkRate;
 extern double ThetaThresh;

@@ -112,16 +112,6 @@ double cooling_recipe(int gal, double dt)
           coolingGas = 0.0;
           specific_energy_change = 0.0;
       }
-//      if(!(specific_energy_change>0))
-//      {
-//          printf("specific_energy_change, hot_specific_energy, cold_specific_energy,  = %e, %e, %e\n", specific_energy_change, hot_specific_energy, cold_specific_energy);
-//          printf("Vvir, CoolScaleRadius, massfrac_sum = %e, %e, %e\n", Gal[gal].Vvir, Gal[gal].CoolScaleRadius, massfrac_sum);
-//          double PotSum = 0.0;
-//          for(i=0; i<N_BINS; i++) PotSum += Gal[gal].Potential[i];
-//          printf("PotSum = %e\n", PotSum);
-//          
-//      }
-//      assert(specific_energy_change>0);
       
     if(AGNrecipeOn > 0 && coolingGas > 0.0 && specific_energy_change>0.0)
 		coolingGas = do_AGN_heating(coolingGas, gal, dt, x, rcool, specific_energy_change);
@@ -232,20 +222,6 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
       
       
     Gal[p].Heating += AGNheating * specific_energy_change; // energy from the AGN pumped into keeping the hot gas hot
-    
-    
-//    // update the cooling rate based on new AGN-heating radius
-//    if(Gal[p].r_heat < rcool)
-//    {
-//        heating_mass = Gal[p].r_heat / rcool * coolingGas;
-//        coolingGas -= heating_mass;
-//        Gal[p].Heating += heating_mass * specific_energy_change;// changed what this field means as of 18/03/21
-//    }
-//    else
-//    {
-//        Gal[p].Heating += coolingGas * specific_energy_change;
-//        coolingGas = 0.0;
-//    }
 
     return coolingGas - AGNheating;
 
@@ -257,7 +233,6 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
 void cool_gas_onto_galaxy(int p, double coolingGas)
 {
   double metallicity, coolingGasBin, coolingGasBinSum, DiscGasSum, cos_angle_disc_new, cos_angle_halo_new, ratio_last_bin, high_bound, disc_spin_mag, J_disc, J_cool, SpinMag;
-//  double r_inner, r_outer;
   double DiscNewSpin[3];
   double OldDisc[N_BINS], OldDiscMetals[N_BINS];
   int i, j, k, j_old;
@@ -266,7 +241,6 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
 
   // Check that Cold Gas has been treated properly prior to this function
   DiscGasSum = get_disc_gas(p);
-//  assert(DiscGasSum <= 1.001*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas*0.999);
   assert(Gal[p].HotGas == Gal[p].HotGas && Gal[p].HotGas >= 0);
     assert(Gal[p].MetalsHotGas >= 0);
     

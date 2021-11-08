@@ -389,8 +389,6 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       }
       Pram = rho_IGM*v_gal2;
       
-//      Gal[gal].Mvir = get_virial_mass(Gal[gal].HaloNr, gal); // Do this need to be updated here?  When else is it updated?
-//      Gal[gal].Rvir = get_virial_radius(Gal[gal].HaloNr, gal);
       Pgrav = G * Gal[gal].Mvir * Gal[gal].HotGas / 8.0 / sqr(sqr(Gal[gal].Rvir)); // First calculate restoring force at the virial radius of the subhalo
       if(Pram >= Pgrav)
       {
@@ -425,11 +423,9 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
           r_2 = Gal[gal].Rvir / c; // Di Cintio et al 2014b
           rho_const = M_DM_tot / (log((Gal[gal].Rvir+r_2)/r_2) - Gal[gal].Rvir/(Gal[gal].Rvir+r_2));
           
-//          a_SB = 0.2 * Gal[gal].DiskScaleRadius / (1.0 + sqrt(0.5)); // Fisher & Drory (2008)
           a_SB = Gal[gal].a_InstabBulge;
           M_SB_inf = Gal[gal].SecularBulgeMass * sqr((Gal[gal].Rvir+a_SB)/Gal[gal].Rvir);
           
-//          a_CB = pow(10.0, (log10(Gal[gal].ClassicalBulgeMass*UnitMass_in_g/SOLAR_MASS/Hubble_h)-10.21)/1.13) * (CM_PER_MPC/1e3) / UnitLength_in_cm * Hubble_h; // Sofue 2015
           a_CB = Gal[gal].a_MergerBulge;
           M_CB_inf = Gal[gal].ClassicalBulgeMass * sqr((Gal[gal].Rvir+a_CB)/Gal[gal].Rvir);
           
@@ -512,16 +508,11 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
 void ram_pressure_stripping(int centralgal, int gal, int k_now)
 {
     double r_gal, r_gal2, v_gal2, rho_IGM, Sigma_gas, area, r_ann2;
-//    double ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum];
     double angle = acos(Gal[gal].SpinStars[0]*Gal[gal].SpinGas[0] + Gal[gal].SpinStars[1]*Gal[gal].SpinGas[1] + Gal[gal].SpinStars[2]*Gal[gal].SpinGas[2])*180.0/M_PI;
     double Sigma_disc;
     double Pram, Pgrav, Mstrip, MstripZ;
     int i, j, k;
 
-    
-//    printf("Satellite Mvir, Len*PartMass, get_Mvir = %e, %e, %e\n", Gal[gal].Mvir, Gal[gal].Len * PartMass, get_virial_mass(Gal[gal].HaloNr, gal));
-//    assert(Gal[gal].Mvir == Gal[gal].Len * PartMass); -- don't want this anymore necessarily
-    
     r_gal = get_satellite_radius(gal, centralgal);
     r_gal2 = sqr(r_gal);
     v_gal2 = sqr(Gal[gal].Vel[0]-Gal[centralgal].Vel[0]) + sqr(Gal[gal].Vel[1]-Gal[centralgal].Vel[1]) + sqr(Gal[gal].Vel[2]-Gal[centralgal].Vel[2]);
