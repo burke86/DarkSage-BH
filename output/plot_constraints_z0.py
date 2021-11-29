@@ -32,6 +32,8 @@ ExponentBin = 1.4
 if sim==0:
     h = 0.73
     Lbox = 62.5/h * (len(files)/8.)**(1./3)
+    Omega = 0.25
+    OmegaLambda = 0.75
 elif sim==1:
     h = 0.73
     Lbox = 500.0/h * (len(files)/512.)**(1./3)

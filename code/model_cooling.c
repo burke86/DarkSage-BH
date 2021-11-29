@@ -49,6 +49,7 @@ double cooling_recipe(int gal, double dt)
             rcool = 0.0; // densities not high enough anywhere in this case
 
         Gal[gal].R2_hot_av = sqr(Gal[gal].Rvir * sqr(Gal[gal].c_beta) * cb_term * 0.15343);
+
     }
       
     if(rcool > Gal[gal].Rvir)
@@ -63,8 +64,7 @@ double cooling_recipe(int gal, double dt)
       coolingGas = (Gal[gal].HotGas / Gal[gal].Rvir) * (rcool / (2.0 * tcool)) * cb_term * dt;
         Gal[gal].CoolScaleRadius = pow(10, CoolingScaleSlope*log10(1.414*Gal[gal].DiskScaleRadius/Gal[gal].Rvir) - CoolingScaleConst) * Gal[gal].Rvir; // Stevens et al. (2017)
     }
-      
-      
+
       
     if(coolingGas > Gal[gal].HotGas)
       coolingGas = Gal[gal].HotGas;
@@ -105,16 +105,18 @@ double cooling_recipe(int gal, double dt)
       }
       j_hot = 2 * Gal[gal].Vvir * Gal[gal].CoolScaleRadius;
       hot_specific_energy = Gal[gal].HotGasPotential + 0.5 * (sqr(Gal[gal].Vvir) + sqr(j_hot)/Gal[gal].R2_hot_av);
-      
+
       specific_energy_change = hot_specific_energy - cold_specific_energy;
       if(specific_energy_change<0.0) // this means the hot gas is actually more stable...
       {
           coolingGas = 0.0;
           specific_energy_change = 0.0;
       }
-      
+      assert(Gal[gal].MetalsHotGas>=0);
+
     if(AGNrecipeOn > 0 && coolingGas > 0.0 && specific_energy_change>0.0)
 		coolingGas = do_AGN_heating(coolingGas, gal, dt, x, rcool, specific_energy_change);
+      assert(Gal[gal].MetalsHotGas>=0);
 
       // this is no longer an accurate representation of the actual energy change in the gas as it cools...
     if (coolingGas > 0.0)
@@ -135,7 +137,8 @@ double cooling_recipe(int gal, double dt)
         printf("rho_rcool = %e\n", rho_rcool);
         printf("rho0/rho_rcool = %e\n", rho0/rho_rcool);
     }
-    
+    assert(Gal[gal].MetalsHotGas>=0);
+
   assert(coolingGas >= 0.0);
   return coolingGas;
 
@@ -219,6 +222,7 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     assert(Gal[p].BlackHoleMass>=0.0);
     Gal[p].HotGas -= AGNaccreted;
     Gal[p].MetalsHotGas -= metallicity * AGNaccreted;
+    if(Gal[p].MetalsHotGas < 0) Gal[p].MetalsHotGas = 0.0; // can get occasional error caused by above line without this
       
       
     Gal[p].Heating += AGNheating * specific_energy_change; // energy from the AGN pumped into keeping the hot gas hot

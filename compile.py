@@ -28,7 +28,7 @@ par_file = cmnd_input("Provide path to a parameter file to update hard parameter
 
 if len(par_file)>0:
 
-    # Read parameter file to get relevant parameter values, checking for common reasons  why the fed name might not work  
+    # Read parameter file to get relevant parameter values, checking for common reasons why the fed name might not work  
     successful = False
     attempt_count = 0
     while not successful:
