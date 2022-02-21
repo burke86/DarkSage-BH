@@ -929,7 +929,7 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
                 for(k=k_now; k<N_AGE_BINS; k++)
                 {
                     if(!(DiscMetalsAge[i][k] <= DiscMassAge[i][k]))
-                        printf("i, k, DiscMetalsAge[i][k], DiscMassAge[i][k] = %i, %i, %e, %e\n", i, k, DiscMetalsAge[i][k], DiscMassAge[i][k]);
+                        printf("i, k, DiscMetalsAge[i][k], DiscMassAge[i][k] = %i, %i, %e, %e\n", i, k, DiscMetalsAge[i][k], DiscMassAge[i][k]);
                     
                     assert(DiscMetalsAge[i][k] <= DiscMassAge[i][k]);
                     NewDiscAge[i][k] = DiscMassAge[i][k];
