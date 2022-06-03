@@ -727,8 +727,9 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
                         if(j_seg < DiscBinEdge[k]) break;
                     }
                     k -= 1;
+                    // In principle, should be able to add DiscGasMetals directly to NewDiscMetals, but there was a case Metals exceeding total mass leaking through on OzSTAR somehow.  No idea what the cause was, but going through get_metallicity() as an extra step will hopefully circumvent the issue.
                     NewDisc[k] += Gal[gal].DiscGas[i] * seg_frac;
-                    NewDiscMetals[k] += Gal[gal].DiscGasMetals[i] * seg_frac;
+                    NewDiscMetals[k] += get_metallicity(Gal[gal].DiscGas[i], Gal[gal].DiscGasMetals[i]) * Gal[gal].DiscGas[i] * seg_frac;
                     
                     
                     if(!(NewDiscMetals[k] <= NewDisc[k]))

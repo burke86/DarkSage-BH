@@ -46,6 +46,8 @@ elif sim==3:
 elif sim==4:
     h = 0.6751
     Lbox = 75.0/h * (len(files)/8.)**(1./3)
+    Omega = 0.3121
+    OmegaLambda = 0.6879
 elif sim==5:
     h = 0.6777
     Lbox = 1000.0/h * (len(files)/1000.)**(1./3)
