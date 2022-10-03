@@ -60,6 +60,12 @@ void set_units(void)
 
   // compute a few quantitites 
   RhoCrit = 3 * Hubble * Hubble / (8 * M_PI * G);
+    
+  // Reference pressure for mid-plane HI/H2 breakdown
+  P_0 = 5.93e-12 / UnitMass_in_g * UnitLength_in_cm * UnitTime_in_s * UnitTime_in_s;
+    
+  // Constant used in calculating ionized fraction
+  uni_ion_term = 7.271e-17 * sqr(cube(UnitLength_in_cm) / (UnitMass_in_g * UnitTime_in_s) * Hubble_h);
 
 }
 
@@ -105,7 +111,6 @@ double time_to_present(double z)
   gsl_function F;
   gsl_integration_workspace *workspace;
   double time, result, abserr;
-    size_t neval;
 
   workspace = gsl_integration_workspace_alloc(WORKSIZE);
   F.function = &integrand_time_to_present;    

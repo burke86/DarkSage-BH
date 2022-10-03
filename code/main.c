@@ -68,7 +68,7 @@ void bye()
 int main(int argc, char **argv)
 {
     int filenr, tree, halonr, i, k;
-    double k_float, ExpFac;
+    double k_float;
     struct sigaction current_XCPU;
     
     struct stat filestatus;
@@ -133,14 +133,11 @@ int main(int argc, char **argv)
         {
             k_float = (double)LastSnap - (double)i*age_snap_ratio;
             k = (int)k_float;
-            ExpFac = (k_float - (double)k)*AA[k+1] + (1.0 - k_float + (double)k)*AA[k];
-            AgeBinEdge[i] = time_to_present(1.0 / ExpFac - 1.0);
+            AgeBinEdge[i] = time_to_present(ZZ[k]);
         }
         AgeBinEdge[N_AGE_BINS] = time_to_present(ZZ[0]);
     }
-    
-//    for(i=0; i<=N_AGE_BINS; i++) printf("i, AgeBinEdge[i] = %i, %e\n", i, AgeBinEdge[i]);
-        
+            
     // Set counts for prograde and retrograde satellite collisions
     RetroCount = 0;
     ProCount = 0;
@@ -158,6 +155,22 @@ int main(int argc, char **argv)
     SNperMassFormed = 1.0*StellarOutput[1];
     
     HalfBoxLen = 0.5 * BoxLen; // useful to have a field of half the box length for calculating galaxy--galaxy distances
+    
+    // conversion factors for percentage mass radii to exponential scale radii
+    DiscScalePercentConversion[0] = 1.0 / 0.531812;
+    DiscScalePercentConversion[1] = 1.0 / 0.824388;
+    DiscScalePercentConversion[2] = 1.0 / 1.09735;
+    DiscScalePercentConversion[3] = 1.0 / 1.37642;
+    DiscScalePercentConversion[4] = 1.0 / 1.67835;
+    DiscScalePercentConversion[5] = 1.0 / 2.02231;
+    DiscScalePercentConversion[6] = 1.0 / 2.43922;
+    DiscScalePercentConversion[7] = 1.0 / 2.99431;
+    DiscScalePercentConversion[8] = 1.0 / 3.88927;
+    
+    for(i=0; i<9; i++)
+        DiscScalePercentValues[i] = 0.1 * (i+1);
+    
+    
     
 #ifdef MPI
     // A small delay so that processors don't use the same file

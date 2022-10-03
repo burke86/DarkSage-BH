@@ -68,6 +68,9 @@ int CoolingExponentialRadiusOn;
 int MvirDefinition;
 int AgeStructOut;
 int DelayedFeedbackOn;
+int HotGasProfileType;
+int MergeTimeScaleForm;
+int MetalMixing;
 
 // binning information
 double FirstBin;
@@ -92,11 +95,11 @@ double FeedbackEjectCoupling;
 double RadioModeEfficiency;
 double QuasarModeEfficiency;
 double BlackHoleGrowthRate;
+double RadiativeEfficiency;
 double H2FractionFactor;
 double H2FractionExponent;
 double ClumpFactor;
 double ClumpExponent;
-double RadiusWeight;
 double QTotMin;
 double GasSinkRate;
 double ThetaThresh;
@@ -116,7 +119,7 @@ double UnitLength_in_cm,
   UnitMass_in_g,
   RhoCrit,
   UnitPressure_in_cgs,
-  UnitDensity_in_cgs, UnitCoolingRate_in_cgs, UnitEnergy_in_cgs, UnitTime_in_Megayears, G, Hubble, a0, ar;
+  UnitDensity_in_cgs, UnitCoolingRate_in_cgs, UnitEnergy_in_cgs, UnitTime_in_Megayears, G, Hubble, a0, ar, P_0, uni_ion_term;
 
 int ListOutputSnaps[ABSOLUTEMAXSNAPS];
 

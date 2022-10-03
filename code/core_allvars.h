@@ -30,6 +30,7 @@ do {                                                                \
 #define  PROTONMASS  1.6726e-24
 #define  HUBBLE      3.2407789e-18   /* in h/sec */
 #define  BIG_BANG_METALLICITY 1e-10  /* metallicity from Big Bang nucleosynthesis (basically all Lithium) */
+#define  MIN_C_BETA  0.05
 
 #define  SEC_PER_MEGAYEAR   3.1556736e13
 #define  SEC_PER_YEAR       3.1556736e7
@@ -58,7 +59,7 @@ struct GALAXY_OUTPUT
   int   mergeIntoSnapNum;
   float   dT;
 
-  // properties of subhalo at the last time this galaxy was a central galaaxy 
+  // properties of subhalo at the last time this galaxy was a central galaxy 
   float Pos[3];
   float Vel[3];
   float Spin[3];
@@ -76,14 +77,19 @@ struct GALAXY_OUTPUT
   // baryonic reservoirs 
   float ColdGas;
   float StellarMass;
+    float StellarFormationMass;
   float ClassicalBulgeMass;
   float SecularBulgeMass;
+  float StarsExSitu;
   float HotGas;
   float EjectedMass;
+  float LocalIGM;
   float BlackHoleMass;
   float ICS;
+  float LocalIGS;
   float DiscGas[N_BINS];
   float DiscStars[N_BINS];
+  float VelDispStars[N_BINS];
   float SpinStars[3];
   float SpinGas[3];
 //  float SpinSecularBulge[3];
@@ -94,6 +100,15 @@ struct GALAXY_OUTPUT
   float DiscHI[N_BINS];
   float DiscH2[N_BINS];
   float DiscSFR[N_BINS];
+    float ICBHmass;
+    int ICBHnum;
+    float LocalIGBHmass;
+    int LocalIGBHnum;
+    float VelDispBulge;
+    float VelDispMergerBulge;
+    float HalfMassRadiusInstabilityBulge;
+    float HalfMassRadiusMergerBulge;
+    float HalfMassRadiusICS;
     
     // inflow/outflow tracking
 //    float AccretedGasMass;
@@ -116,9 +131,12 @@ struct GALAXY_OUTPUT
   float MetalsStellarMass;
   float ClassicalMetalsBulgeMass;
   float SecularMetalsBulgeMass;
+  float MetalsStarsExSitu;
   float MetalsHotGas;
   float MetalsEjectedMass;
+  float MetalsLocalIGM;
   float MetalsICS;
+  float MetalsLocalIGS;
   float DiscGasMetals[N_BINS];
   float DiscStarsMetals[N_BINS];
 
@@ -128,21 +146,22 @@ struct GALAXY_OUTPUT
   float SfrMerge;
   float SfrDiskZ;
   float SfrBulgeZ;
-//  float SfZ_H2;
-//  float SfZ_Instab;
-//  float SfZ_Merge;
   
   // misc 
   float DiskScaleRadius;
   float CoolScaleRadius;
   float StellarDiscScaleRadius;
-//  float GasDiscScaleRadius;
+  float GasDiscScaleRadius;
+    float RotSupportScaleRadius;
   float Cooling;
   float Heating;
   float LastMajorMerger;
   float LastMinorMerger;
-  float OutflowRate;
-
+    int NumMajorMergers;
+    int NumMinorMergers;
+  float SNreheatRate;
+  float SNejectRate;
+    
   //infall properties
   float infallMvir;
   float infallVvir;
@@ -187,14 +206,19 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   // baryonic reservoirs 
   float ColdGas;
   float StellarMass;
+    float StellarFormationMass[N_AGE_BINS];
   float ClassicalBulgeMass[N_AGE_BINS];
   float SecularBulgeMass[N_AGE_BINS];
+    float StarsExSitu[N_AGE_BINS];
   float HotGas;
   float EjectedMass;
+  float LocalIGM;
   float BlackHoleMass;
   float ICS[N_AGE_BINS];
+  float LocalIGS[N_AGE_BINS];
   float DiscGas[N_BINS];
   float DiscStars[N_BINS][N_AGE_BINS];
+  float VelDispStars[N_BINS][N_AGE_BINS];
   float SpinStars[3];
   float SpinGas[3];
   float SpinClassicalBulge[3];
@@ -204,15 +228,27 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float DiscHI[N_BINS];
   float DiscH2[N_BINS];
   float DiscSFR[N_BINS];
-    
+    float ICBHmass;
+    int ICBHnum;
+    float LocalIGBHmass;
+    int LocalIGBHnum;
+    float VelDispBulge[N_AGE_BINS];
+    float VelDispMergerBulge;
+    float HalfMassRadiusInstabilityBulge;
+    float HalfMassRadiusMergerBulge;
+    float HalfMassRadiusICS;
+
   // metals
   float MetalsColdGas;
   float MetalsStellarMass;
   float ClassicalMetalsBulgeMass[N_AGE_BINS];
   float SecularMetalsBulgeMass[N_AGE_BINS];
+  float MetalsStarsExSitu[N_AGE_BINS];
   float MetalsHotGas;
   float MetalsEjectedMass;
+  float MetalsLocalIGM;
   float MetalsICS[N_AGE_BINS];
+  float MetalsLocalIGS[N_AGE_BINS];
   float DiscGasMetals[N_BINS];
   float DiscStarsMetals[N_BINS][N_AGE_BINS];
 
@@ -227,12 +263,17 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float DiskScaleRadius;
   float CoolScaleRadius;
   float StellarDiscScaleRadius;
+    float GasDiscScaleRadius;
+  float RotSupportScaleRadius;
   float Cooling;
   float Heating;
   float LastMajorMerger;
   float LastMinorMerger;
-  float OutflowRate;
-
+    int NumMajorMergers;
+    int NumMinorMergers;
+    float SNreheatRate;
+  float SNejectRate;
+    
   //infall properties
   float infallMvir;
   float infallVvir;
@@ -261,7 +302,7 @@ struct GALAXY
   double Pos[3];
   double Vel[3];
   int   Len;
-    int LenMax;
+  int   LenMax;
   double Mvir;
   double deltaMvir;
   double Rvir;
@@ -275,18 +316,27 @@ struct GALAXY
   // Potential energy for hot and ejected gas components
   double HotGasPotential;
   double EjectedPotential;
+  double prevHotGasPotential;
+  double prevEjectedPotential;
+  double prevRvir;
+  double ReincTime;
+  double ReincTimeFresh;
 
   // baryonic reservoirs 
   double ColdGas;
   double StellarMass;
   double ClassicalBulgeMass;
   double SecularBulgeMass;
+  double StarsExSitu;
   double HotGas;
   double EjectedMass;
   double BlackHoleMass;
+  double LocalIGM;
   double ICS;
+  double LocalIGS;
   double DiscGas[N_BINS];
   double DiscStars[N_BINS];
+  double VelDispStars[N_BINS];
   double SpinStars[3];
   double SpinGas[3];
   double SpinSecularBulge[3];
@@ -298,12 +348,24 @@ struct GALAXY
   double DiscHI[N_BINS];
   double DiscH2[N_BINS];
   double DiscSFR[N_BINS];
+    double ICBHmass;
+    int ICBHnum;
+    double LocalIGBHmass;
+    int LocalIGBHnum;
+    double VelDispBulge; // this one is the instability-driven bulge.  Might want to edit name!
+    double VelDispMergerBulge;
+    double a_InstabBulge;
+    double a_MergerBulge;
+    double R_ICS_av;
     
     // inflow/outflow tracking
     double AccretedGasMass;
     double EjectedSNGasMass;
     double EjectedQuasarGasMass;
     double MaxStrippedGas;
+    
+    double EjectedMass_Reinc[N_AGE_BINS+1];
+    double MetalsEjectedMass_Reinc[N_AGE_BINS+1];
     
   // Instability tracking
   int TotInstabEvents;
@@ -321,9 +383,12 @@ struct GALAXY
   double MetalsStellarMass;
   double ClassicalMetalsBulgeMass;
   double SecularMetalsBulgeMass;
+  double MetalsStarsExSitu;
   double MetalsHotGas;
   double MetalsEjectedMass;
+  double MetalsLocalIGM;
   double MetalsICS;
+  double MetalsLocalIGS;
   double DiscGasMetals[N_BINS];
   double DiscStarsMetals[N_BINS];
 
@@ -336,25 +401,25 @@ struct GALAXY
   double SfrDiskColdGasMetals[STEPS];
   double SfrBulgeColdGas[STEPS];
   double SfrBulgeColdGasMetals[STEPS];
-//  double Sf_H2_ColdGas[STEPS];
-//  double Sf_Instab_ColdGas[STEPS];
-//  double Sf_Merge_ColdGas[STEPS];
-//  double Sf_H2_ColdGasMetals[STEPS];
-//  double Sf_Instab_ColdGasMetals[STEPS];
-//  double Sf_Merge_ColdGasMetals[STEPS];
 
   // misc 
   double DiskScaleRadius;
   double CoolScaleRadius;
   double StellarDiscScaleRadius;
   double GasDiscScaleRadius;
+    double RotSupportScaleRadius;
   double MergTime;
   double Cooling;
   double Heating;
-  double r_heat;
+  double MaxRadioModeAccretionRate;
   double LastMajorMerger;
   double LastMinorMerger;
-  double OutflowRate;
+    int NumMajorMergers;
+    int NumMinorMergers;
+    double SNreheatRate;
+    double SNejectRate;    
+    double c_beta;
+    double R2_hot_av;
 
   //infall properties
   double infallMvir;
@@ -370,6 +435,13 @@ struct GALAXY
     double DiscStarsMetalsAge[N_BINS][N_AGE_BINS];
     double ICS_Age[N_AGE_BINS];
     double MetalsICS_Age[N_AGE_BINS];
+    double LocalIGS_Age[N_AGE_BINS];
+    double MetalsLocalIGS_Age[N_AGE_BINS];
+    double VelDispStarsAge[N_BINS][N_AGE_BINS];
+    double StarsExSituAge[N_AGE_BINS];
+    double MetalsStarsExSituAge[N_AGE_BINS];
+    double StellarFormationMassAge[N_AGE_BINS];
+    double VelDispBulgeAge[N_AGE_BINS];
     
 }
 *Gal, *HaloGal;
@@ -447,6 +519,9 @@ extern int    CoolingExponentialRadiusOn;
 extern int    MvirDefinition;
 extern int    AgeStructOut;
 extern int    DelayedFeedbackOn;
+extern int    HotGasProfileType;
+extern int    MergeTimeScaleForm;
+extern int    MetalMixing;
 
 // recipe parameters 
 extern double RecycleFraction;
@@ -467,11 +542,11 @@ extern double FeedbackEjectCoupling;
 extern double RadioModeEfficiency;
 extern double QuasarModeEfficiency;
 extern double BlackHoleGrowthRate;
+extern double RadiativeEfficiency;
 extern double H2FractionFactor;
 extern double H2FractionExponent;
 extern double ClumpFactor;
 extern double ClumpExponent;
-extern double RadiusWeight;
 extern double QTotMin;
 extern double GasSinkRate;
 extern double ThetaThresh;
@@ -495,7 +570,8 @@ extern double UnitLength_in_cm,
   UnitTime_in_Megayears, 
   G,
   Hubble,
-  a0, ar;
+  a0, ar,
+  P_0, uni_ion_term;
 
 extern int    ListOutputSnaps[ABSOLUTEMAXSNAPS];
 
@@ -518,6 +594,8 @@ int RetroCount, ProCount;
 double FinalRecycleFraction;
 double SNperMassFormed;
 double HalfBoxLen;
+double DiscScalePercentConversion[9];
+double DiscScalePercentValues[9];
 
 #ifdef MINIMIZE_IO
 extern char *ptr_treedata, *ptr_galaxydata, *ptr_galsnapdata[ABSOLUTEMAXSNAPS];
