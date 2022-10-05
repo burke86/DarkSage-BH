@@ -12,13 +12,15 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-#indir = '/Users/adam/DarkSage_runs/571j/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/24j/'
-sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
-#   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
+#indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
+#indir = '/Users/adam/DarkSage/output/results/millennium/'
+indir = '/Users/adam/DarkSage_runs/TNG300/2/' # directory where the Dark Sage data are
+#indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/41/'
+sim = 6 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
+#   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2, 6 = TNG300
 
 fpre = 'model_z0.000' # what is the prefix name of the z=0 files
-files = range(8) # list of file numbers you want to read
+files = [2,3]#range(8) # list of file numbers you want to read
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
 Nage = 30 # number of age bins used for stars -- should only be used for calibrating when delayed feedback is on
@@ -32,6 +34,8 @@ ExponentBin = 1.4
 if sim==0:
     h = 0.73
     Lbox = 62.5/h * (len(files)/8.)**(1./3)
+    Omega = 0.25
+    OmegaLambda = 0.75
 elif sim==1:
     h = 0.73
     Lbox = 500.0/h * (len(files)/512.)**(1./3)
@@ -44,10 +48,17 @@ elif sim==3:
 elif sim==4:
     h = 0.6751
     Lbox = 75.0/h * (len(files)/8.)**(1./3)
+    Omega = 0.3121
+    OmegaLambda = 0.6879
 elif sim==5:
     h = 0.6777
     Lbox = 1000.0/h * (len(files)/1000.)**(1./3)
 # add here 'elif sim==6:' etc for a new simulation
+elif sim==6:
+    h = 0.6774
+    Lbox = 205.0/h * (len(files)/128.)**(1./3)
+    Omega = 0.3089
+    OmegaLambda = 0.6911
 else:
     print('Please specify a valid simulation.  You may need to add its defaults to this code.')
     quit()
@@ -87,6 +98,7 @@ try:
     BTT = (G['InstabilityBulgeMass'] + G['MergerBulgeMass']) / G['StellarMass'] if Nage<=1 else np.sum(G['InstabilityBulgeMass'] + G['MergerBulgeMass'], axis=1) / G['StellarMass']
     f_SM = (G['LenMax']==NpartMed)*(SM>0)*np.isfinite(SM)
     SM_med = round(np.median(np.log10(SM[f_SM])), 3) if len(f_SM[f_SM])>0 else 8.9
+    if SM_med < 6.25: SM_med = 6.25
 
     ymax = 3e-2
     if SM_med < 8.5: ymax *= 10**(0.5*(8.5-SM_med))
@@ -94,20 +106,39 @@ try:
     r.massfunction(SM, Lbox, range=[SM_med-0.1, 12.1], ls='--', ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p}\!\geq\!20$')
     r.massfunction(SM[G['LenMax']>=100], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!100$')
     r.massfunction((SM+ICS)[G['LenMax']>=100], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage} + ICS', c='grey', zo=0)
-    r.massfunction(SM[(BTT<=0.5)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ax=ax[0])
-    r.massfunction(SM[BTT<=0.5], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ls='--', ax=ax[0])
-    r.massfunction(SM[(BTT>0.5)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='r', lw=1, ax=ax[0])
-    r.massfunction(SM[BTT>0.5], Lbox, range=[SM_med-0.1, 12], c='r', lw=1, ls='--', ax=ax[0])
-    r.stellar_massfunction_obsdata(h, ax[0])
-    SMF_bd, logM_bd = r.schechter(3.67e-3*(h/0.7)**3, 10**(10.74)/(h/0.7)**2, -0.525, logM=np.arange(SM_med-0.1, 12.1,0.1))
-    SMF_dd, logM_dd = r.schechter(0.855e-3*(h/0.7)**3, 10**(10.70)/(h/0.7)**2, -1.39, logM=np.arange(SM_med-0.1, 12.1,0.1))
-    ax[0].plot(logM_dd, SMF_dd, 'b-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) disc-dominated', zorder=0)
-    ax[0].plot(logM_bd, SMF_bd, 'r-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) bulge-dominated', zorder=0)
+    r.massfunction(SM[(BTT<=0.1)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ax=ax[0])
+    r.massfunction(SM[BTT<=0.1], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ls='--', ax=ax[0])
+    r.massfunction(SM[(BTT>0.9)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='r', lw=1, ax=ax[0])
+    r.massfunction(SM[BTT>0.9], Lbox, range=[SM_med-0.1, 12], c='r', lw=1, ls='--', ax=ax[0])
+#    r.stellar_massfunction_obsdata(h, ax[0])
+#    SMF_bd, logM_bd = r.schechter(3.67e-3*(h/0.7)**3, 10**(10.74)/(h/0.7)**2, -0.525, logM=np.arange(SM_med-0.1, 12.1,0.1))
+#    SMF_dd, logM_dd = r.schechter(0.855e-3*(h/0.7)**3, 10**(10.70)/(h/0.7)**2, -1.39, logM=np.arange(SM_med-0.1, 12.1,0.1))
+#    ax[0].plot(logM_dd, SMF_dd, 'b-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) disc-dominated', zorder=0)
+#    ax[0].plot(logM_bd, SMF_bd, 'r-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) bulge-dominated', zorder=0)
+    
+    # new GAMA SMF, not yet public
+    data_D21 = np.loadtxt('/Users/adam/Documents/DarkSagePaper4/GAMA_SMF.txt', usecols=(0,1,2), skiprows=1, delimiter=' ', dtype=np.float64)
+    x_D21, y_D21, yerr_D21 = data_D21[:,0], data_D21[:,1], data_D21[:,2]
+    y_D21 += 0.0769 # adjust for average under-density of GAMA
+    y_D21 -= 3*np.log10(r.comoving_distance(0.1,100*h,0,Omega,OmegaLambda) / r.comoving_distance(0.1,70.0,0,0.3,0.7))
+    x_D21 += 2*np.log10(r.comoving_distance(0.079,100*h,0,Omega,OmegaLambda) / r.comoving_distance(0.079,70.0,0,0.3,0.7))
+    ax[0].errorbar(x_D21, 10**y_D21, yerr=[10**(y_D21+yerr_D21)-10**y_D21, 10**y_D21-10**(y_D21-yerr_D21)], label=r'Driver et al.~(2021)', elinewidth=2, marker='o', color='purple', linestyle='none')
+    
+    # new GAMA SMF by morphology, not yet public
+    data_morph = np.loadtxt('/Users/adam/Documents/DarkSagePaper4/GAMA_SMF_morph.txt', usecols=(0,1,2,7,8), skiprows=3, delimiter=' ', dtype=np.float64)
+    x_morph, y_Ell, yerr_Ell, y_Disc, yerr_Disc = data_morph[:,0], data_morph[:,1], data_morph[:,2], data_morph[:,3], data_morph[:,4]
+    SMF_adjust = 0.0866 - 3*np.log10(r.comoving_distance(0.08,100*h,0,Omega,OmegaLambda) / r.comoving_distance(0.08,70.0,0,0.3,0.7)) # adjust for average under-density of GAMA and differnces in assumed cosmology
+    y_Ell += SMF_adjust 
+    y_Disc += SMF_adjust
+    x_morph += 2*np.log10(r.comoving_distance(0.079*0.08,100*h,0,Omega,OmegaLambda) / r.comoving_distance(0.079*0.08,70.0,0,0.3,0.7)) # not sure on the average redshift here!
+    ax[0].errorbar(x_morph, 10**y_Ell, yerr=[10**(y_Ell+yerr_Ell)-10**y_Ell, 10**y_Ell-10**(y_Ell-yerr_Ell)], label=r'Driver et al.~(2021) E-type', elinewidth=2, marker='o', color='red', linestyle='none')
+    ax[0].errorbar(x_morph, 10**y_Disc, yerr=[10**(y_Disc+yerr_Disc)-10**y_Disc, 10**y_Disc-10**(y_Disc-yerr_Disc)], label=r'Driver et al.~(2021) D-type', elinewidth=2, marker='o', color='blue', linestyle='none')
+    
     ax[0].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.01, -0.01))
     ax[0].set_xlim(SM_med, 12)
     ax[0].set_xlabel(r'$\log_{10}(m_*~[{\rm M}_{\odot}])$')
     ax[0].set_ylabel(r'$\Phi~[{\rm Mpc}^{-3}~{\rm dex}^{-1}]$')
-    ax[0].set_xticks(np.arange(SM_med-SM_med%0.5+0.5,12,0.5))
+#    ax[0].set_xticks(np.arange(SM_med-SM_med%0.5+0.5,12,0.5))
     ax[0].set_yscale('log')
 
 
@@ -115,6 +146,7 @@ try:
     HIM = np.array(np.sum(G['DiscHI'],axis=1)*1e10/h, dtype=np.float32)
     f_HIM = (G['LenMax']==NpartMed) * (HIM>0) * np.isfinite(HIM)
     HIM_med = round(np.median(np.log10(HIM[f_HIM])), 3) if len(f_HIM[f_HIM])>0 else 9.05
+    if HIM_med < 6.5: HIM_med = 6.5
 
     r.HIH2_massfunction_obsdata(h=h, HI=True, H2=False, Z=True, M=True, ax=ax[1])
     HIMF_J18, logM_J18 = r.schechter(4.5e-3*(h/0.7)**3, (10**9.94)*(0.7/h)**2, -1.25, logM=np.arange(HIM_med-0.1, 11.5,0.1))
@@ -124,7 +156,7 @@ try:
     r.massfunction(HIM[G['LenMax']>=100], Lbox, range=[HIM_med-0.1, 11.5], ax=ax[1])
     ax[1].set_xlabel(r'$\log_{10}(m_{\rm H\,{\LARGE {\textsc i}}}~[{\rm M}_{\odot}])$')
     ax[1].set_ylabel('')
-    ax[1].set_xticks(np.arange(HIM_med-HIM_med%0.3+0.3,10.99,0.3))
+#    ax[1].set_xticks(np.arange(HIM_med-HIM_med%0.3+0.3,10.99,0.3))
     ax[1].set_xlim(HIM_med, 11)
 
 
@@ -132,6 +164,7 @@ try:
     H2M = np.array(np.sum(G['DiscH2'],axis=1)*1e10/h, dtype=np.float32)
     f_H2M = (G['LenMax']==NpartMed) * (H2M>0) * np.isfinite(H2M)
     H2M_med = round(np.median(np.log10(H2M[f_H2M])), 3) if len(f_H2M[f_H2M])>0 else 8.5
+    if H2M_med < 7.5: H2M_med = 7.5
 
     r.HIH2_massfunction_obsdata(h=h, HI=False, H2=True, K=True, OR=False, B=True, ax=ax[2])
     ax[2].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.01, -0.01))
@@ -175,7 +208,7 @@ try:
 
     # Mass--metallicity
     Z = G['MetalsColdGas']
-    lOH = 9 + np.log10(G['MetalsColdGas'] / G['ColdGas'] / 0.02)
+    lOH = 8.69 + np.log10(G['MetalsColdGas'] / G['ColdGas'] / 0.0142)
     SM_mean, lOH_high, lOH_mid, lOH_low = r.percentiles(SM, lOH, bins=bins, Nmin=Nmin)
     ax[1].plot(np.log10(SM_mean), lOH_mid, 'k--', lw=3)
     ax[1].plot(np.log10(SM_mean), lOH_low, 'k--', lw=1.5)
@@ -191,6 +224,15 @@ try:
     ax[1].set_xlabel(r'$\log_{10}(m_*~[{\rm M}_{\odot}])$')
     ax[1].set_ylabel(r'$12 + \log_{10}({\rm O/H})$')
     ax[1].set_yticks(np.arange(8.25,9.5,0.25))
+    
+    # Add relation from Bellstedt+21
+    logZ_obs = -1.67 + 6.32e-2 - 3.08e-2 + 3.62e-3 - 1.57e-4\
+                + (4.25e-1 - 3.69e-3 + 3.86e-3 - 4.16e-3 + 2.38e-5) * (x_obs-10.)\
+                + (1.42e-2 - 1.38e-1 + 5.24e-2 - 6.88e-3 + 3.37e-4) * (x_obs-10.)**2\
+                + (-2.67e-2 - 7.2e-2 + 3.58e-2 - 6.00e-3 + 4.20e-4) * (x_obs-10.)**3
+    y_obs = 8.69 + logZ_obs - np.log10(0.0142)
+    ax[1].plot(x_obs, y_obs, 'y-', lw=2, label=r'Bellstedt et al.~(2021)')
+
     ax[1].legend(loc='lower right', frameon=False, ncol=1, bbox_to_anchor=(1.01,0))
 
     fig.subplots_adjust(hspace=0, wspace=0, left=0, bottom=0, right=1.0, top=1.0)

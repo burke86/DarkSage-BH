@@ -84,8 +84,8 @@ def main():
                           default='space.txt', type=_abspath)
     pso_opts.add_argument('-t', '--stat-test', help='Stat function used to calculate the value of a particle, defaults to student-t',
                           default='student-t', choices=list(analysis.stat_tests.keys()))
-    pso_opts.add_argument('-x', '--constraints', default='HIMF,SMF_z0,SMF_z1',
-                          help=("Comma-separated list of constraints, any of HIMF, SMF_z0 or SMF_z1, defaults to 'HIMF,SMF_z0,SMF_z1'. "
+    pso_opts.add_argument('-x', '--constraints', default='HIMF,SMF_z0,CSFRDH',
+                          help=("Comma-separated list of constraints, any of HIMF, SMF_z0 or CSFRDH, defaults to 'HIMF,SMF_z0,CSFRDH'. "
                                 "Can specify a domain range after the name (e.g., 'SMF_z0(8-11)')"
                                 "and/or a relative weight (e.g. 'HIMF*6,SMF_z0(8-11)*10)'"))
 
@@ -147,7 +147,7 @@ def main():
 #        f = execution.run_shark
     else:
         n_cpus = multiprocessing.cpu_count()
-        print 'seeing', n_cpus, 'CPUs'
+        print('seeing', n_cpus, 'CPUs')
         procs = min(n_cpus, ss)        
         f = execution.run_darksage
 
@@ -179,6 +179,7 @@ def main():
         logger.info('    Memory per instance: %s', opts.memory)
         logger.info('    Nodes to use: %s', opts.nodes)
 
+    raw_input = input
     while True:
         answer = raw_input('\nAre these parameters correct? (Yes/no): ')
         if answer:

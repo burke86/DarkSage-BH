@@ -11,8 +11,10 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-#indir = '/Users/adam/DarkSage_runs/571r/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/24j/'
+#indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
+#indir = '/Users/adam/DarkSage/output/results/millennium/'
+#indir = '/Users/adam/DarkSage_runs/TNG300/2/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/41/'
 sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
@@ -20,6 +22,7 @@ Nannuli = 30 # number of annuli used for discs in Dark Sage
 Nage = 30 # number of age bins used for stars -- not advised to use a run with this for calibration
 #age_alist_file = '/Users/adam/millennium_mini/millennium.a_list' # File with expansion factors used for age bins
 age_alist_file = '/Users/adam/Genesis_calibration_trees/L75n324/alist.txt'
+#age_alist_file = '/Users/adam/Illustris/alist_TNG.txt'
 RecycleFraction = 0.43 # Only needed for comparing stellar-age based SFR with raw SFR
 ###### ============================== ######
 
@@ -82,7 +85,12 @@ elif sim==4:
 elif sim==5:
     h = 0.6777
     vol = (1000.0/h)**3 * len(filenumbers)/1000.
-# add here 'elif sim==6:' etc for a new simulation
+elif sim==6:
+    h = 0.6774
+    vol = (205.0/h)**3 * len(filenumbers)/128.
+    Omega_M = 0.3089
+    Omega_L = 0.6911
+# add here 'elif sim==7:' etc for a new simulation
 else:
     print('Please specify a valid simulation.  You may need to add its defaults to this code.')
     quit()
@@ -122,8 +130,8 @@ for i in range(Nsnap):
     if len(G)==0: continue
     res = (G['LenMax']>=100)
     
-    SFRD[i] = np.sum(G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst']) / vol
-    SFRD_resolved[i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[res]) / vol
+    SFRD[i] = np.sum(G['SfrFromH2']+G['SfrInstab']+G['SfrMerge']) / vol
+    SFRD_resolved[i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMerge'])[res]) / vol
     
     SMD[i] = (np.sum(G['StellarMass']) + np.sum(G['IntraClusterStars'])) * 1e10/h / vol
     SMD_resolved[i] = (np.sum(G['StellarMass'][res]) + np.sum(G['IntraClusterStars'][res])) * 1e10/h / vol
@@ -157,7 +165,7 @@ for i in range(Nsnap):
 
     for j in range(Nbins):
         f = np.in1d(G['RootGalaxyIndex'], RootID_lists[j])
-        SFRDbyMass[j,i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMergeBurst'])[f])
+        SFRDbyMass[j,i] = np.sum((G['SfrFromH2']+G['SfrInstab']+G['SfrMerge'])[f])
         SMDbyMass[j,i] = np.sum((G['StellarMass']+G['IntraClusterStars'])[f]) if Nage<=1 else np.sum((G['StellarMass']+np.sum(G['IntraClusterStars'],axis=1))[f])
         ZMDbyMass[j,i] = np.sum((G['MetalsStellarMass']+G['MetalsIntraClusterStars'])[f]) if Nage<=1 else np.sum((G['MetalsStellarMass']+np.sum(G['MetalsIntraClusterStars'],axis=1))[f])
 
@@ -179,19 +187,18 @@ if Nage>1: # check consistency from stellar-age bins
 
 #        RedshiftBinEdge = np.append(np.append(0, [0.007*1.47**i for i in range(Nage-1)]), 1000.) # defined within Dark Sage hard code
     
-    alist = np.loadtxt(age_alist_file)[::-1]
-    if Nage==len(alist)-1:
+    alist = np.loadtxt(age_alist_file)
+    if Nage>=len(alist)-1:
+        alist[::-1]
         RedshiftBinEdge = 1./ alist - 1.
     else:
-        indices_float = np.arange(1,Nage) * (len(alist)-1.0) / Nage
+        indices_float = np.arange(Nage+1) * (len(alist)-1.0) / Nage
         indices = indices_float.astype(np.int32)
-        indices_residual = indices_float - indices
-        A_BinEdge = np.ones(Nage+1)
-        A_BinEdge[range(1,Nage)] = alist[indices] * (1-indices_residual) + alist[indices+1] * indices_residual
-        A_BinEdge[-1] = alist[-1]
-        RedshiftBinEdge = 1./ A_BinEdge - 1.
+        alist = alist[indices][::-1]
+        RedshiftBinEdge = 1./ alist - 1.
+        
     TimeBinEdge = np.array([r.z2tL(z,h,Omega_M,Omega_L) for z in RedshiftBinEdge]) # look-back time [Gyr]
-    dT = np.diff(TimeBinEdge)*1e9 # time step for each bin [yr]
+    dT = np.diff(TimeBinEdge) # time step for each bin
     
     # sum mass from age bins of all components
     StarsByAge = np.zeros(Nage)
@@ -200,10 +207,21 @@ if Nage>1: # check consistency from stellar-age bins
         StarsByAge[k] += np.sum(G0['MergerBulgeMass'][:,k])
         StarsByAge[k] += np.sum(G0['InstabilityBulgeMass'][:,k])
         StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k])
+        StarsByAge[k] += np.sum(G0['LocalIGS'][:,k])
 
-    SFRbyAge = StarsByAge*1e10/h/dT/(1.-RecycleFraction)
+    m, lifetime, returned_mass_fraction_integrated, ncum_SN = r.return_fraction_and_SN_ChabrierIMF()
+    
+    eff_recycle = np.interp(TimeBinEdge[:-1] + 0.5*dT, lifetime[::-1], returned_mass_fraction_integrated[::-1])
+
+    SFRbyAge = StarsByAge*1e10/h / (dT*1e9) / (1.-eff_recycle)
     SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)
     plt.step(1+RedshiftBinEdge, SFRD_Age, color='grey', label=r'{\sc Dark Sage} age recon.')
+    
+    # redo based on 'stellar formation mass' field -- should be identical to the above if all has worked out correctly
+    SFRbyAge = np.sum(G0['StellarFormationMass'],axis=0)*1e10/h / (dT*1e9)
+    SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)
+    plt.step(1+RedshiftBinEdge, SFRD_Age, color='silver', linestyle='dashed')
+
 
 
 r.SFRD_obs(h, plus=1)
@@ -250,6 +268,7 @@ if Nage>1:
         MetalsByAge[k] += np.sum(G0['MetalsMergerBulgeMass'][:,k])
         MetalsByAge[k] += np.sum(G0['MetalsInstabilityBulgeMass'][:,k])
         MetalsByAge[k] += np.sum(G0['MetalsIntraClusterStars'][:,k])
+        MetalsByAge[k] += np.sum(G0['MetalsLocalIGS'][:,k])
 
     ZMDH = np.cumsum(MetalsByAge[::-1])[::-1]*1e10/h / vol
 
@@ -266,14 +285,17 @@ if Nage>1:
             StarsByAge[k] += np.sum(G0['DiscStars'][:,:,k][f])
             StarsByAge[k] += np.sum(G0['MergerBulgeMass'][:,k][f])
             StarsByAge[k] += np.sum(G0['InstabilityBulgeMass'][:,k][f])
-            StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k][f])
+#            StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k][f])
+#            StarsByAge[k] += np.sum(G0['LocalIGS'][:,k][f])
             
             MetalsByAge[k] += np.sum(G0['DiscStarsMetals'][:,:,k][f])
             MetalsByAge[k] += np.sum(G0['MetalsMergerBulgeMass'][:,k][f])
             MetalsByAge[k] += np.sum(G0['MetalsInstabilityBulgeMass'][:,k][f])
-            MetalsByAge[k] += np.sum(G0['MetalsIntraClusterStars'][:,k][f])
+#            MetalsByAge[k] += np.sum(G0['MetalsIntraClusterStars'][:,k][f])
+#            MetalsByAge[k] += np.sum(G0['MetalsLocalIGS'][:,k][f])
 
-        SFRDH = StarsByAge*1e10/h/dT/(1.-RecycleFraction) / vol # CAUTION: SIMPLE USE OF RecycleFraction NO LONGER WORKS WHEN DELAYED FEEDBACK IS ON
+        eff_recycle = np.interp(TimeBinCentre + 0.5*dT, lifetime[::-1], returned_mass_fraction_integrated[::-1])
+        SFRDH = StarsByAge*10/h/dT/(1.-eff_recycle) / vol # CAUTION: SIMPLE USE OF RecycleFraction NO LONGER WORKS WHEN DELAYED FEEDBACK IS ON
         SMDH = np.cumsum(StarsByAge[::-1])[::-1]*1e10/h / vol # CAUTION: THIS ISN'T FORMATION MASS
         ZMDH = np.cumsum(MetalsByAge[::-1])[::-1]*1e10/h / vol
         

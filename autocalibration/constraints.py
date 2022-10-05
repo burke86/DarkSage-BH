@@ -90,14 +90,22 @@ class Constraint(object):
 #                'mvir_hosthalo', 'rstar_bulge')
 #        }
 
-        fields = ['StellarMass', 'DiscHI', 'LenMax']
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         # hard coding stuff here that should be generalised
-        files = range(8)
-        G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, Nage=30, fields=fields)
-        h0 = 0.6751
-        vol = (75.0/h0)**3
-#        h0 = 0.6777
-#        vol = (1000./h0)**3 * (1.0*len(files)/1000.)
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
+        fields = ['StellarMass', 'DiscHI', 'LenMax', 'DiscStars', 'MergerBulgeMass', 'InstabilityBulgeMass', 'IntraClusterStars', 'LocalIGS']
+        files = [2,3]
+        Nage = 30
+        G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, Nage=Nage, fields=fields)
+#        h0 = 0.6751
+#        vol = (75.0/h0)**3
+        h0 = 0.6774
+        Omega0 = 0.3089
+        vol = (205.0/h0)**3 * (1.0*len(files)/128.)
+        age_alist_file = '/Users/adam/Illustris/alist_TNG.txt'
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         
 
 #        for index, z in enumerate(self.z):
@@ -114,15 +122,41 @@ class Constraint(object):
 
         logSM = np.log10(G['StellarMass']*1e10/h0)
         logSM[~np.isfinite(logSM)] = -20
-        hist_smf, _ = np.histogram(logSM, bins=np.arange(5,14.1, 0.2))
-        hist_smf = hist_smf / (0.2 * vol)
+        hist_smf, _ = np.histogram(logSM, bins=mbins)
+        hist_smf = hist_smf / (dm * vol)
         hist_smf = hist_smf[np.newaxis]
 
         logHIM = np.log10(np.sum(G['DiscHI'], axis=1)*1e10/h0)
         logHIM[~np.isfinite(logHIM)] = -20
-        hist_HImf, _ = np.histogram(logHIM, bins=np.arange(5,14.1, 0.2))
-        hist_HImf = hist_HImf / (0.2 * vol)
+        hist_HImf, _ = np.histogram(logHIM, bins=mbins)
+        hist_HImf = hist_HImf / (dm * vol)
         hist_HImf = hist_HImf[np.newaxis]
+        
+        # sum mass from age bins of all components
+        StarsByAge = np.zeros(Nage)
+        for k in range(Nage):
+            StarsByAge[k] += np.sum(G['DiscStars'][:,:,k])
+            StarsByAge[k] += np.sum(G['MergerBulgeMass'][:,k])
+            StarsByAge[k] += np.sum(G['InstabilityBulgeMass'][:,k])
+            StarsByAge[k] += np.sum(G['IntraClusterStars'][:,k])
+            StarsByAge[k] += np.sum(G['LocalIGS'][:,k])
+            
+        # get the edges of the age bins
+        alist = np.loadtxt(age_alist_file)
+        if Nage>=len(alist)-1:
+            alist[::-1]
+            RedshiftBinEdge = 1./ alist - 1.
+        else:
+            indices_float = np.arange(Nage+1) * (len(alist)-1.0) / Nage
+            indices = indices_float.astype(np.int32)
+            alist = alist[indices][::-1]
+            RedshiftBinEdge = 1./ alist - 1.
+        TimeBinEdge = np.array([r.z2tL(redshift, h0, Omega0, 1.0-Omega0) for redshift in RedshiftBinEdge]) # look-back time [Gyr]
+        dT = np.diff(TimeBinEdge) # time step for each bin
+        m, lifetime, returned_mass_fraction_integrated, ncum_SN = r.return_fraction_and_SN_ChabrierIMF()
+        eff_recycle = np.interp(TimeBinEdge[:-1] + 0.5*dT, lifetime[::-1], returned_mass_fraction_integrated[::-1])
+        SFRbyAge = StarsByAge*1e10/h / (dT*1e9) / (1.-eff_recycle)
+        SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)
 
 
         #########################
@@ -132,7 +166,7 @@ class Constraint(object):
         ind = np.where(hist_HImf > 0.)
         hist_HImf[ind] = np.log10(hist_HImf[ind])
 
-        return h0, hist_smf, hist_HImf
+        return h0, Omega0, hist_smf, hist_HImf, TimeBinEdge, SFRD_Age
 
 
     def load_observation(self, *args, **kwargs):
@@ -144,9 +178,9 @@ class Constraint(object):
         """Gets the model and observational data for further analysis.
         The model data is interpolated to match the observation's X values."""
 
-        h0, hist_smf, hist_HImf = self._load_model_data(modeldir, subvols)
-        x_obs, y_obs, y_dn, y_up = self.get_obs_x_y_err(h0)
-        x_mod, y_mod = self.get_model_x_y(hist_smf, hist_HImf)
+        h0, Omega0, hist_smf, hist_HImf, TimeBinEdge, SFRD_Age = self._load_model_data(modeldir, subvols)
+        x_obs, y_obs, y_dn, y_up = self.get_obs_x_y_err(h0, Omega0)
+        x_mod, y_mod = self.get_model_x_y(hist_smf, hist_HImf, TimeBinEdge, SFRD_Age)
         return x_obs, y_obs, y_dn, y_up, x_mod, y_mod
 
     def get_data(self, modeldir, subvols):
@@ -160,10 +194,10 @@ class Constraint(object):
         y_mod = np.interp(x_obs, x_mod, y_mod)
         ind = np.where((x_obs >= self.domain[0]) & (x_obs <= self.domain[1]))
         err = np.maximum(np.abs(y_dn[ind]), np.abs(y_up[ind]))
-        print 'in get_data:'
-        print 'obs x:', x_obs[ind]
-        print 'obs y:', y_obs[ind]
-        print 'mod y:', y_mod[ind]
+        print('in get_data:')
+        print('obs x:', x_obs[ind])
+        print('obs y:', y_obs[ind])
+        print('mod y:', y_mod[ind])
         return y_obs[ind], y_mod[ind], err
 
     def __str__(self):
@@ -178,19 +212,17 @@ class HIMF(Constraint):
     domain = (7, 12)
     z = [0]
 
-    def get_obs_x_y_err(self, h0):
+    def get_obs_x_y_err(self, h0, _):
         # Load Jones18 data and correct data for their choice of cosmology
-        lmHI, pHI, pdnHI, pduHI = self.load_observation('HIMF_Jones18.dat', cols=[0,1,2,3])
-        dpdnHI = pHI - pdnHI
-        dpupHI = pduHI - pHI
         hobs = 0.7
-        x_obs = lmHI + np.log10(pow(hobs, 2) / pow(h0, 2))
-        y_obs = pHI + np.log10(pow(h0, 3) / pow(hobs, 3))
-        y_dn = dpdnHI
-        y_up = dpupHI
+        log_mHI, phiHI, delta_phiHI = self.load_observation('Jones2018_HIMF.dat', cols=[0,1,2])
+        x_obs = log_mHI + 2.0 * np.log10(hobs/h0)
+        y_obs = np.log10(phiHI) + 3.0 * np.log10(h0/hobs)
+        y_dn = np.log10(phiHI - delta_phiHI) + 3.0 * np.log10(h0/hobs)
+        y_up = np.log10(phiHI + delta_phiHI) + 3.0 * np.log10(h0/hobs)
         return x_obs, y_obs, y_dn, y_up
 
-    def get_model_x_y(self, _, hist_HImf):
+    def get_model_x_y(self, _, hist_HImf, _2, _3):
         y = hist_HImf[0]
         ind = np.where(y < 0.)
         return xmf[ind], y[ind]
@@ -200,7 +232,7 @@ class SMF(Constraint):
 
     domain = (8, 13)
 
-    def get_model_x_y(self, hist_smf, _):
+    def get_model_x_y(self, hist_smf, _, _2, _3):
         y = hist_smf[0,:]
         ind = np.where(y < 0.)
         return xmf[ind], y[ind]
@@ -210,30 +242,23 @@ class SMF_z0(SMF):
 
     z = [0]
 
-    def get_obs_x_y_err(self, _):
-
-        lm, p, dpdn, dpup = self.load_observation('GAMAII_BBD_GSMFs.dat', cols=[0,1,2,3])
-        indx = np.where(p > 0)
-        x_obs = lm[indx]
-        y_obs = np.log10(p[indx])
-        ytemp = p[indx] - dpdn[indx]
-        temp = np.less(ytemp, 0)
-
-        # fixing a problem where there were undefined values due to log of
-        # negative values; negative values were given a minimum of 0.0001
-        fixed = 0.0001 * temp + ytemp * np.invert(temp)
-
-        y_dn = y_obs - np.log10(fixed)
-        y_up = np.log10(p[indx]+dpup[indx]) - y_obs
-
+    def get_obs_x_y_err(self, h0, Omega0):
+        # Load data from Driver et al. (2022)
+        logm, logphi, dlogphi = self.load_observation('GAMA_SMF.dat', cols=[0,1,2])
+        cosmology_correction = np.log10( r.comoving_distance(0.079, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.079, 70.0, 0, 0.3, 0.7) )
+        x_obs = logm + 2.0 * cosmology_correction 
+        y_obs = logphi + 3.0 * cosmology_correction + 0.0769 # last factor accounts for average under-density of GAMA
+        y_dn = y_obs - dlogphi
+        y_up = y_obs + dlogphi
         return x_obs, y_obs, y_dn, y_up
+
 
 class SMF_z1(SMF):
     """The SMF constraint at z=1"""
 
     z = [1]
 
-    def get_obs_x_y_err(self, _):
+    def get_obs_x_y_err(self, _, _2):
 
         # Wright et al. (2018, several reshifts). Assumes Chabrier IMF.
         zD17, lmD17, pD17, dp_dn_D17, dp_up_D17 = self.load_observation('mf/SMF/Wright18_CombinedSMF.dat', cols=[0,1,2,3,4])
@@ -247,6 +272,30 @@ class SMF_z1(SMF):
         y_up = dp_up_D17[in_redshift]
 
         return x_obs, y_obs, y_dn, y_up
+                              
+class CSFRDH(Constraint):
+
+    z = [0]
+    domain = (0, 14) # look-back time in Gyr
+    
+    def get_obs_x_y_err(self, h0, Omega0):
+        zmin, zmax, logSFRD, err1, err2, err3 = self.load_observation('Driver_SFRD.dat', cols=[1,2,3,5,6,7])
+        Np = len(logSFRD)
+        x_obs = r.z2tL(0.5*(zmin+zmax), 100*h0, Omega0,  1.0-Omega0)
+        y_obs = np.zeros(Np)
+        for i in range(Np):
+            y_obs[i] = logSFRD[i] + np.log10(pow(r.comoving_distance(zmax[i], 70.0, 0, 0.3, 0.7), 3.0) - pow(r.comoving_distance(zmin[i], 70.0, 0, 0.3, 0.7), 3.0)) - np.log10(pow(r.comoving_distance(zmax[i], 100*h0, 0, Omega0,  1.0-Omega0), 3.0) - pow(r.comoving_distance(zmin[i], 100*h0, 0, Omega0,  1.0-Omega0), 3.0))
+            
+        err_total = err1 + err2 + err3
+        y_dn = y_obs - err_total
+        y_up = y_obs + err_total
+        
+        return x_obs, y_obs, y_dn, d_up
+        
+    def get_model_x_y(self, _, _2, TimeBinEdge, SFRD_Age):
+        return 0.5*(TimeBinEdge[1:]+TimeBinEdge[:-1]), SFRD_Age
+        
+    
 
 _constraint_re = re.compile((r'([0-9_a-zA-Z]+)' # name
                               '(?:\(([0-9\.]+)-([0-9\.]+)\))?' # domain boundaries
@@ -259,6 +308,7 @@ def parse(spec):
         'HIMF': HIMF,
         'SMF_z0': SMF_z0,
         'SMF_z1': SMF_z1,
+        'CSFRDH': CSFRDH
     }
 
     def _parse(s):

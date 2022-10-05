@@ -1,0 +1,4 @@
+RadiativeEfficiency,eBH,0,0.0378,0.4226
+GasSinkRate,fmove,0,0.0001,0.9999
+EnergySN,eSN,0,5e49,2e51
+

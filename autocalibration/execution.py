@@ -190,7 +190,7 @@ def run_darksage(particle, *args):
     Ndone = 0
     for l, line in enumerate(f):
         if line[:9] == 'OutputDir': f[l] = 'OutputDir              '+modeldir+'\n'
-        for p in xrange(Np):
+        for p in range(Np):
             if line[:len(space['name'][p])] == space['name'][p]: 
                 f[l] = space['name'][p]+'          '+str(round(particle[p],5))+'\n'
                 Ndone += 1
@@ -200,7 +200,7 @@ def run_darksage(particle, *args):
     s.close()
 
     # currently assuming that serial in parallel here is the best
-    print temp_filename
+    print(temp_filename)
 #    cmdline = ['mpirun', '-np', '8', opts.shark_binary, temp_filename]
     cmdline = [opts.shark_binary, temp_filename]
     _exec_shark('Executing Dark Sage instance', cmdline)
