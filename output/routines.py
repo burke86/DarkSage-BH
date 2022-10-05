@@ -169,7 +169,7 @@ def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
 
 def massfunction(mass, Lbox, range=[8,12.5], c='k', lw=2, ls='-', label='', ax=None, zo=2):
     masslog = np.log10(mass[(mass>0)*np.isfinite(mass)])
-    N, edges = np.histogram(masslog, bins=np.arange(range[0],range[1]+0.1,0.1))
+    N, edges = np.histogram(masslog, bins=np.arange(range[0],range[1]+0.2,0.2))
     binwidth = edges[1]-edges[0]
     x = edges[:-1] + binwidth/2
     y = N/(binwidth*Lbox**3)

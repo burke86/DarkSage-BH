@@ -94,7 +94,7 @@ class Constraint(object):
         # hard coding stuff here that should be generalised
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         fields = ['StellarMass', 'DiscHI', 'LenMax', 'DiscStars', 'MergerBulgeMass', 'InstabilityBulgeMass', 'IntraClusterStars', 'LocalIGS']
-        files = [2,3]
+        files = [3]
         Nage = 30
         G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, Nage=Nage, fields=fields)
 #        h0 = 0.6751
