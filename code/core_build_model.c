@@ -328,6 +328,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
       if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
       assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
+      assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
       // Reset SFRs for each galaxy
       for(i=0; i<N_BINS; i++)
@@ -379,6 +380,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       if(HotStripOn>0 && Gal[p].Type == 1 && Gal[p].HotGas > 0.0 && Gal[p].MaxStrippedGas>0.0)
             Gal[p].MaxStrippedGas = strip_from_satellite(halonr, centralgal, p, Gal[p].MaxStrippedGas, k_now);
         assert(Gal[p].MetalsHotGas>=0);
+        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
           
         // reincorporation of ejected gas.  Was previously for centrals only, but now allowed for satellites too
@@ -388,6 +390,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 
         add_infall_to_hot(p, infallingGas / STEPS, k_now);
           assert(Gal[p].MetalsHotGas>=0);
+        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
         
         eject_sum = 0.0;
         for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
@@ -405,6 +408,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0)
           ram_pressure_stripping(centralgal, p, k_now);
         assert(Gal[p].MetalsHotGas>=0);
+        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
       // determine cooling gas given halo properties
       // Preventing cooling when there's no angular momentum, as the code isn't built to handle that.  This only cropped up for Vishnu haloes with 2 particles, which clearly weren't interesting/physical.  Haloes always have some spin otherwise.
@@ -417,11 +421,13 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
             assert(Gal[p].HotGas>=0);
             assert(Gal[p].MetalsHotGas>=0);
             assert(coolingGas >= 0);
+            assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
           Gal[p].AccretedGasMass += coolingGas;
           cool_gas_onto_galaxy(p, coolingGas);
             assert(Gal[p].HotGas>=0);
             assert(Gal[p].MetalsHotGas>=0);
+            assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
             
             if(ReincorpotationModel==4)
@@ -431,6 +437,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
             
         }
         assert(Gal[p].MetalsHotGas>=0);
+        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
       // Update radii of the annuli
       if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && Gal[p].Type==0)

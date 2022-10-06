@@ -615,6 +615,7 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
 		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
 
         assert(Gal[p].MetalsHotGas>=0);
+        assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
 	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i, ejected_cold_mass, time, k_now);
         update_from_ejection(p, centralgal, ejected_mass, time, k_now);
 

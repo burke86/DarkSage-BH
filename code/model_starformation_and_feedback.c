@@ -189,6 +189,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
       assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
       assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
       assert(Gal[p].MetalsHotGas>=0);
+      assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
       if(reheated_mass > 0.0)
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass, time, k_now);
 
@@ -442,6 +443,7 @@ void update_from_star_formation(int p, double stars, double metallicity, int i)
 void update_from_feedback(int p, int centralgal, double reheated_mass, double metallicity, int i, double ejected_cold_mass, double time, int k_now)
 {
     assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
+    assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
     assert(Gal[p].HotGas>=0);
     assert(Gal[p].MetalsHotGas>=0);
     assert(metallicity>=0);
@@ -510,7 +512,7 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
         
 	  assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
         
-        if(!(Gal[pp].MetalsHotGas <= Gal[pp].HotGas)) printf("Gal[pp].MetalsHotGas, Gal[pp].HotGas = %e, %e\n", Gal[pp].MetalsHotGas, Gal[pp].HotGas);
+        if(!(Gal[pp].MetalsHotGas <= Gal[pp].HotGas)) printf("Gal[pp].MetalsHotGas, Gal[pp].HotGas, reheated_mass, metallicity = %e, %e, %e, %e\n", Gal[pp].MetalsHotGas, Gal[pp].HotGas, reheated_mass, metallicity);
         assert(Gal[pp].MetalsHotGas <= Gal[pp].HotGas);
 
 	}
@@ -674,6 +676,7 @@ void update_from_ejection(int p, int centralgal, double ejected_mass, double tim
             Gal[p].MetalsEjectedMass += ejected_mass * metallicityHot;
             Gal[p].HotGas -= ejected_mass;
             Gal[p].MetalsHotGas -= ejected_mass * metallicityHot;
+            if(Gal[p].MetalsHotGas < 0) Gal[p].MetalsHotGas = 0.0;
             
 //            eject_sum = 0.0;
 //            for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[centralgal].EjectedMass_Reinc[kk];
@@ -1316,6 +1319,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     
+    assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+    
     assert(Gal[p].MetalsHotGas>=0);
   
     if(HeatedToCentral>0)
@@ -1602,6 +1607,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
         
         assert(Gal[p].MetalsHotGas>=0);
+        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass, time, k_now);
         
         // excess energy that goes into gas ejection from this annulus

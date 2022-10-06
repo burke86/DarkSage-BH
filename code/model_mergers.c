@@ -1131,6 +1131,7 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
 	assert(Gal[merger_centralgal].DiscGasMetals[k] <= Gal[merger_centralgal].DiscGas[k]);
       assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
       assert(Gal[merger_centralgal].MetalsHotGas>=0);
+      assert(Gal[merger_centralgal].MetalsHotGas <= Gal[merger_centralgal].HotGas);
 	update_from_feedback(merger_centralgal, centralgal, reheated_mass, metallicity, k, ejected_cold_mass, time, k_now);
  
       

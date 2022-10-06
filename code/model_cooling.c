@@ -14,6 +14,7 @@ double cooling_recipe(int gal, double dt)
 {
   double tcool, x, logZ, lambda, rcool, rho_rcool, rho0, temp, coolingGas, cb_term;
   int snapshot = Halo[Gal[gal].HaloNr].SnapNum;
+    assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
 
   if(Gal[gal].HotGas > 0.0 && Gal[gal].Vvir > 0.0)
   {
@@ -113,10 +114,12 @@ double cooling_recipe(int gal, double dt)
           specific_energy_change = 0.0;
       }
       assert(Gal[gal].MetalsHotGas>=0);
+      assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
 
     if(AGNrecipeOn > 0 && coolingGas > 0.0 && specific_energy_change>0.0)
 		coolingGas = do_AGN_heating(coolingGas, gal, dt, x, rcool, specific_energy_change);
       assert(Gal[gal].MetalsHotGas>=0);
+      assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
 
       // this is no longer an accurate representation of the actual energy change in the gas as it cools...
     if (coolingGas > 0.0)
@@ -138,6 +141,7 @@ double cooling_recipe(int gal, double dt)
         printf("rho0/rho_rcool = %e\n", rho0/rho_rcool);
     }
     assert(Gal[gal].MetalsHotGas>=0);
+    assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
 
   assert(coolingGas >= 0.0);
   return coolingGas;
@@ -220,8 +224,19 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
     Gal[p].BlackHoleMass += ((1.0 - RadiativeEfficiency) * AGNaccreted); // some inertial mass lost during accretion
     assert(Gal[p].BlackHoleMass>=0.0);
-    Gal[p].HotGas -= AGNaccreted;
-    Gal[p].MetalsHotGas -= metallicity * AGNaccreted;
+    
+    if(Gal[p].HotGas > AGNaccreted)
+    {
+        Gal[p].HotGas -= AGNaccreted;
+        Gal[p].MetalsHotGas -= metallicity * AGNaccreted;
+    }
+    else // avoid leaving a residual, numerical-error amount of metals
+    {
+        Gal[p].HotGas = 0.0;
+        Gal[p].MetalsHotGas = 0.0;
+    }
+    
+    
     if(Gal[p].MetalsHotGas < 0) Gal[p].MetalsHotGas = 0.0; // can get occasional error caused by above line without this
       
       
