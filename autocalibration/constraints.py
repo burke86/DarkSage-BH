@@ -97,12 +97,18 @@ class Constraint(object):
         files = [3]
         Nage = 30
         G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, Nage=Nage, fields=fields)
-#        h0 = 0.6751
-#        vol = (75.0/h0)**3
-        h0 = 0.6774
-        Omega0 = 0.3089
-        vol = (205.0/h0)**3 * (1.0*len(files)/128.)
-        age_alist_file = '/Users/adam/Illustris/alist_TNG.txt'
+        sim = 1 # choose simulation being used
+        
+        if sim==0: # TNG300
+            h0 = 0.6774
+            Omega0 = 0.3089
+            vol = (205.0/h0)**3 * (1.0*len(files)/128.)
+            age_alist_file = '/Users/adam/Illustris/alist_TNG.txt'
+        else: # Genesis small calibration box
+            h0 = 0.6751
+            Omega0 = 0.3121
+            vol = (75.0/h0)**3 * (1.0*len(files)/8.)
+            age_alist_file = '/Users/adam/Genesis_calibration_trees/L75n324/alist.txt'
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
@@ -124,13 +130,11 @@ class Constraint(object):
         logSM[~np.isfinite(logSM)] = -20
         hist_smf, _ = np.histogram(logSM, bins=mbins)
         hist_smf = hist_smf / (dm * vol)
-        hist_smf = hist_smf[np.newaxis]
 
         logHIM = np.log10(np.sum(G['DiscHI'], axis=1)*1e10/h0)
         logHIM[~np.isfinite(logHIM)] = -20
         hist_HImf, _ = np.histogram(logHIM, bins=mbins)
         hist_HImf = hist_HImf / (dm * vol)
-        hist_HImf = hist_HImf[np.newaxis]
         
         # sum mass from age bins of all components
         StarsByAge = np.zeros(Nage)
@@ -144,7 +148,7 @@ class Constraint(object):
         # get the edges of the age bins
         alist = np.loadtxt(age_alist_file)
         if Nage>=len(alist)-1:
-            alist[::-1]
+            alist = alist[::-1]
             RedshiftBinEdge = 1./ alist - 1.
         else:
             indices_float = np.arange(Nage+1) * (len(alist)-1.0) / Nage
@@ -153,18 +157,26 @@ class Constraint(object):
             RedshiftBinEdge = 1./ alist - 1.
         TimeBinEdge = np.array([r.z2tL(redshift, h0, Omega0, 1.0-Omega0) for redshift in RedshiftBinEdge]) # look-back time [Gyr]
         dT = np.diff(TimeBinEdge) # time step for each bin
+        TimeBinCentre = TimeBinEdge[:-1] + 0.5*dT
         m, lifetime, returned_mass_fraction_integrated, ncum_SN = r.return_fraction_and_SN_ChabrierIMF()
-        eff_recycle = np.interp(TimeBinEdge[:-1] + 0.5*dT, lifetime[::-1], returned_mass_fraction_integrated[::-1])
-        SFRbyAge = StarsByAge*1e10/h / (dT*1e9) / (1.-eff_recycle)
-        SFRD_Age = np.log10(np.append(SFRbyAge[0],SFRbyAge)/vol)
+        eff_recycle = np.interp(TimeBinCentre, lifetime[::-1], returned_mass_fraction_integrated[::-1])
+        SFRbyAge = StarsByAge*1e10/h0 / (dT*1e9) / (1.-eff_recycle)
 
 
         #########################
         # take logs
-        ind = np.where(hist_smf > 0.)
+        ind = (hist_smf > 0.)
         hist_smf[ind] = np.log10(hist_smf[ind])
-        ind = np.where(hist_HImf > 0.)
+        hist_smf[~ind] = -20
+        ind = (hist_HImf > 0.)
         hist_HImf[ind] = np.log10(hist_HImf[ind])
+        hist_HImf[~ind] = -20
+        SFRD_Age = np.log10(SFRbyAge/vol)
+        SFRD_Age[~np.isfinite(SFRD_Age)] = -20
+        
+        # have moved where this was in the code. Don't understand its purpose
+        hist_HImf = hist_HImf[np.newaxis]
+        hist_smf = hist_smf[np.newaxis]
 
         return h0, Omega0, hist_smf, hist_HImf, TimeBinEdge, SFRD_Age
 
@@ -191,6 +203,8 @@ class Constraint(object):
         # X values, and only take those within the domain.
         # We also consider the biggest relative error as "the" error, in case
         # they are different
+        print('x_mod:', x_mod)
+        print('y_mod:', y_mod)
         y_mod = np.interp(x_obs, x_mod, y_mod)
         ind = np.where((x_obs >= self.domain[0]) & (x_obs <= self.domain[1]))
         err = np.maximum(np.abs(y_dn[ind]), np.abs(y_up[ind]))
@@ -216,6 +230,8 @@ class HIMF(Constraint):
         # Load Jones18 data and correct data for their choice of cosmology
         hobs = 0.7
         log_mHI, phiHI, delta_phiHI = self.load_observation('Jones2018_HIMF.dat', cols=[0,1,2])
+        ferror = (delta_phiHI >= phiHI) # catch any instances where there is a 100% error
+        delta_phiHI[ferror] = phiHI[ferror] * 0.9999
         x_obs = log_mHI + 2.0 * np.log10(hobs/h0)
         y_obs = np.log10(phiHI) + 3.0 * np.log10(h0/hobs)
         y_dn = np.log10(phiHI - delta_phiHI) + 3.0 * np.log10(h0/hobs)
@@ -280,17 +296,26 @@ class CSFRDH(Constraint):
     
     def get_obs_x_y_err(self, h0, Omega0):
         zmin, zmax, logSFRD, err1, err2, err3 = self.load_observation('Driver_SFRD.dat', cols=[1,2,3,5,6,7])
+        
+        my_cosmo = [100*h0, 0.0, Omega0, 1.0-Omega0]
+        D18_cosmo = [70.0, 0., 0.3, 0.7]
+        
         Np = len(logSFRD)
-        x_obs = r.z2tL(0.5*(zmin+zmax), 100*h0, Omega0,  1.0-Omega0)
+        x_obs = np.zeros(Np)
         y_obs = np.zeros(Np)
         for i in range(Np):
-            y_obs[i] = logSFRD[i] + np.log10(pow(r.comoving_distance(zmax[i], 70.0, 0, 0.3, 0.7), 3.0) - pow(r.comoving_distance(zmin[i], 70.0, 0, 0.3, 0.7), 3.0)) - np.log10(pow(r.comoving_distance(zmax[i], 100*h0, 0, Omega0,  1.0-Omega0), 3.0) - pow(r.comoving_distance(zmin[i], 100*h0, 0, Omega0,  1.0-Omega0), 3.0))
+            z_av = 0.5*(zmin[i]+zmax[i])
+            x_obs[i] = r.z2tL(z_av, h0, Omega0,  1.0-Omega0)
+            y_obs[i] = logSFRD[i] + \
+                        np.log10( pow(r.comoving_distance(zmax[i], *D18_cosmo), 3.0) - pow(r.comoving_distance(zmin[i], *D18_cosmo), 3.0) ) - \
+                        np.log10( pow(r.comoving_distance(zmax[i], *my_cosmo), 3.0) - pow(r.comoving_distance(zmin[i], *my_cosmo), 3.0) ) + \
+                        np.log10( r.z2dA(z_av, *my_cosmo) / r.z2dA(z_av, *D18_cosmo) ) * 2.0 # adjust for cosmology on comoving volume and luminosity of objects
             
         err_total = err1 + err2 + err3
         y_dn = y_obs - err_total
         y_up = y_obs + err_total
         
-        return x_obs, y_obs, y_dn, d_up
+        return x_obs, y_obs, y_dn, y_up
         
     def get_model_x_y(self, _, _2, TimeBinEdge, SFRD_Age):
         return 0.5*(TimeBinEdge[1:]+TimeBinEdge[:-1]), SFRD_Age

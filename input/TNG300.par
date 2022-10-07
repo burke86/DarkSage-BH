@@ -84,9 +84,9 @@ ExponentBin                 1.4     ; The factor in spec ang mom between bins
 
 
 %%%= TRUE FREE PARAMETERS =%%%
-RadiativeEfficiency         0.1
-GasSinkRate                 0.9
-EnergySN                    1e51    ;energy per supernova that is coupled to the ISM
+RadiativeEfficiency          0.38753
+GasSinkRate          0.95705
+EnergySN          1.4623700991056916e+51
 %%%= ==================== =%%%
 
 

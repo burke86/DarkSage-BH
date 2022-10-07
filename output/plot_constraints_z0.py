@@ -20,7 +20,7 @@ sim = 6 # which simulation Dark Sage has been run on -- if it's new, you will ne
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2, 6 = TNG300
 
 fpre = 'model_z0.000' # what is the prefix name of the z=0 files
-files = [2,3]#range(8) # list of file numbers you want to read
+files = range(8) # list of file numbers you want to read
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
 Nage = 30 # number of age bins used for stars -- should only be used for calibrating when delayed feedback is on
@@ -81,7 +81,7 @@ matplotlib.rcParams.update({'font.size': fsize, 'xtick.major.size': 10, 'ytick.m
 
 NpartMed = 100 # minimum number of particles for finding relevant medians for minima on plots
 
-outdir = indir+'plots/' # where the plots will be saved
+outdir = indir+'plots/All/' # where the plots will be saved
 if not os.path.exists(outdir): os.makedirs(outdir)
 ######  =================== #####
 

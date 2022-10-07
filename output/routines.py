@@ -855,6 +855,15 @@ def z2tL(z, h=0.6774, Omega_M=0.3089, Omega_Lambda=0.6911, Omega_R=0, nele=10000
 
     return tL # Gives look-back time in Gyr
 
+def z2dA(z, H_0=67.74, Omega_R=0, Omega_M=0.3089, Omega_Lambda=0.6911, nele=100000):
+    # Convert redshift to an angular-diameter distance
+    c = 299792.458 # Speed of light in km/s
+    Omega_k = 1. - Omega_R - Omega_M - Omega_Lambda
+    zprime = np.linspace(0,z,nele)
+    integrand = 1./np.sqrt(Omega_R*(1+zprime)**4 + Omega_M*(1+zprime)**3 + Omega_k*(1+zprime)**2 + Omega_Lambda)
+    intval = 0.5*np.sum(np.diff(zprime)*(integrand[:-1] + integrand[1:]))
+    d_A = 1e6*c*intval / (H_0*(1+z)) # Angular-diameter distance in pc
+    return d_A
 
 
 def comoving_distance(z, H_0=67.74, Omega_R=0, Omega_M=0.3089, Omega_L=0.6911):
