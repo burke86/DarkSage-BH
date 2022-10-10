@@ -69,7 +69,7 @@ def _to_shark_options(particle, space):
 
 def _evaluate(constraint, stat_test, modeldir, subvols):
     y_obs, y_mod, err = constraint.get_data(modeldir, subvols)
-    return stat_test(y_obs, y_mod, err) * constraint.weight
+    return stat_test(y_obs, y_mod, err)
 
 count = 0
 def run_shark_hpc(particles, *args):
@@ -205,7 +205,8 @@ def run_darksage(particle, *args):
     cmdline = [opts.shark_binary, temp_filename]
     _exec_shark('Executing Dark Sage instance', cmdline)
 
-    total = sum(_evaluate(c, statTest, modeldir, subvols) for c in opts.constraints)
+    # changed to now take the weighted sum of logs of the (summed) reduced chi^2 of each constraint
+    total = sum(np.log10(np.sum(_evaluate(c, statTest, modeldir, subvols))*c.weight) for c in opts.constraints)
     logger.info('Particle %r evaluated to %f', particle, total)
 
     shutil.rmtree(modeldir)

@@ -37,8 +37,8 @@ GyrToYr = 1e9
 
 #######################
 # Binning configuration
-mlow = 5
-mupp = 14
+mlow = 7
+mupp = 13
 dm = 0.2
 mbins = np.arange(mlow, mupp, dm)
 xmf = mbins + dm/2.0
@@ -97,7 +97,7 @@ class Constraint(object):
         files = [3]
         Nage = 30
         G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, Nage=Nage, fields=fields)
-        sim = 1 # choose simulation being used
+        sim = 0 # choose simulation being used
         
         if sim==0: # TNG300
             h0 = 0.6774
@@ -201,13 +201,13 @@ class Constraint(object):
 
         # Linearly interpolate model Y values respect to the observations'
         # X values, and only take those within the domain.
-        # We also consider the biggest relative error as "the" error, in case
-        # they are different
         print('x_mod:', x_mod)
         print('y_mod:', y_mod)
         y_mod = np.interp(x_obs, x_mod, y_mod)
         ind = np.where((x_obs >= self.domain[0]) & (x_obs <= self.domain[1]))
-        err = np.maximum(np.abs(y_dn[ind]), np.abs(y_up[ind]))
+        err = y_dn
+        err[y_mod > y_obs] = y_up[y_mod > y_obs] # take upper error when model above, lower when below
+        err = err[ind]
         print('in get_data:')
         print('obs x:', x_obs[ind])
         print('obs y:', y_obs[ind])
@@ -234,8 +234,8 @@ class HIMF(Constraint):
         delta_phiHI[ferror] = phiHI[ferror] * 0.9999
         x_obs = log_mHI + 2.0 * np.log10(hobs/h0)
         y_obs = np.log10(phiHI) + 3.0 * np.log10(h0/hobs)
-        y_dn = np.log10(phiHI - delta_phiHI) + 3.0 * np.log10(h0/hobs)
-        y_up = np.log10(phiHI + delta_phiHI) + 3.0 * np.log10(h0/hobs)
+        y_dn = np.log10(phiHI) - np.log10(phiHI - delta_phiHI)
+        y_up = np.log10(phiHI + delta_phiHI) - np.log10(phiHI)
         return x_obs, y_obs, y_dn, y_up
 
     def get_model_x_y(self, _, hist_HImf, _2, _3):
@@ -261,12 +261,11 @@ class SMF_z0(SMF):
     def get_obs_x_y_err(self, h0, Omega0):
         # Load data from Driver et al. (2022)
         logm, logphi, dlogphi = self.load_observation('GAMA_SMF.dat', cols=[0,1,2])
-        cosmology_correction = np.log10( r.comoving_distance(0.079, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.079, 70.0, 0, 0.3, 0.7) )
-        x_obs = logm + 2.0 * cosmology_correction 
-        y_obs = logphi + 3.0 * cosmology_correction + 0.0769 # last factor accounts for average under-density of GAMA
-        y_dn = y_obs - dlogphi
-        y_up = y_obs + dlogphi
-        return x_obs, y_obs, y_dn, y_up
+        cosmology_correction_median = np.log10( r.comoving_distance(0.079, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.079, 70.0, 0, 0.3, 0.7) )
+        cosmology_correction_maximum = np.log10( r.comoving_distance(0.1, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.1, 70.0, 0, 0.3, 0.7) )
+        x_obs = logm + 2.0 * cosmology_correction_median 
+        y_obs = logphi - 3.0 * cosmology_correction_maximum + 0.0807 # last factor accounts for average under-density of GAMA and to correct for this to be at z=0
+        return x_obs, y_obs, dlogphi, dlogphi
 
 
 class SMF_z1(SMF):
@@ -312,10 +311,8 @@ class CSFRDH(Constraint):
                         np.log10( r.z2dA(z_av, *my_cosmo) / r.z2dA(z_av, *D18_cosmo) ) * 2.0 # adjust for cosmology on comoving volume and luminosity of objects
             
         err_total = err1 + err2 + err3
-        y_dn = y_obs - err_total
-        y_up = y_obs + err_total
         
-        return x_obs, y_obs, y_dn, y_up
+        return x_obs, y_obs, err_total, err_total
         
     def get_model_x_y(self, _, _2, TimeBinEdge, SFRD_Age):
         return 0.5*(TimeBinEdge[1:]+TimeBinEdge[:-1]), SFRD_Age

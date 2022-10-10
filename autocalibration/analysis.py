@@ -55,7 +55,7 @@ def npsum(f):
 
 @npsum
 def chi2(obs, mod, err):
-    return (mod - obs) ** 2 / (err ** 2)
+    return (mod - obs) ** 2 / (err ** 2) / (len(mod) - 3.0) # hard-coded for 3 parameters being fit here for a reduced chi-squared.  Note that this array actually has to be summed to get the reduced chi^2 of the fit
 
 @npsum
 def studentT(obs, mod, err):

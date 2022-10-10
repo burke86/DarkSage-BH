@@ -77,10 +77,14 @@ def load_space_and_particles(tracks_dir, space_file):
     pos, fx = np.asarray(pos), np.asarray(fx)
     pos = np.moveaxis(pos, 0, -1)
     fx = np.moveaxis(fx, 0, -1)
+    print(pos.shape, fx.shape)
 
     space = analysis.load_space(space_file)
     if space.shape[0] != pos.shape[1]:
         raise ValueError("Particles have different dimensionality than space")
+        
+    print('Ordered fits:\n -Likelihood,', space['name'])
+    print(np.column_stack((np.sort(fx, axis=None), np.moveaxis(pos,1,-1)[np.unravel_index(np.argsort(fx, axis=None), fx.shape)])))
 
     return space, pos, fx
 
@@ -105,7 +109,7 @@ def plot_3d_space_evolution(space, pos, fx, fig=None):
     fig = fig or plt.figure()
     ax = Axes3D(fig)
     for _pos, _fx in zip(pos, fx):
-        ax.scatter(_pos[0,:], _pos[1,:], _pos[2,:], c=scalarMap.to_rgba(_fx[:]), s=(np.flip(np.arange(20), 0)/10)**9)
+        ax.scatter(_pos[0,:], _pos[1,:], _pos[2,:], c=scalarMap.to_rgba(_fx[:]), s=(np.flip(np.arange(len(_fx)), 0)/10.)**9)
 
     scalarMap.set_array(fx)
     cbar=fig.colorbar(scalarMap)
