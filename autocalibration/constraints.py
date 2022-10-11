@@ -54,6 +54,22 @@ ssfrupp = 4
 dssfr = 0.2
 ssfrbins = np.arange(ssfrlow,ssfrupp,dssfr)
 
+Nmin = 5 # minimum number of galaxies expected in a mass bin for the simulation volume, based on observations, to warrant fitting to that bin for mass functions
+
+# Manually set information for the simulation
+sim = 1
+files = range(8)
+if sim==0: # TNG300
+    h0 = 0.6774
+    Omega0 = 0.3089
+    vol = (205.0/h0)**3 * (1.0*len(files)/128.)
+    age_alist_file = '/Users/adam/Illustris/alist_TNG.txt'
+else: # Genesis small calibration box
+    h0 = 0.6751
+    Omega0 = 0.3121
+    vol = (75.0/h0)**3 * (1.0*len(files)/8.)
+    age_alist_file = '/Users/adam/Genesis_calibration_trees/L75n324/alist.txt'
+
 
 # These are two easily create variables of these different shapes without
 # actually storing a reference ourselves; we don't need it
@@ -94,21 +110,9 @@ class Constraint(object):
         # hard coding stuff here that should be generalised
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         fields = ['StellarMass', 'DiscHI', 'LenMax', 'DiscStars', 'MergerBulgeMass', 'InstabilityBulgeMass', 'IntraClusterStars', 'LocalIGS']
-        files = [3]
         Nage = 30
         G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, Nage=Nage, fields=fields)
-        sim = 0 # choose simulation being used
         
-        if sim==0: # TNG300
-            h0 = 0.6774
-            Omega0 = 0.3089
-            vol = (205.0/h0)**3 * (1.0*len(files)/128.)
-            age_alist_file = '/Users/adam/Illustris/alist_TNG.txt'
-        else: # Genesis small calibration box
-            h0 = 0.6751
-            Omega0 = 0.3121
-            vol = (75.0/h0)**3 * (1.0*len(files)/8.)
-            age_alist_file = '/Users/adam/Genesis_calibration_trees/L75n324/alist.txt'
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
@@ -191,7 +195,7 @@ class Constraint(object):
         The model data is interpolated to match the observation's X values."""
 
         h0, Omega0, hist_smf, hist_HImf, TimeBinEdge, SFRD_Age = self._load_model_data(modeldir, subvols)
-        x_obs, y_obs, y_dn, y_up = self.get_obs_x_y_err(h0, Omega0)
+        x_obs, y_obs, y_dn, y_up = self.get_obs_x_y_err()
         x_mod, y_mod = self.get_model_x_y(hist_smf, hist_HImf, TimeBinEdge, SFRD_Age)
         return x_obs, y_obs, y_dn, y_up, x_mod, y_mod
 
@@ -226,7 +230,7 @@ class HIMF(Constraint):
     domain = (7, 12)
     z = [0]
 
-    def get_obs_x_y_err(self, h0, _):
+    def get_obs_x_y_err(self):
         # Load Jones18 data and correct data for their choice of cosmology
         hobs = 0.7
         log_mHI, phiHI, delta_phiHI = self.load_observation('Jones2018_HIMF.dat', cols=[0,1,2])
@@ -235,8 +239,11 @@ class HIMF(Constraint):
         x_obs = log_mHI + 2.0 * np.log10(hobs/h0)
         y_obs = np.log10(phiHI) + 3.0 * np.log10(h0/hobs)
         y_dn = np.log10(phiHI) - np.log10(phiHI - delta_phiHI)
+        y_dn[~np.isfinite(y_dn)] = 20
         y_up = np.log10(phiHI + delta_phiHI) - np.log10(phiHI)
-        return x_obs, y_obs, y_dn, y_up
+        bin_min = Nmin / (vol * (x_obs[1]-x_obs[0]))
+        fmin = (y_obs >= bin_min)
+        return x_obs[fmin], y_obs[fmin], y_dn[fmin], y_up[fmin]
 
     def get_model_x_y(self, _, hist_HImf, _2, _3):
         y = hist_HImf[0]
@@ -258,14 +265,16 @@ class SMF_z0(SMF):
 
     z = [0]
 
-    def get_obs_x_y_err(self, h0, Omega0):
+    def get_obs_x_y_err(self):
         # Load data from Driver et al. (2022)
         logm, logphi, dlogphi = self.load_observation('GAMA_SMF.dat', cols=[0,1,2])
         cosmology_correction_median = np.log10( r.comoving_distance(0.079, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.079, 70.0, 0, 0.3, 0.7) )
         cosmology_correction_maximum = np.log10( r.comoving_distance(0.1, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.1, 70.0, 0, 0.3, 0.7) )
         x_obs = logm + 2.0 * cosmology_correction_median 
         y_obs = logphi - 3.0 * cosmology_correction_maximum + 0.0807 # last factor accounts for average under-density of GAMA and to correct for this to be at z=0
-        return x_obs, y_obs, dlogphi, dlogphi
+        bin_min = Nmin / (vol * (x_obs[1]-x_obs[0]))
+        fmin = (y_obs >= bin_min)
+        return x_obs[fmin], y_obs[fmin], dlogphi[fmin], dlogphi[fmin]
 
 
 class SMF_z1(SMF):
@@ -273,7 +282,7 @@ class SMF_z1(SMF):
 
     z = [1]
 
-    def get_obs_x_y_err(self, _, _2):
+    def get_obs_x_y_err(self):
 
         # Wright et al. (2018, several reshifts). Assumes Chabrier IMF.
         zD17, lmD17, pD17, dp_dn_D17, dp_up_D17 = self.load_observation('mf/SMF/Wright18_CombinedSMF.dat', cols=[0,1,2,3,4])
@@ -285,15 +294,18 @@ class SMF_z1(SMF):
         y_obs = pD17[in_redshift]
         y_dn = dp_dn_D17[in_redshift]
         y_up = dp_up_D17[in_redshift]
+        
+        bin_min = Nmin / (vol * (x_obs[1]-x_obs[0]))
+        fmin = (y_obs >= bin_min)
 
-        return x_obs, y_obs, y_dn, y_up
+        return x_obs[fmin], y_obs[fmin], y_dn[fmin], y_up[fmin]
                               
 class CSFRDH(Constraint):
 
     z = [0]
     domain = (0, 14) # look-back time in Gyr
     
-    def get_obs_x_y_err(self, h0, Omega0):
+    def get_obs_x_y_err(self):
         zmin, zmax, logSFRD, err1, err2, err3 = self.load_observation('Driver_SFRD.dat', cols=[1,2,3,5,6,7])
         
         my_cosmo = [100*h0, 0.0, Omega0, 1.0-Omega0]
