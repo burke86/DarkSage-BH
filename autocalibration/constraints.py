@@ -241,8 +241,11 @@ class HIMF(Constraint):
         y_dn = np.log10(phiHI) - np.log10(phiHI - delta_phiHI)
         y_dn[~np.isfinite(y_dn)] = 20
         y_up = np.log10(phiHI + delta_phiHI) - np.log10(phiHI)
-        bin_min = np.log10(Nmin / (vol * (x_obs[1]-x_obs[0])))
+        bin_min = np.log10( Nmin / ( vol * abs(np.median(np.diff(x_obs))) ) )
         fmin = (y_obs >= bin_min)
+        lfm = len(fmin[fmin])
+        if lfm <= 0: print("Nmin, vol, dx, bin_min", Nmin, vol, np.median(np.diff(x_obs)), bin_min, '\ny_obs', y_obs)
+        assert(lfm > 0)
         return x_obs[fmin], y_obs[fmin], y_dn[fmin], y_up[fmin]
 
     def get_model_x_y(self, _, hist_HImf, _2, _3):
@@ -272,8 +275,11 @@ class SMF_z0(SMF):
         cosmology_correction_maximum = np.log10( r.comoving_distance(0.1, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.1, 70.0, 0, 0.3, 0.7) )
         x_obs = logm + 2.0 * cosmology_correction_median 
         y_obs = logphi - 3.0 * cosmology_correction_maximum + 0.0807 # last factor accounts for average under-density of GAMA and to correct for this to be at z=0
-        bin_min = np.log10(Nmin / (vol * (x_obs[1]-x_obs[0])))
+        bin_min = np.log10( Nmin / ( vol * abs(np.median(np.diff(x_obs))) ) )
         fmin = (y_obs >= bin_min)
+        lfm = len(fmin[fmin])
+        if lfm <= 0: print("Nmin, vol, dx, bin_min", Nmin, vol, np.median(np.diff(x_obs)), bin_min, '\ny_obs', y_obs)
+        assert(lfm > 0)
         return x_obs[fmin], y_obs[fmin], dlogphi[fmin], dlogphi[fmin]
 
 
@@ -295,8 +301,11 @@ class SMF_z1(SMF):
         y_dn = dp_dn_D17[in_redshift]
         y_up = dp_up_D17[in_redshift]
         
-        bin_min = np.log10(Nmin / (vol * (x_obs[1]-x_obs[0])))
+        bin_min = np.log10( Nmin / ( vol * abs(np.median(np.diff(x_obs))) ) )
         fmin = (y_obs >= bin_min)
+        lfm = len(fmin[fmin])
+        if lfm <= 0: print("Nmin, vol, dx, bin_min", Nmin, vol, np.median(np.diff(x_obs)), bin_min, '\ny_obs', y_obs)
+        assert(lfm > 0)
 
         return x_obs[fmin], y_obs[fmin], y_dn[fmin], y_up[fmin]
                               
