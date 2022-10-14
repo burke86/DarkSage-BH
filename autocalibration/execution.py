@@ -206,7 +206,7 @@ def run_darksage(particle, *args):
     _exec_shark('Executing Dark Sage instance', cmdline)
 
     # changed to now take the weighted sum of logs of the (summed) reduced chi^2 of each constraint
-    total = sum(np.log10(np.sum(_evaluate(c, statTest, modeldir, subvols))*c.weight) for c in opts.constraints)
+    total = 10**sum(np.log10(np.sum(_evaluate(c, statTest, modeldir, subvols))*c.weight) for c in opts.constraints)
     logger.info('Particle %r evaluated to %f', particle, total)
 
     shutil.rmtree(modeldir)

@@ -218,6 +218,9 @@ void init_galaxy(int p, int halonr)
     Gal[p].prevEjectedPotential = 0.0;
     Gal[p].ReincTime = 0.0;
     Gal[p].ReincTimeFresh = 0.0;
+    Gal[p].prevRvir = 0.0;
+    Gal[p].prevRhot = 0.0;
+    Gal[p].prevVhot = 0.0;
     
 }
 
@@ -871,7 +874,7 @@ void update_disc_radii(int p)
             Gal[p].EjectedPotential = gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc);
             
             // calculate reioncorpotation time for freshly ejected gas, based on the current potential
-            if(ReincorpotationModel==3)
+            if(ReincorporationModel==3)
             {
                 reincTime = 0.0;
                 kmax = k+1;
@@ -953,7 +956,7 @@ void update_disc_radii(int p)
             Gal[p].EjectedPotential = dmax(0.9999*Gal[p].HotGasPotential, gsl_spline_eval(spline2, Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which it should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
             
             // calculate reioncorpotation time for freshly ejected gas, based on the current potential
-            if(ReincorpotationModel==3)
+            if(ReincorporationModel==3)
             {
                 reincTime = 0.0;
                 kmax = k+1;
@@ -967,7 +970,7 @@ void update_disc_radii(int p)
                 }
                 Gal[p].ReincTimeFresh = reincTime;
             }
-//            else if(ReincorpotationModel==5)
+//            else if(ReincorporationModel==5)
 //            {
 //                
 //            }

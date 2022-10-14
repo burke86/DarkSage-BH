@@ -319,6 +319,8 @@ struct GALAXY
   double prevHotGasPotential;
   double prevEjectedPotential;
   double prevRvir;
+    double prevRhot;
+    double prevVhot;
   double ReincTime;
   double ReincTimeFresh;
 
@@ -514,7 +516,7 @@ extern int    GasPrecessionOn;
 extern int    RamPressureOn;
 extern int    HotStripOn;
 extern int    HeatedToCentral;
-extern int    ReincorpotationModel;
+extern int    ReincorporationModel;
 extern int    CoolingExponentialRadiusOn;
 extern int    MvirDefinition;
 extern int    AgeStructOut;

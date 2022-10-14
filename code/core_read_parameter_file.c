@@ -149,8 +149,8 @@ void read_parameter_file(char *fname)
   addr[nt] = &HeatedToCentral;
   id[nt++] = INT;
     
-  strcpy(tag[nt], "ReincorpotationModel");
-  addr[nt] = &ReincorpotationModel;
+  strcpy(tag[nt], "ReincorporationModel");
+  addr[nt] = &ReincorporationModel;
   id[nt++] = INT;
 
   strcpy(tag[nt], "CoolingExponentialRadiusOn");

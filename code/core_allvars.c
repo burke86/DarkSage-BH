@@ -63,7 +63,7 @@ int GasPrecessionOn;
 int RamPressureOn;
 int HotStripOn;
 int HeatedToCentral;
-int ReincorpotationModel;
+int ReincorporationModel;
 int CoolingExponentialRadiusOn;
 int MvirDefinition;
 int AgeStructOut;

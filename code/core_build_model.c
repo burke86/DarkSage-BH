@@ -138,6 +138,8 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
         previousVvir = Gal[ngal].Vvir;
         previousVmax = Gal[ngal].Vmax;
         Gal[ngal].prevRvir = Gal[ngal].Rvir;
+          Gal[ngal].prevRhot = sqrt(Gal[ngal].R2_hot_av);
+          Gal[ngal].prevVhot = (2 * Gal[ngal].Vvir * Gal[ngal].CoolScaleRadius) / Gal[ngal].prevRhot ;
 
         if(prog == first_occupied)
         {
@@ -296,14 +298,14 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     double eject_sum;
     int kk;
     
-    for(p = 0; p < ngal; p++)
-    {
-        
-        eject_sum = 0.0;
-        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-    }
+//    for(p = 0; p < ngal; p++)
+//    {
+//        
+//        eject_sum = 0.0;
+//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
+//        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
+//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
+//    }
 
   centralgal = Gal[0].CentralGal;
   if(Gal[centralgal].Type != 0 || Gal[centralgal].HaloNr != halonr)
@@ -323,12 +325,14 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
   
   for(p = 0; p < ngal; p++)
   {
-      
-      eject_sum = 0.0;
-      for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-      if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-      assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-      assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+      if(ReincorporationModel==5)
+      {
+          eject_sum = 0.0;
+          for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
+          if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
+          assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
+          assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+      }
 
       // Reset SFRs for each galaxy
       for(i=0; i<N_BINS; i++)
@@ -371,11 +375,14 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       if(Gal[p].dT < 0.0)
         Gal[p].dT = deltaT;
         
-        eject_sum = 0.0;
-        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-      if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-        
+//    if(ReincorporationModel==5)
+//    {
+//        eject_sum = 0.0;
+//        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
+//      if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
+//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
+//    }
+    
       // hot-gas stripping of satellites --  do before reincorporation to ensure stripping is preventative
       if(HotStripOn>0 && Gal[p].Type == 1 && Gal[p].HotGas > 0.0 && Gal[p].MaxStrippedGas>0.0)
             Gal[p].MaxStrippedGas = strip_from_satellite(halonr, centralgal, p, Gal[p].MaxStrippedGas, k_now);
@@ -384,25 +391,27 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 
           
         // reincorporation of ejected gas.  Was previously for centrals only, but now allowed for satellites too
-          eject_sum = 0.0;
-          for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-          assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
+//          eject_sum = 0.0;
+//          for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
+//          assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
 
         add_infall_to_hot(p, infallingGas / STEPS, k_now);
           assert(Gal[p].MetalsHotGas>=0);
         assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
         
-        eject_sum = 0.0;
-        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
+//        eject_sum = 0.0;
+//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
+//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
 
-          if(!(ReIncorporationFactor <= 0.0 && ReincorpotationModel==0))
+          if(!(ReIncorporationFactor <= 0.0 && ReincorporationModel==0))
             reincorporate_gas(p, dt, time, k_now);
           
+        if(ReincorporationModel==5)
+        {
           eject_sum = 0.0;
           for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
           assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-
+        }
 
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0)
@@ -430,7 +439,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
             assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
             
-            if(ReincorpotationModel==4)
+            if(ReincorporationModel==4)
             {
                 Gal[p].ReincTimeFresh = (Gal[p].Rvir*sqrt(Gal[p].R2_hot_av) - Gal[p].R2_hot_av) / (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) ; // time=dr/v; v=j/Rhot; dr=Rvir-Rhot
             }
@@ -478,10 +487,10 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         check_disk_instability(p, centralgal, dt, step, time, k_now);
       }
         
-        eject_sum = 0.0;
-        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
+//        eject_sum = 0.0;
+//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
+//        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
+//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
 
     }
 
@@ -530,10 +539,10 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
      
       }
         
-        eject_sum = 0.0;
-        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
+//        eject_sum = 0.0;
+//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
+//        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
+//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
 
     }
 

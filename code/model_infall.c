@@ -198,7 +198,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
   double reionization_modifier, strippedGas, strippedGasMetals, metallicity;
   double tidal_strippedGas, tidal_strippedGasMetals;
   double strippedBaryons, strippedICS, strippedICSmetals, strippedICS_age, stripped_ICSmetals_age;
-  double r_gal, a_ICS, a_new, eject_sum;
+    double r_gal, a_ICS, a_new;//, eject_sum;
   int k, kk;
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
     
@@ -235,6 +235,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
               Gal[gal].EjectedMass -= strippedGas;
               Gal[centralgal].LocalIGM += strippedGas;
             
+            if(ReincorporationModel==5)
+            {
               for(k=N_AGE_BINS; k>=k_now; k--)
               {
                   if(strippedGas > Gal[gal].EjectedMass_Reinc[k])
@@ -256,11 +258,18 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
                       break;                      
                   }
               }
+            }
+            else
+            {
+                Gal[gal].MetalsEjectedMass -= metallicity * strippedGas;
+                Gal[centralgal].MetalsLocalIGM += metallicity * strippedGas;
+                if(Gal[gal].MetalsEjectedMass < 0) Gal[gal].MetalsEjectedMass = 0.0;
+            }
             
-        eject_sum = 0.0;
-        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[gal].EjectedMass_Reinc[kk];
-        if (!((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass))) printf("eject_sum, Gal[gal].EjectedMass = %e, %e\n", eject_sum, Gal[gal].EjectedMass);
-        assert((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass));
+//        eject_sum = 0.0;
+//        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[gal].EjectedMass_Reinc[kk];
+//        if (!((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass))) printf("eject_sum, Gal[gal].EjectedMass = %e, %e\n", eject_sum, Gal[gal].EjectedMass);
+//        assert((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass));
 
 
         }
@@ -272,17 +281,20 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
               Gal[gal].EjectedMass = 0.0;
               Gal[gal].MetalsEjectedMass = 0.0;
             
+            if(ReincorporationModel==5)
+            {
               for(k=k_now; k<=N_AGE_BINS; k++)
               {
                 Gal[gal].EjectedMass_Reinc[k] = 0.0;
                 Gal[gal].MetalsEjectedMass_Reinc[k] = 0.0;
               }
+            }
         }
         
-        eject_sum = 0.0;
-        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[gal].EjectedMass_Reinc[kk];
-        if (!((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass))) printf("eject_sum, Gal[gal].EjectedMass = %e, %e\n", eject_sum, Gal[gal].EjectedMass);
-        assert((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass));
+//        eject_sum = 0.0;
+//        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[gal].EjectedMass_Reinc[kk];
+//        if (!((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass))) printf("eject_sum, Gal[gal].EjectedMass = %e, %e\n", eject_sum, Gal[gal].EjectedMass);
+//        assert((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass));
 
           
           assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);

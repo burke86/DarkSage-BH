@@ -83,8 +83,8 @@ def load_space_and_particles(tracks_dir, space_file):
     if space.shape[0] != pos.shape[1]:
         raise ValueError("Particles have different dimensionality than space")
         
-    print('Ordered fits:\n -Likelihood,', space['name'])
-    print(np.column_stack((np.sort(fx, axis=None), np.moveaxis(pos,1,-1)[np.unravel_index(np.argsort(fx, axis=None), fx.shape)])))
+    print('Ordered fits:\n -logLikelihood,', space['name'])
+    print(np.column_stack((np.log10(np.sort(fx, axis=None)), np.moveaxis(pos,1,-1)[np.unravel_index(np.argsort(fx, axis=None), fx.shape)])))
 
     return space, pos, fx
 
