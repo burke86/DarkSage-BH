@@ -48,7 +48,7 @@ void reincorporate_gas(int centralgal, double dt, double time, int k_now)
       Vhot = (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) / sqrt(Gal[p].R2_hot_av);
       
       if(Gal[p].prevRvir - Gal[p].prevRhot > 0.0)
-          reincTime_fac = pow(dmin(1.0, Gal[p].prevVhot/Vhot) * dmin( 1.0, cube(dmax(Gal[p].prevRvir - sqrt(Gal[p].R2_hot_av), 0.0) / (Gal[p].prevRvir - Gal[p].prevRhot)) ), 1.0/STEPS);
+          reincTime_fac = dmin(1.0, Gal[p].prevVhot/Vhot) * dmin(1.0, dmax(Gal[p].prevRvir - sqrt(Gal[p].R2_hot_av), 0.0) / (Gal[p].prevRvir - Gal[p].prevRhot));
       else
           reincTime_fac = 1.0;
       
@@ -73,12 +73,11 @@ void reincorporate_gas(int centralgal, double dt, double time, int k_now)
 
 //      if(Gal[p].ReincTime <= 0.0) Gal[p].ReincTime = 0.001 * dt; // set to small value for instant reincorporation in next sub-time-step
   }
-  else
+  else if (ReincorporationModel==5)
   {
       for(k=0; k<k_now; k++) assert(Gal[p].EjectedMass_Reinc[k] <= 0);
       
       // halo expansion should speed things up.  Mixing implicity happens between ejecta here too
-      Vhot = (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) / sqrt(Gal[p].R2_hot_av);      
       double frac_drop = pow(Gal[p].Rvir / Gal[p].prevRvir, 2.0/STEPS) - 1.0;
       
       if (frac_drop >= 1.0)
@@ -137,6 +136,19 @@ void reincorporate_gas(int centralgal, double dt, double time, int k_now)
       if(!(reincorporated >= 0)) printf("reincorporated, Gal[p].EjectedMass_Reinc[k_now] = %e, %e\n", reincorporated, Gal[p].EjectedMass_Reinc[k_now]);
       assert(reincorporated >= 0);
   }
+  else
+  {
+      double DeltaR = Gal[p].R_ejec_av - sqrt(Gal[p].R2_hot_av);
+      if(DeltaR>0)
+      {
+          Vhot = (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) / sqrt(Gal[p].R2_hot_av);
+          reincorporated = Gal[p].EjectedMass * (pow(1.0 - DeltaR/(Gal[p].R_ejec_av - Gal[p].prevRhot), 1.0/STEPS) + dt*Vhot/DeltaR);
+      }
+      else
+      {
+          reincorporated = Gal[p].EjectedMass;
+      }
+  }
 
     
   if(reincorporated > 0.0)
@@ -144,7 +156,7 @@ void reincorporate_gas(int centralgal, double dt, double time, int k_now)
     check_ejected(centralgal);
     if(reincorporated < Gal[p].EjectedMass)
     {
-        if(ReincorporationModel<5)
+        if(ReincorporationModel!=5)
         {
             metallicity = get_metallicity(Gal[p].EjectedMass, Gal[p].MetalsEjectedMass);
             assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
@@ -173,6 +185,7 @@ void reincorporate_gas(int centralgal, double dt, double time, int k_now)
         Gal[p].MetalsHotGas += Gal[p].MetalsEjectedMass;
         Gal[p].EjectedMass = 0.0;
         Gal[p].MetalsEjectedMass = 0.0;
+        Gal[p].R_ejec_av = Gal[p].Rvir;
         
         if(ReincorporationModel==5)
         {

@@ -13,8 +13,8 @@ warnings.filterwarnings("ignore")
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
 #indir = '/Users/adam/DarkSage/output/results/millennium/'
-#indir = '/Users/adam/DarkSage_runs/TNG300/2/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/41/'
+#indir = '/Users/adam/DarkSage_runs/TNG100-2/1/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/52/'
 sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
@@ -90,7 +90,12 @@ elif sim==6:
     vol = (205.0/h)**3 * len(filenumbers)/128.
     Omega_M = 0.3089
     Omega_L = 0.6911
-# add here 'elif sim==7:' etc for a new simulation
+elif sim==7:
+    h = 0.6774
+    vol = (75.0/h)**3 * len(filenumbers)/16.
+    Omega_M = 0.3089
+    Omega_L = 0.6911
+# add here 'elif sim==8:' etc for a new simulation
 else:
     print('Please specify a valid simulation.  You may need to add its defaults to this code.')
     quit()
