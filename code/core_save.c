@@ -362,7 +362,8 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
     bb = -2 * a_ICS * sqr(g->Rvir);
     cc = -sqr(a_ICS) * sqr(g->Rvir);
     o->HalfMassRadiusICS = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
-
+    
+    o->R_ejec_av = g->R_ejec_av;
 
   o->SfrFromH2 = 0.0;
   o->SfrInstab = 0.0;
@@ -530,6 +531,8 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     cc = -sqr(a_ICS) * sqr(g->Rvir);
     o->HalfMassRadiusICS = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
     
+    o->R_ejec_av = g->R_ejec_av;
+
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;
   o->StarsMergeBurst = g->StarsMergeBurst;

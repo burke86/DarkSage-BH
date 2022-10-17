@@ -14,7 +14,7 @@ void reincorporate_gas(int centralgal, double dt, double time, int k_now)
 {
     // use of "centralgal" here as a label is from old code, when this wasn't called for satelites.  This can now be called for any galaxy.
     int p = centralgal;
-  double reincorporated, metallicity, eject_sum, eject_metals_sum;
+  double reincorporated, metallicity, eject_sum, eject_metals_sum, reincTime_fac, Vhot;
     int k, kk;
     
 //    eject_sum = 0.0;
@@ -45,18 +45,40 @@ void reincorporate_gas(int centralgal, double dt, double time, int k_now)
   else if ((ReincorporationModel==3) || (ReincorporationModel==4))
   {
 //      double reincTime_fac = dmin( pow(Gal[p].prevRvir / Gal[p].Rvir, 2.0/STEPS) , 1.0) ;
-      double Vhot = (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) / sqrt(Gal[p].R2_hot_av);
-      double reincTime_fac = dmax( dmin(Gal[p].prevVhot * (Gal[p].prevRvir - sqrt(Gal[p].R2_hot_av)) / (Vhot * (Gal[p].prevRvir - Gal[p].prevRhot)) , 1.0), 0.0);
+      Vhot = (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) / sqrt(Gal[p].R2_hot_av);
+      
+      if(Gal[p].prevRvir - Gal[p].prevRhot > 0.0)
+          reincTime_fac = pow(dmin(1.0, Gal[p].prevVhot/Vhot) * dmin( 1.0, cube(dmax(Gal[p].prevRvir - sqrt(Gal[p].R2_hot_av), 0.0) / (Gal[p].prevRvir - Gal[p].prevRhot)) ), 1.0/STEPS);
+      else
+          reincTime_fac = 1.0;
+      
+      if(!((reincTime_fac <= 1.0)*(reincTime_fac >= 0.0))) 
+      {
+          printf("reincTime_fac = %e\n", reincTime_fac);
+          printf("Vhot, Gal[p].prevRvir, Gal[p].prevRhot = %e, %e, %e\n", Vhot, Gal[p].prevRvir, Gal[p].prevRhot);
+      }
+      assert(reincTime_fac <= 1.0);
+      assert(reincTime_fac >= 0.0);
       Gal[p].ReincTime *= reincTime_fac;  // reduce reincorporation time to account for halo growth
-      reincorporated = Gal[p].EjectedMass * dt / Gal[p].ReincTime;
-      Gal[p].ReincTime -= dt; // time to reincorporate what's left is reduced by the time that has elapsed
-      if(Gal[p].ReincTime <= 0.0) Gal[p].ReincTime = 0.001 * dt; // set to small value for instant reincorporation in next sub-time-step
+      if(Gal[p].ReincTime <= 0.0 || dt >= Gal[p].ReincTime)
+      {
+          reincorporated = Gal[p].EjectedMass;
+          Gal[p].ReincTime = 0.0;
+      }
+      else
+      {
+          reincorporated = Gal[p].EjectedMass * dt / Gal[p].ReincTime;
+          Gal[p].ReincTime -= dt; // time to reincorporate what's left is reduced by the time that has elapsed
+      }
+
+//      if(Gal[p].ReincTime <= 0.0) Gal[p].ReincTime = 0.001 * dt; // set to small value for instant reincorporation in next sub-time-step
   }
   else
   {
       for(k=0; k<k_now; k++) assert(Gal[p].EjectedMass_Reinc[k] <= 0);
       
       // halo expansion should speed things up.  Mixing implicity happens between ejecta here too
+      Vhot = (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) / sqrt(Gal[p].R2_hot_av);      
       double frac_drop = pow(Gal[p].Rvir / Gal[p].prevRvir, 2.0/STEPS) - 1.0;
       
       if (frac_drop >= 1.0)

@@ -221,6 +221,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].prevRvir = 0.0;
     Gal[p].prevRhot = 0.0;
     Gal[p].prevVhot = 0.0;
+    Gal[p].R_ejec_av = Gal[p].Rvir;
     
 }
 

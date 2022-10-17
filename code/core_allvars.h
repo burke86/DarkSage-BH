@@ -109,6 +109,7 @@ struct GALAXY_OUTPUT
     float HalfMassRadiusInstabilityBulge;
     float HalfMassRadiusMergerBulge;
     float HalfMassRadiusICS;
+    float R_ejec_av;
     
     // inflow/outflow tracking
 //    float AccretedGasMass;
@@ -237,6 +238,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
     float HalfMassRadiusInstabilityBulge;
     float HalfMassRadiusMergerBulge;
     float HalfMassRadiusICS;
+    float R_ejec_av;
 
   // metals
   float MetalsColdGas;
@@ -359,6 +361,7 @@ struct GALAXY
     double a_InstabBulge;
     double a_MergerBulge;
     double R_ICS_av;
+    double R_ejec_av;
     
     // inflow/outflow tracking
     double AccretedGasMass;
