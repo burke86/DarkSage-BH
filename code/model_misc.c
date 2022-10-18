@@ -1088,7 +1088,15 @@ void update_gasdisc_scaleradius(int p)
 double NFW_potential(int p, double r)
 {
     double pot_energy = - G * Gal[p].Mvir / r * log(1.0 + r/Gal[p].HaloScaleRadius) / (log(1.0+Gal[p].Rvir/Gal[p].HaloScaleRadius) - Gal[p].Rvir/(Gal[p].Rvir+Gal[p].HaloScaleRadius));
+    
+    if(!(pot_energy<=0))
+    {
+        printf("pot_energy = %e\n", pot_energy);
+        printf("p, r, Rvir = %i, %e, %e\n", p, r, Gal[p].Rvir);
+        printf("Mvir, HaloScaleRadius = %e, %e\n", Gal[p].Mvir, Gal[p].HaloScaleRadius);
+    }
     assert(pot_energy<=0);
+    
     return pot_energy;
 }
 

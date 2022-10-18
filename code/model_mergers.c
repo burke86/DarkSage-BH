@@ -315,7 +315,8 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
         
         if(ejected_mass>=Gal[p].DiscGas[k]) 
         {
-            Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + Gal[p].DiscGas[k] * Gal[pp].Rvir) / (Gal[pp].EjectedMass + Gal[p].DiscGas[k]);
+            if(Gal[pp].EjectedMass + Gal[p].DiscGas[k] > 0)
+                Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + Gal[p].DiscGas[k] * Gal[pp].Rvir) / (Gal[pp].EjectedMass + Gal[p].DiscGas[k]);
             Gal[pp].EjectedMass += Gal[p].DiscGas[k];
             if((MetalMixing) && (Gal[pp].HotGas>0.0))
             {
@@ -357,7 +358,8 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
         else
         {
             ejected_metals = ejected_mass * get_metallicity(Gal[p].DiscGas[k], Gal[p].DiscGasMetals[k]);
-            Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + ejected_mass * Gal[pp].Rvir) / (Gal[pp].EjectedMass + ejected_mass);
+            if(Gal[pp].EjectedMass + ejected_mass > 0)
+                Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + ejected_mass * Gal[pp].Rvir) / (Gal[pp].EjectedMass + ejected_mass);
             Gal[pp].EjectedMass += ejected_mass;
             
             if((MetalMixing) && (Gal[pp].HotGas>0.0))
@@ -407,7 +409,8 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
     { // eject the entire hot reservoir
 
         if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(pp, Gal[p].HotGas, time, k_now, metallicity);
-        Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + Gal[p].HotGas * Gal[pp].Rvir) / (Gal[pp].EjectedMass + Gal[p].HotGas);
+        if(Gal[pp].EjectedMass + Gal[p].HotGas > 0)
+            Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + Gal[p].HotGas * Gal[pp].Rvir) / (Gal[pp].EjectedMass + Gal[p].HotGas);
         Gal[pp].EjectedMass += Gal[p].HotGas;
         Gal[pp].MetalsEjectedMass += Gal[p].MetalsHotGas;
         
@@ -424,7 +427,8 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
         ejected_metals = ejected_mass * Gal[p].MetalsHotGas / Gal[p].HotGas;
 
         if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(pp, ejected_mass, time, k_now, metallicity);
-        Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + ejected_mass * Gal[pp].Rvir) / (Gal[pp].EjectedMass + ejected_mass);
+        if(Gal[pp].EjectedMass + ejected_mass > 0)
+            Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + ejected_mass * Gal[pp].Rvir) / (Gal[pp].EjectedMass + ejected_mass);
         Gal[pp].EjectedMass += ejected_mass;
         Gal[pp].MetalsEjectedMass += ejected_metals;
         
