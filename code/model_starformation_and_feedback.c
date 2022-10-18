@@ -233,8 +233,9 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
     
     double reheated_mass, ejected_cold_mass, ejected_mass, fac, Sigma_0gas;
     double energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, eject_specific_energy, escape_velocity2, vertical_velocity;//, VV, specific_energy_ratio, a, b, c, bracket_term, discriminant; // for new feedback recipe
-    double reheated_mass_old, v_wind2, v_therm2, two_vv, v_launch, m_return, v_wind, new_ejected_specific_energy, new_ejected_potential;
+    double reheated_mass_old, v_wind2, v_therm2, two_vv, v_launch, m_return, v_wind, new_ejected_specific_energy, new_ejected_potential, R_guess, R_min, R_max, pot_guess;
     int iter;
+    int update_Rejec = 0;
     
     if(max_consume > Gal[p].DiscGas[i])
         max_consume = Gal[p].DiscGas[i];
@@ -284,33 +285,53 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
                 m_return = RecycleFraction * stars;
                 v_launch = sqrt(energy_feedback * 2.0 / m_return); // launch velocity of returned gas based on pure energy
                 v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir));
-                ejected_cold_mass = m_return * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
-                reheated_mass = m_return * v_launch / v_wind - ejected_cold_mass;
-                new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
                 
-                assert(new_ejected_specific_energy >= ejected_specific_energy);
-                
-                new_ejected_potential = ejected_specific_energy - (hot_specific_energy - Gal[p].HotGasPotential);
-                
-                // iterate until the new ejected radius is found based on the average potential it must have
-                double R_guess, R_min, R_max, pot_guess;
-                R_min = Gal[p].Rvir;
-                R_max = 10 * Gal[p].Rvir;
-                for(iter=0; iter<200; iter++)
+                if(sqr(annulus_velocity + v_wind) < escape_velocity2)
                 {
-                    R_guess = 0.5 * (R_min + R_max);
-                    pot_guess = NFW_potential(p, R_guess);
-                    
-                    if(fabs((pot_guess-new_ejected_potential)/new_ejected_potential) < 1e-3)
-                        break;
-                    
-                    if(pot_guess > new_ejected_potential)
-                        R_max = R_guess;
-                    else
-                        R_min = R_guess;
-                    
+                    ejected_cold_mass = 0.0;
+                    new_ejected_specific_energy = 0.0;
+                    reheated_mass = energy_feedback / reheat_specific_energy;
+                    update_Rejec = 0;
                 }
-                Gal[p].R_ejec_av = (R_guess * ejected_cold_mass + Gal[p].R_ejec_av * Gal[p].EjectedMass) / (ejected_cold_mass + Gal[p].EjectedMass); // update average ejected radius (mass is updated elsewhere)
+                else if(sqr(annulus_velocity - v_wind) > escape_velocity2)
+                {
+                    reheated_mass = 0.0;
+                    new_ejected_specific_energy = 0.5 * (sqr(Gal[p].Vvir) + sqr(v_wind));
+                    ejected_cold_mass = energy_feedback / (new_ejected_specific_energy - cold_specific_energy);
+                    update_Rejec = 1;
+                }
+                else
+                {
+                    ejected_cold_mass = m_return * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
+                    reheated_mass = m_return * v_launch / v_wind - ejected_cold_mass;
+                    new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
+                    update_Rejec = 1;
+                }
+                
+                if(update_Rejec==1)
+                {
+                    assert(new_ejected_specific_energy >= ejected_specific_energy); // checks that the new calculation is at least equal to the old method (which should have in principle been a lower limit) 
+                    
+                    new_ejected_potential = new_ejected_specific_energy - (hot_specific_energy - Gal[p].HotGasPotential);
+                    
+                    // iterate until the new ejected radius is found based on the average potential it must have
+                    R_min = Gal[p].Rvir;
+                    R_max = 10 * Gal[p].Rvir;
+                    for(iter=0; iter<200; iter++)
+                    {
+                        R_guess = 0.5 * (R_min + R_max);
+                        pot_guess = NFW_potential(p, R_guess);
+                        
+                        if(fabs((pot_guess-new_ejected_potential)/new_ejected_potential) < 1e-3)
+                            break;
+                        
+                        if(pot_guess > new_ejected_potential)
+                            R_max = R_guess;
+                        else
+                            R_min = R_guess;
+                        
+                    }
+                }
 
             
             
@@ -438,6 +459,9 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
       ejected_cold_mass = 0.0;
     }
     
+    if(update_Rejec==1)
+        Gal[p].R_ejec_av = (R_guess * ejected_cold_mass + Gal[p].R_ejec_av * Gal[p].EjectedMass) / (ejected_cold_mass + Gal[p].EjectedMass); // update average ejected radius (mass is updated elsewhere)
+
     feedback_mass[0] = reheated_mass;
     feedback_mass[1] = ejected_mass;
     feedback_mass[2] = stars;
@@ -1362,9 +1386,12 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 {
     int k, i;
     double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, ejected_specific_energy, excess_energy, return_metal_mass, new_metals, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
-    double reheated_mass_old, v_wind2, v_therm2, two_vv, vertical_velocity;
+    double reheated_mass_old, v_wind2, v_therm2, two_vv, vertical_velocity, inv_eject_feedback_specific_energy, energy_onto_hot, returned_mass_hot, returned_mass_cold, R_guess, R_min, R_max, pot_guess, ejected_sum;
     double StellarOutput[2];
-    
+    double m_return, v_launch, v_wind, new_ejected_specific_energy, new_ejected_potential;
+    int update_Rejec = 0;
+    int iter;
+
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     
     assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
@@ -1385,7 +1412,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
         hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
         hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
-        ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
+        ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic; // default, but generally updated
     }
     
     if(!(ejected_specific_energy>hot_specific_energy))
@@ -1416,8 +1443,10 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         assert(ReturnFraction[k]<FinalRecycleFraction);
     }
         
-    double ejected_sum = 0.0;
-    double inv_eject_feedback_specific_energy = FeedbackEjectCoupling / (ejected_specific_energy - hot_specific_energy);
+    energy_onto_hot = 0.0; // add to this field to find the total energy directly imparted onto the CGM from spheroid stars
+    returned_mass_hot = 0.0; // total mass returned directly into the CGM from spheroid stars
+    
+//    inv_eject_feedback_specific_energy = FeedbackEjectCoupling / (ejected_specific_energy - hot_specific_energy);
         
     // capture the energy from feedback associated with bulge stars and add stellar mass loss to hot component
     for(k=N_AGE_BINS-1; k>k_now; k--)
@@ -1425,11 +1454,12 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         // deal with stellar outflow from merger-driven bulge
         if(Gal[p].ClassicalBulgeMassAge[k]>0)
         {
-            ejected_sum += (FeedbackReheatCoupling * Gal[p].ClassicalBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k] * inv_eject_feedback_specific_energy); // energy from feedback of these stars goes to ejecting hot gas
+            energy_onto_hot += (FeedbackReheatCoupling * Gal[p].ClassicalBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k]); // energy from feedback of these stars goes to ejecting hot gas
             metallicity = get_metallicity(Gal[p].ClassicalBulgeMassAge[k], Gal[p].ClassicalMetalsBulgeMassAge[k]);
             
             return_mass = ReturnFraction[k] * Gal[p].ClassicalBulgeMassAge[k];
             return_metal_mass = ReturnFraction[k] * Gal[p].ClassicalMetalsBulgeMassAge[k];
+            returned_mass_hot += return_mass;
             
             Gal[p].ClassicalBulgeMassAge[k] -= return_mass;
             Gal[p].ClassicalBulgeMass -= return_mass;
@@ -1456,11 +1486,12 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         // same for instability-driven bulge
         if(Gal[p].SecularBulgeMassAge[k]>0)
         {
-            ejected_sum += (FeedbackReheatCoupling * Gal[p].SecularBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k] * inv_eject_feedback_specific_energy);
+            energy_onto_hot += (FeedbackReheatCoupling * Gal[p].SecularBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k]);
             metallicity = get_metallicity(Gal[p].SecularBulgeMassAge[k], Gal[p].SecularMetalsBulgeMassAge[k]);
             
             return_mass = ReturnFraction[k] * Gal[p].SecularBulgeMassAge[k];
             return_metal_mass = ReturnFraction[k] * Gal[p].SecularMetalsBulgeMassAge[k];
+            returned_mass_hot += return_mass;
             
             Gal[p].SecularBulgeMassAge[k] -= return_mass;
             Gal[p].SecularBulgeMass -= return_mass;
@@ -1479,11 +1510,12 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         // same for intracluster stars
         if(Gal[p].ICS_Age[k]>0)
         {
-            ejected_sum += (FeedbackReheatCoupling * Gal[p].ICS_Age[k] * EnergySNcode * SNperMassRemaining[k] * inv_eject_feedback_specific_energy);
+            energy_onto_hot += (FeedbackReheatCoupling * Gal[p].ICS_Age[k] * EnergySNcode * SNperMassRemaining[k]);
             metallicity = get_metallicity(Gal[p].ICS_Age[k], Gal[p].MetalsICS_Age[k]);
             
             return_mass = ReturnFraction[k] * Gal[p].ICS_Age[k];
             return_metal_mass = ReturnFraction[k] * Gal[p].MetalsICS_Age[k];
+            returned_mass_hot += return_mass;
             
             Gal[p].ICS_Age[k] -= return_mass;
             Gal[p].ICS -= return_mass;
@@ -1522,6 +1554,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     {
         // initialise for this annulus
         energy_feedback = 0.0;
+        returned_mass_cold = 0.0;
         
         // relevant energy quantities for this annulus
         annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
@@ -1555,6 +1588,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             metallicity = get_metallicity(Gal[p].DiscStarsAge[i][k], Gal[p].DiscStarsMetalsAge[i][k]);
             return_mass = ReturnFraction[k] * Gal[p].DiscStarsAge[i][k];
             return_metal_mass = ReturnFraction[k] * Gal[p].DiscStarsMetalsAge[i][k];
+            returned_mass_cold += return_mass;
             
             Gal[p].DiscStars[i] -= return_mass;
             Gal[p].DiscStarsAge[i][k] -= return_mass;
@@ -1582,49 +1616,101 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         if(energy_feedback<=0) continue;
         
         // new terms to calculate directly ejected component
-        if(reheat_specific_energy>0 && eject_specific_energy>0)
+        if(reheat_specific_energy>0)
         {            
             // initialise for while-loop
-            int iter;
-            reheated_mass_old = 0.999 * energy_feedback / reheat_specific_energy;
-            reheated_mass = 0.5 * energy_feedback / reheat_specific_energy;
             
-            for(iter=0; iter<200; iter++)
+            v_launch = sqrt(energy_feedback * 2.0 / returned_mass_cold); // launch velocity of returned gas based on pure energy
+            v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir));
+
+            if(sqr(annulus_velocity + v_wind) < escape_velocity2)
             {
-                assert(!(eject_specific_energy<=0));
-                ejected_cold_mass = (energy_feedback - reheated_mass_old * reheat_specific_energy) / eject_specific_energy;
-                v_wind2 = 2.0 * energy_feedback / (ejected_cold_mass + reheated_mass_old) - v_therm2;
-
-                // wind too slow for ejection
-                if(!(ejected_cold_mass>0.0 && v_wind2>0.0))
-                {
-                    reheated_mass = energy_feedback / reheat_specific_energy;
-                    ejected_cold_mass = 0.0;
-                    break;
-                }
-                
-                
-                assert(ejected_cold_mass + reheated_mass_old > 0);
-                
-                assert(annulus_velocity>0);
-                assert(v_wind2>0);
-                two_vv = 2 * annulus_velocity * sqrt(v_wind2);
-                reheated_mass =  ejected_cold_mass * ( 1.0 / (0.5 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (2*two_vv) ) - 1.0);
-
-
-                // when the wind is so fast everything gets ejected
-                if(!(reheated_mass>0.0))
-                {
-                    ejected_cold_mass = energy_feedback / eject_specific_energy;
-                    reheated_mass = 0.0;
-                    break;
-                }
-                
-                if(fabs(reheated_mass-reheated_mass_old)/reheated_mass < 1e-3) break;
-                
-                reheated_mass_old = 1.0 * reheated_mass;
-                
+                ejected_cold_mass = 0.0;
+                new_ejected_specific_energy = 0.0;
+                reheated_mass = energy_feedback / reheat_specific_energy;
+                update_Rejec = 0;
             }
+            else if(sqr(annulus_velocity - v_wind) > escape_velocity2)
+            {
+                reheated_mass = 0.0;
+                new_ejected_specific_energy = 0.5 * (sqr(Gal[p].Vvir) + sqr(v_wind));
+                ejected_cold_mass = energy_feedback / (new_ejected_specific_energy - cold_specific_energy);
+                update_Rejec = 1;
+            }
+            else
+            {
+                ejected_cold_mass = returned_mass_cold * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
+                reheated_mass = returned_mass_cold * v_launch / v_wind - ejected_cold_mass;
+                new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
+                update_Rejec = 1;
+            }
+            
+            if(update_Rejec)
+            {
+                assert(new_ejected_specific_energy >= ejected_specific_energy); // checks that the new calculation is at least equal to the old method (which should have in principle been a lower limit) 
+                
+                new_ejected_potential = new_ejected_specific_energy - (hot_specific_energy - Gal[p].HotGasPotential);
+                
+                // iterate until the new ejected radius is found based on the average potential it must have
+                R_min = Gal[p].Rvir;
+                R_max = 10 * Gal[p].Rvir;
+                for(iter=0; iter<200; iter++)
+                {
+                    R_guess = 0.5 * (R_min + R_max);
+                    pot_guess = NFW_potential(p, R_guess);
+                    
+                    if(fabs((pot_guess-new_ejected_potential)/new_ejected_potential) < 1e-3)
+                        break;
+                    
+                    if(pot_guess > new_ejected_potential)
+                        R_max = R_guess;
+                    else
+                        R_min = R_guess;
+                    
+                }
+            }
+
+
+            
+//            reheated_mass_old = 0.999 * energy_feedback / reheat_specific_energy;
+//            reheated_mass = 0.5 * energy_feedback / reheat_specific_energy;
+//            
+//            for(iter=0; iter<200; iter++)
+//            {
+//                assert(!(eject_specific_energy<=0));
+//                ejected_cold_mass = (energy_feedback - reheated_mass_old * reheat_specific_energy) / eject_specific_energy;
+//                v_wind2 = 2.0 * energy_feedback / (ejected_cold_mass + reheated_mass_old) - v_therm2;
+//
+//                // wind too slow for ejection
+//                if(!(ejected_cold_mass>0.0 && v_wind2>0.0))
+//                {
+//                    reheated_mass = energy_feedback / reheat_specific_energy;
+//                    ejected_cold_mass = 0.0;
+//                    break;
+//                }
+//                
+//                
+//                assert(ejected_cold_mass + reheated_mass_old > 0);
+//                
+//                assert(annulus_velocity>0);
+//                assert(v_wind2>0);
+//                two_vv = 2 * annulus_velocity * sqrt(v_wind2);
+//                reheated_mass =  ejected_cold_mass * ( 1.0 / (0.5 - (escape_velocity2 - v_wind2 - sqr(annulus_velocity)) / (2*two_vv) ) - 1.0);
+//
+//
+//                // when the wind is so fast everything gets ejected
+//                if(!(reheated_mass>0.0))
+//                {
+//                    ejected_cold_mass = energy_feedback / eject_specific_energy;
+//                    reheated_mass = 0.0;
+//                    break;
+//                }
+//                
+//                if(fabs(reheated_mass-reheated_mass_old)/reheated_mass < 1e-3) break;
+//                
+//                reheated_mass_old = 1.0 * reheated_mass;
+//                
+//            }
         }
         else if(eject_specific_energy>0)
         {
@@ -1650,6 +1736,11 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         }
         
         assert(reheated_mass>=0);
+        
+        // update average ejected radius from ISM-based feedback
+        if(update_Rejec)
+            Gal[p].R_ejec_av = (R_guess * ejected_cold_mass + Gal[p].R_ejec_av * Gal[p].EjectedMass) / (ejected_cold_mass + Gal[p].EjectedMass);
+
  
         // apply feedback
         metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
@@ -1658,16 +1749,55 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass, time, k_now);
         
-        // excess energy that goes into gas ejection from this annulus
-        excess_energy = energy_feedback - reheat_specific_energy * reheated_mass - eject_specific_energy * ejected_cold_mass;
-        ejected_sum += (excess_energy * inv_eject_feedback_specific_energy);
+        
+        
+        
+        // excess energy that goes into gas ejection from this annulus -- should be zero!
+//        excess_energy = energy_feedback - reheat_specific_energy * reheated_mass - eject_specific_energy * ejected_cold_mass;
+//        ejected_sum += (excess_energy * inv_eject_feedback_specific_energy);
         
     }
     
-    if(ejected_sum < Gal[centralgal].HotGas)
+    // should probably rename, but is the amount of gas ejected from the CGM from spheroid-star feedback
+    // assume the gas ejected from this will end up with the same specific energy as the stuff that was ejected from the ISM.  If none was ejected from the ISM, then take the default value for ejected gas
+    eject_specific_energy = NFW_potential(p, Gal[p].R_ejec_av) - Gal[p].HotGasPotential;
+    if(HeatedToCentral>0) eject_specific_energy += satellite_specific_energy;
+    if(eject_specific_energy <= 0)
+    {
+        if(HeatedToCentral==0)
+            eject_specific_energy = Gal[p].EjectedPotential - Gal[p].HotGasPotential; // the EjectedPotential field currently is actually the potential at Rvir
+        else
+            eject_specific_energy = Gal[centralgal].EjectedPotential - Gal[p].HotGasPotential; // the EjectedPotential field currently is actually the potential at Rvir
+    }
+    ejected_sum = energy_onto_hot / eject_specific_energy;
+    
+    if(ejected_sum < Gal[p].HotGas)
         update_from_ejection(p, centralgal, ejected_sum, time, k_now);
     else
-        update_from_ejection(p, centralgal, Gal[centralgal].HotGas, time, k_now);
+    {
+        new_ejected_potential = Gal[p].HotGasPotential + energy_onto_hot / Gal[p].HotGas;
+        
+        R_min = Gal[p].Rvir;
+        R_max = 10 * Gal[p].Rvir;
+        for(iter=0; iter<200; iter++)
+        {
+            R_guess = 0.5 * (R_min + R_max);
+            pot_guess = NFW_potential(p, R_guess);
+            
+            if(fabs((pot_guess-new_ejected_potential)/new_ejected_potential) < 1e-3)
+                break;
+            
+            if(pot_guess > new_ejected_potential)
+                R_max = R_guess;
+            else
+                R_min = R_guess;
+            
+        }
+        
+        Gal[p].R_ejec_av = (R_guess * Gal[p].HotGas + Gal[p].R_ejec_av * Gal[p].EjectedMass) / (Gal[p].HotGas + Gal[p].EjectedMass); // update average ejected radius (mass is updated elsewhere)
+
+        update_from_ejection(p, centralgal, Gal[p].HotGas, time, k_now);
+    }
         
     update_stellar_dispersion(p);
     
