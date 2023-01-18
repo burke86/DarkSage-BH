@@ -519,24 +519,12 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
     // these 2 terms only used when SupernovaRecipeOn>=3
     double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
     
-    if(HeatedToCentral>0)
-    {
-        satellite_specific_energy = get_satellite_potential(p, centralgal);
-        j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
-        hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-        ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-    }
-    else
-    {
-        satellite_specific_energy = 0.0;
-        j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
-        hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
-        ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
-    }
-
-  
+    satellite_specific_energy = 0.0;
+    j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
+    hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
+    ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
+    
 	// Let gas sink -- one may well want to change this formula
     gas_sink = GasSinkRate * unstable_gas;
     if(!(gas_sink<=unstable_gas && gas_sink >=0.0)) printf("gas_sink, unstable_gas = %e, %e\n", gas_sink, unstable_gas);

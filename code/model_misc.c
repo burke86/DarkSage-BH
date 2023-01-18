@@ -79,6 +79,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].SecularBulgeMass = 0.0;
     Gal[p].StarsExSitu = 0.0;
     Gal[p].HotGas = 0.0;
+    Gal[p].ReheatedGas = 0.0;
     Gal[p].EjectedMass = 0.0;
     Gal[p].LocalIGM = 0.0;
     Gal[p].BlackHoleMass = 0.0;

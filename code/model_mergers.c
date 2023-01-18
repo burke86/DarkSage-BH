@@ -255,11 +255,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
     double annulus_radius, annulus_velocity, cold_specific_energy, ejected_specific_energy, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, hot_specific_energy, ejected_mass, ejected_metals, Delta_specific_energy, vertical_velocity, Rsat;
     int k, pp, kk;
 //    double eject_sum=0.0;
-    
-    if(HeatedToCentral)
-        pp = centralgal;
-    else
-        pp = p;
+
 
 
     // checks -- are these still necessary?
@@ -281,7 +277,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
     else
         Rsat = 1.1 * Gal[centralgal].Rvir; // set to ensure the reincorporation time is properly done -- not to be taken as a literal assignment
 
-    if((HeatedToCentral>0) && (p!=centralgal))
+    if(p!=centralgal)
     {
         satellite_specific_energy = get_satellite_potential(p, centralgal);
         j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
@@ -315,23 +311,10 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
         
         if(ejected_mass>=Gal[p].DiscGas[k]) 
         {
-            if(Gal[pp].EjectedMass + Gal[p].DiscGas[k] > 0)
-                Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + Gal[p].DiscGas[k] * Gal[pp].Rvir) / (Gal[pp].EjectedMass + Gal[p].DiscGas[k]);
-            Gal[pp].EjectedMass += Gal[p].DiscGas[k];
-            if((MetalMixing) && (Gal[pp].HotGas>0.0))
-            {
-                Gal[pp].HotGas += Gal[p].DiscGasMetals[k];
-                Gal[pp].MetalsHotGas += Gal[p].DiscGasMetals[k];
-                metallicity = get_metallicity(Gal[pp].HotGas, Gal[pp].MetalsHotGas);
-                Gal[pp].MetalsEjectedMass += metallicity * Gal[p].DiscGas[k];
-                Gal[pp].HotGas -= metallicity * Gal[p].DiscGas[k];
-                Gal[pp].MetalsHotGas -= metallicity * Gal[p].DiscGas[k];
-                
-                if(Gal[pp].HotGas < 0.0) Gal[pp].HotGas = Gal[pp].MetalsHotGas = 0.0;
-                if(Gal[pp].MetalsHotGas < 0.0) Gal[pp].MetalsHotGas = 0.0;
-            }
-            else
-                Gal[pp].MetalsEjectedMass += Gal[p].DiscGasMetals[k];
+            if(Gal[p].EjectedMass + Gal[p].DiscGas[k] > 0)
+                Gal[p].R_ejec_av = (Gal[p].EjectedMass * Gal[p].R_ejec_av + Gal[p].DiscGas[k] * Gal[p].Rvir) / (Gal[p].EjectedMass + Gal[p].DiscGas[k]);
+            Gal[p].EjectedMass += Gal[p].DiscGas[k];
+            Gal[p].MetalsEjectedMass += Gal[p].DiscGasMetals[k];
             
             if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(pp, Gal[p].DiscGas[k], time, k_now, metallicity);
             
@@ -358,24 +341,10 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
         else
         {
             ejected_metals = ejected_mass * get_metallicity(Gal[p].DiscGas[k], Gal[p].DiscGasMetals[k]);
-            if(Gal[pp].EjectedMass + ejected_mass > 0)
-                Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + ejected_mass * Gal[pp].Rvir) / (Gal[pp].EjectedMass + ejected_mass);
-            Gal[pp].EjectedMass += ejected_mass;
-            
-            if((MetalMixing) && (Gal[pp].HotGas>0.0))
-            {
-                Gal[pp].HotGas += ejected_metals;
-                Gal[pp].MetalsHotGas += ejected_metals;
-                metallicity = get_metallicity(Gal[pp].HotGas, Gal[pp].MetalsHotGas);
-                Gal[pp].MetalsEjectedMass += metallicity * ejected_mass;
-                Gal[pp].HotGas -= metallicity * ejected_mass;
-                Gal[pp].MetalsHotGas -= metallicity * ejected_mass;
-                
-                if(Gal[pp].HotGas < 0.0) Gal[pp].HotGas = Gal[pp].MetalsHotGas = 0.0;
-                if(Gal[pp].MetalsHotGas < 0.0) Gal[pp].MetalsHotGas = 0.0;
-            }
-            else
-                Gal[pp].MetalsEjectedMass += ejected_metals;
+            if(Gal[p].EjectedMass + ejected_mass > 0)
+                Gal[p].R_ejec_av = (Gal[p].EjectedMass * Gal[p].R_ejec_av + ejected_mass * Gal[p].Rvir) / (Gal[p].EjectedMass + ejected_mass);
+            Gal[p].EjectedMass += ejected_mass;
+            Gal[p].MetalsEjectedMass += ejected_metals;
             if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(pp, ejected_mass, time, k_now, metallicity);
             
 //            eject_sum = 0.0;
@@ -409,10 +378,10 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
     { // eject the entire hot reservoir
 
         if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(pp, Gal[p].HotGas, time, k_now, metallicity);
-        if(Gal[pp].EjectedMass + Gal[p].HotGas > 0)
-            Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + Gal[p].HotGas * Gal[pp].Rvir) / (Gal[pp].EjectedMass + Gal[p].HotGas);
-        Gal[pp].EjectedMass += Gal[p].HotGas;
-        Gal[pp].MetalsEjectedMass += Gal[p].MetalsHotGas;
+        if(Gal[p].EjectedMass + Gal[p].HotGas > 0)
+            Gal[p].R_ejec_av = (Gal[p].EjectedMass * Gal[p].R_ejec_av + Gal[p].HotGas * Gal[p].Rvir) / (Gal[p].EjectedMass + Gal[p].HotGas);
+        Gal[p].EjectedMass += Gal[p].HotGas;
+        Gal[p].MetalsEjectedMass += Gal[p].MetalsHotGas;
         
 //        eject_sum = 0.0;
 //        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[centralgal].EjectedMass_Reinc[kk];
@@ -427,10 +396,10 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
         ejected_metals = ejected_mass * Gal[p].MetalsHotGas / Gal[p].HotGas;
 
         if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(pp, ejected_mass, time, k_now, metallicity);
-        if(Gal[pp].EjectedMass + ejected_mass > 0)
-            Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + ejected_mass * Gal[pp].Rvir) / (Gal[pp].EjectedMass + ejected_mass);
-        Gal[pp].EjectedMass += ejected_mass;
-        Gal[pp].MetalsEjectedMass += ejected_metals;
+        if(Gal[p].EjectedMass + ejected_mass > 0)
+            Gal[p].R_ejec_av = (Gal[p].EjectedMass * Gal[p].R_ejec_av + ejected_mass * Gal[p].Rvir) / (Gal[p].EjectedMass + ejected_mass);
+        Gal[p].EjectedMass += ejected_mass;
+        Gal[p].MetalsEjectedMass += ejected_metals;
         
 //        eject_sum = 0.0;
 //        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[centralgal].EjectedMass_Reinc[kk];
@@ -442,8 +411,8 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
 
     }
     
-    // if a satellite and HeatedToCentral is not on, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
-    if( (p!=centralgal) && (HeatedToCentral==0) && (Rsat <= Gal[centralgal].Rvir))
+    // if a satellite, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
+    if( (p!=centralgal) && (Rsat <= Gal[centralgal].Rvir))
     {
         Gal[centralgal].HotGas += Gal[p].EjectedMass;
         Gal[centralgal].MetalsHotGas += Gal[p].MetalsEjectedMass;
@@ -1050,22 +1019,13 @@ void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_cen
     
  // these terms only used when SupernovaRecipeOn>=3
  double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot;
- if(HeatedToCentral>0)
- {
-    satellite_specific_energy = get_satellite_potential(merger_centralgal, centralgal);
-    j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
-    hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-     ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
- }
- else
- {
+
     satellite_specific_energy = 0.0;
     j_hot = 2 * Gal[merger_centralgal].Vvir * Gal[merger_centralgal].CoolScaleRadius;
     hot_thermal_and_kinetic = 0.5 * (sqr(Gal[merger_centralgal].Vvir) + sqr(j_hot)/Gal[merger_centralgal].R2_hot_av);
     hot_specific_energy = Gal[merger_centralgal].HotGasPotential + hot_thermal_and_kinetic;
      ejected_specific_energy = Gal[merger_centralgal].EjectedPotential + hot_thermal_and_kinetic;
- }
+ 
 
 
  stars_sum = 0.0;

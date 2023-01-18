@@ -333,6 +333,7 @@ struct GALAXY
   double SecularBulgeMass;
   double StarsExSitu;
   double HotGas;
+  double ReheatedGas;
   double EjectedMass;
   double BlackHoleMass;
   double LocalIGM;
@@ -518,7 +519,6 @@ extern int    H2prescription;
 extern int    GasPrecessionOn;
 extern int    RamPressureOn;
 extern int    HotStripOn;
-extern int    HeatedToCentral;
 extern int    ReincorporationModel;
 extern int    CoolingExponentialRadiusOn;
 extern int    MvirDefinition;
@@ -526,7 +526,6 @@ extern int    AgeStructOut;
 extern int    DelayedFeedbackOn;
 extern int    HotGasProfileType;
 extern int    MergeTimeScaleForm;
-extern int    MetalMixing;
 
 // recipe parameters 
 extern double RecycleFraction;

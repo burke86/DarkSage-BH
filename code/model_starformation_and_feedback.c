@@ -25,22 +25,12 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
     
   // note that the way I've incorporate energy for a satellite is effectively increase the energy of the hot medium it's trying to go to, rather than decreasing the energy the gas about to be reheated currently sits it.  The net effect is the same.
-  if(HeatedToCentral>0)
-  {
-      satellite_specific_energy = get_satellite_potential(p, centralgal);
-      j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-      hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
-      hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-      ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-  }
-  else
-  {
-      satellite_specific_energy = 0.0;
-      j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-      hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
-      hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
-      ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
-  }
+  satellite_specific_energy = 0.0;
+  j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+  hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
+  hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
+  ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
+  
 
   double StarsPre = Gal[p].StellarMass;
   check_channel_stars(p);
@@ -267,17 +257,9 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
             vertical_velocity = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s;
             cold_specific_energy = 0.5*(sqr(annulus_velocity) + sqr(vertical_velocity) + Gal[p].Potential[i] + Gal[p].Potential[i+1]);
             reheat_specific_energy = hot_specific_energy - cold_specific_energy;
-            
-            if(HeatedToCentral>0 && p!=centralgal)
-            {
-                v_therm2 = sqr(Gal[centralgal].Vvir);
-                escape_velocity2 = -2.0 * (get_satellite_potential(p, centralgal) + Gal[p].Potential[i] - Gal[centralgal].EjectedPotential);
-            }
-            else
-            {
-                v_therm2 = sqr(Gal[p].Vvir);
-                escape_velocity2 = 2.0 * (Gal[p].EjectedPotential - Gal[p].Potential[i]);
-            }
+
+            v_therm2 = sqr(Gal[p].Vvir);
+            escape_velocity2 = 2.0 * (Gal[p].EjectedPotential - Gal[p].Potential[i]);
             
             
             if(reheat_specific_energy>0.0)
@@ -285,7 +267,7 @@ void calculate_feedback_masses(int p, double stars, int i, int centralgal, doubl
                 m_return = RecycleFraction * stars;
                 v_launch = sqrt(energy_feedback * 2.0 / m_return); // launch velocity of returned gas based on pure energy
                 if(0.25*sqr(v_launch) > sqr(Gal[p].Vvir))
-                    v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // HAVEN'T ACCOUNTED FOR HeatedToCentral HERE!!!
+                    v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir));
                 else
                     v_wind = 0.0;
                 
@@ -543,7 +525,7 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
     assert(ejected_cold_mass>=0);
     
     double reheat_eject_sum = reheated_mass + ejected_cold_mass;
-    int pp, kk;
+    int kk;
     double eject_sum=0.0;
     
     double Rsat;
@@ -551,11 +533,6 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
         Rsat = get_satellite_radius(p, centralgal); // should return 0 if a central
     else
         Rsat = 1.1 * Gal[centralgal].Rvir; // set to ensure the reincorporation time is properly done -- not to be taken as a literal assignment
-    
-    if(HeatedToCentral)
-        pp = centralgal;
-    else
-        pp = p;
 
   if(SupernovaRecipeOn>0 && reheat_eject_sum>MIN_STARFORMATION) // Imposing a minimum. Chosen as MIN_STARFORMATION for convenience.  Makes sense to be same order of magnitude though.
   {
@@ -575,81 +552,52 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
         Gal[p].DiscGas[i] = 0.0;
     }
 
-    Gal[pp].HotGas += reheated_mass;
-      if(Gal[pp].EjectedMass + ejected_cold_mass > 0)
-          Gal[pp].R_ejec_av = (Gal[pp].EjectedMass * Gal[pp].R_ejec_av + ejected_cold_mass * Gal[pp].Rvir) / (Gal[pp].EjectedMass + ejected_cold_mass);
-    Gal[pp].EjectedMass += ejected_cold_mass;
+    Gal[p].HotGas += reheated_mass;
+      if(Gal[p].EjectedMass + ejected_cold_mass > 0)
+          Gal[p].R_ejec_av = (Gal[p].EjectedMass * Gal[p].R_ejec_av + ejected_cold_mass * Gal[p].Rvir) / (Gal[p].EjectedMass + ejected_cold_mass);
+    Gal[p].EjectedMass += ejected_cold_mass;
 
 	if(Gal[p].DiscGas[i]>0.0)
 	{
 	  Gal[p].MetalsColdGas -= metallicity * reheat_eject_sum;
       Gal[p].DiscGasMetals[i] -= metallicity * reheat_eject_sum;
 
-      Gal[pp].MetalsHotGas += metallicity * reheated_mass;
-      if((MetalMixing) && (Gal[pp].HotGas>0.0))
-      {
-        Gal[pp].HotGas += metallicity * ejected_cold_mass; // need to add mass to the total reservoir too incase it's insignificant to the metals being added
-        Gal[pp].MetalsHotGas += metallicity * ejected_cold_mass;
-        metallicity = get_metallicity(Gal[pp].HotGas, Gal[pp].MetalsHotGas);
-        Gal[pp].MetalsEjectedMass += metallicity * ejected_cold_mass;
-        Gal[pp].HotGas -= metallicity * ejected_cold_mass;
-        Gal[pp].MetalsHotGas -= metallicity * ejected_cold_mass;
-          
-        if(Gal[pp].HotGas < 0.0) Gal[pp].HotGas = Gal[pp].MetalsHotGas = 0.0;
-        if(Gal[pp].MetalsHotGas < 0.0) Gal[pp].MetalsHotGas = 0.0;
-      }
-      else
-        Gal[pp].MetalsEjectedMass += metallicity * ejected_cold_mass;
-        
-
+      Gal[p].MetalsHotGas += metallicity * reheated_mass;
+      Gal[p].MetalsEjectedMass += metallicity * ejected_cold_mass;
 
         
 	  assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
         
-        if(!(Gal[pp].MetalsHotGas <= Gal[pp].HotGas)) printf("Gal[pp].MetalsHotGas, Gal[pp].HotGas, reheated_mass, metallicity = %e, %e, %e, %e\n", Gal[pp].MetalsHotGas, Gal[pp].HotGas, reheated_mass, metallicity);
-        assert(Gal[pp].MetalsHotGas <= Gal[pp].HotGas);
+        if(!(Gal[p].MetalsHotGas <= Gal[p].HotGas)) printf("Gal[p].MetalsHotGas, Gal[p].HotGas, reheated_mass, metallicity = %e, %e, %e, %e\n", Gal[p].MetalsHotGas, Gal[p].HotGas, reheated_mass, metallicity);
+        assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
 
 	}
 	else
 	{
-      if((MetalMixing) && (Gal[pp].HotGas>0.0))
-      {
-        Gal[pp].HotGas += Gal[p].DiscGasMetals[i];
-        Gal[pp].MetalsHotGas += Gal[p].DiscGasMetals[i];
-        metallicity = get_metallicity(Gal[pp].HotGas, Gal[pp].MetalsHotGas);
-        Gal[pp].MetalsEjectedMass += metallicity * ejected_cold_mass;
-        Gal[pp].HotGas -= metallicity * ejected_cold_mass;
-        Gal[pp].MetalsHotGas -= metallicity * ejected_cold_mass;
-          
-        if(Gal[pp].HotGas < 0.0) Gal[pp].HotGas = Gal[pp].MetalsHotGas = 0.0;
-        if(Gal[pp].MetalsHotGas < 0.0) Gal[pp].MetalsHotGas = 0.0;
-      }
-      else
-      {
-        Gal[pp].MetalsHotGas += Gal[p].DiscGasMetals[i] * reheated_mass/reheat_eject_sum;
-        Gal[pp].MetalsEjectedMass += Gal[p].DiscGasMetals[i] * ejected_cold_mass/reheat_eject_sum;
-      }
+
+        Gal[p].MetalsHotGas += Gal[p].DiscGasMetals[i] * reheated_mass/reheat_eject_sum;
+        Gal[p].MetalsEjectedMass += Gal[p].DiscGasMetals[i] * ejected_cold_mass/reheat_eject_sum;
 
         
       Gal[p].MetalsColdGas -= Gal[p].DiscGasMetals[i];
       Gal[p].DiscGasMetals[i] = 0.0;
         
-        if(!(Gal[pp].MetalsHotGas <= Gal[pp].HotGas)) printf("Gal[pp].MetalsHotGas, Gal[pp].HotGas = %e, %e\n", Gal[pp].MetalsHotGas, Gal[pp].HotGas);
-        assert(Gal[pp].MetalsHotGas <= Gal[pp].HotGas);
+        if(!(Gal[p].MetalsHotGas <= Gal[p].HotGas)) printf("Gal[p].MetalsHotGas, Gal[p].HotGas = %e, %e\n", Gal[p].MetalsHotGas, Gal[p].HotGas);
+        assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
 
     }
       
       if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(pp, ejected_cold_mass, time, k_now, metallicity);
         
 //        eject_sum = 0.0;
-//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[pp].EjectedMass_Reinc[kk];
-//        if(!((eject_sum <= 1.01 * Gal[pp].EjectedMass) && (eject_sum >= 0.99 * Gal[pp].EjectedMass))) 
+//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
+//        if(!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) 
 //        {
-//            printf("eject_sum, Gal[pp].EjectedMass = %e, %e\n", eject_sum, Gal[pp].EjectedMass);
-//            printf("eject_metals_sum, Gal[pp].MetalsEjectedMass = %e, %e\n", eject_sum, Gal[pp].EjectedMass);
+//            printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
+//            printf("eject_metals_sum, Gal[p].MetalsEjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
 //            printf("ejected_cold_mass, metallicity = %e, %e\n", ejected_cold_mass, metallicity);
 //        }
-//        assert((eject_sum <= 1.01 * Gal[pp].EjectedMass) && (eject_sum >= 0.99 * Gal[pp].EjectedMass));
+//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
 
   }
 
@@ -681,8 +629,8 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
     assert(Gal[p].MetalsHotGas>=0);
     
     
-    // if a satellite and HeatedToCentral is not on, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
-    if( (p!=centralgal) && (HeatedToCentral==0) && (Rsat <= Gal[centralgal].Rvir))
+    // if a satellite, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
+    if( (p!=centralgal) && (Rsat <= Gal[centralgal].Rvir))
     {
             Gal[centralgal].HotGas += Gal[p].EjectedMass;
             Gal[centralgal].MetalsHotGas += Gal[p].MetalsEjectedMass;
@@ -711,49 +659,6 @@ void update_from_ejection(int p, int centralgal, double ejected_mass, double tim
     
     double metallicityHot = get_metallicity(Gal[p].HotGas, Gal[p].MetalsHotGas);
 
-    if(HeatedToCentral)
-    {
-    	assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
-    
-        if(ejected_mass >= Gal[p].HotGas)
-        {
-            if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(centralgal, Gal[p].HotGas, time, k_now, metallicityHot);
-            if(Gal[centralgal].EjectedMass + Gal[p].HotGas > 0.0)
-                Gal[centralgal].R_ejec_av = (Gal[centralgal].EjectedMass * Gal[centralgal].R_ejec_av + Gal[p].HotGas * Gal[centralgal].Rvir) / (Gal[centralgal].EjectedMass + Gal[p].HotGas);
-            Gal[centralgal].EjectedMass += Gal[p].HotGas;
-            Gal[p].HotGas = 0.0;
-            Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsHotGas;
-            Gal[p].MetalsHotGas = 0.0;
-            
-//            eject_sum = 0.0;
-//            for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[centralgal].EjectedMass_Reinc[kk];
-//            assert((eject_sum <= 1.01 * Gal[centralgal].EjectedMass) && (eject_sum >= 0.99 * Gal[centralgal].EjectedMass));
-
-        }
-        else if(ejected_mass>0 && Gal[p].HotGas>0.0)
-    	{
-//            eject_sum = 0.0;
-//            for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[centralgal].EjectedMass_Reinc[kk];
-//            assert((eject_sum <= 1.01 * Gal[centralgal].EjectedMass) && (eject_sum >= 0.99 * Gal[centralgal].EjectedMass));
-
-            if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(centralgal, ejected_mass, time, k_now, metallicityHot);
-            Gal[p].HotGas -= ejected_mass;
-            if(Gal[centralgal].EjectedMass + ejected_mass > 0)
-                Gal[centralgal].R_ejec_av = (Gal[centralgal].EjectedMass * Gal[centralgal].R_ejec_av + ejected_mass * Gal[centralgal].Rvir) / (Gal[centralgal].EjectedMass + ejected_mass);
-            Gal[centralgal].EjectedMass += ejected_mass;
-            Gal[p].MetalsHotGas -= metallicityHot * ejected_mass;
-            Gal[centralgal].MetalsEjectedMass += metallicityHot * ejected_mass;
-            
-//            eject_sum = 0.0;
-//            for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[centralgal].EjectedMass_Reinc[kk];
-//            assert((eject_sum <= 1.01 * Gal[centralgal].EjectedMass) && (eject_sum >= 0.99 * Gal[centralgal].EjectedMass));
-
-    	}
-
-    	assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
-    }
-    else
-    {
         if(ejected_mass >= Gal[p].HotGas)
         {
             if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(p, Gal[p].HotGas, time, k_now, metallicityHot);
@@ -786,15 +691,15 @@ void update_from_ejection(int p, int centralgal, double ejected_mass, double tim
 
         }
         
-    }
+    
     
     assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
     assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
     assert(Gal[p].HotGas>=0);
     assert(Gal[p].MetalsHotGas>=0);
     
-    // if a satellite and HeatedToCentral is not on, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
-    if( (p!=centralgal) && (HeatedToCentral==0) )
+    // if a satellite, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
+    if(p!=centralgal)
     {
         double Rsat = get_satellite_radius(p, centralgal);
         if(Rsat <= Gal[centralgal].Rvir)
@@ -1428,22 +1333,11 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     
     assert(Gal[p].MetalsHotGas>=0);
   
-    if(HeatedToCentral>0)
-    {
-        satellite_specific_energy = get_satellite_potential(p, centralgal);
-        j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
-        hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-        ejected_specific_energy = dmax(Gal[centralgal].EjectedPotential, NFW_potential(centralgal, Gal[centralgal].R_ejec_av)) + hot_thermal_and_kinetic - satellite_specific_energy;
-    }
-    else
-    {
-        satellite_specific_energy = 0.0;
-        j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
-        hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
-        ejected_specific_energy = dmax(Gal[p].EjectedPotential, NFW_potential(p, Gal[p].R_ejec_av)) + hot_thermal_and_kinetic; // default, but generally updated
-    }
+    satellite_specific_energy = 0.0;
+    j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
+    hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
+    ejected_specific_energy = dmax(Gal[p].EjectedPotential, NFW_potential(p, Gal[p].R_ejec_av)) + hot_thermal_and_kinetic; // default, but generally updated
     
     if(!(ejected_specific_energy>hot_specific_energy))
     {
@@ -1593,17 +1487,9 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         cold_specific_energy = 0.5*(sqr(annulus_velocity) + sqr(vertical_velocity) + Gal[p].Potential[i] + Gal[p].Potential[i+1]);
         reheat_specific_energy = hot_specific_energy - cold_specific_energy;
         eject_specific_energy = ejected_specific_energy - cold_specific_energy;
-        
-        if(HeatedToCentral>0 && p!=centralgal)
-        {
-            v_therm2 = sqr(Gal[centralgal].Vvir);
-            escape_velocity2 = -2.0 * (get_satellite_potential(p, centralgal) + Gal[p].Potential[i]);
-        }
-        else
-        {
-            v_therm2 = sqr(Gal[p].Vvir);
-            escape_velocity2 = -2.0 * Gal[p].Potential[i];
-        }
+
+        v_therm2 = sqr(Gal[p].Vvir);
+        escape_velocity2 = -2.0 * Gal[p].Potential[i];
         
         // loop over age bins for an annulus
         for(k=N_AGE_BINS-1; k>k_now; k--)
@@ -1652,7 +1538,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             
             v_launch = sqrt(energy_feedback * 2.0 / returned_mass_cold); // launch velocity of returned gas based on pure energy
             if(0.25*sqr(v_launch) > sqr(Gal[p].Vvir))
-                v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // HAVEN'T ACCOUNTED FOR HeatedToCentral HERE!!!
+                v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir));
             else
                 v_wind = 0.0;
 
@@ -1816,13 +1702,10 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     // should probably rename, but is the amount of gas ejected from the CGM from spheroid-star feedback
     // assume the gas ejected from this will end up with the same specific energy as the stuff that was ejected from the ISM.  If none was ejected from the ISM, then take the default value for ejected gas
     eject_specific_energy = NFW_potential(p, Gal[p].R_ejec_av) - Gal[p].HotGasPotential;
-    if(HeatedToCentral>0) eject_specific_energy += satellite_specific_energy;
+
     if(eject_specific_energy <= 0)
     {
-        if(HeatedToCentral==0)
-            eject_specific_energy = Gal[p].EjectedPotential - Gal[p].HotGasPotential; // the EjectedPotential field currently is actually the potential at Rvir
-        else
-            eject_specific_energy = Gal[centralgal].EjectedPotential - Gal[p].HotGasPotential; // the EjectedPotential field currently is actually the potential at Rvir
+        eject_specific_energy = Gal[p].EjectedPotential - Gal[p].HotGasPotential; // the EjectedPotential field currently is actually the potential at Rvir
     }
     ejected_sum = energy_onto_hot / eject_specific_energy;
     
@@ -1862,8 +1745,8 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         
     update_stellar_dispersion(p);
     
-    // if a satellite and HeatedToCentral is not on, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
-    if( (p!=centralgal) && (HeatedToCentral==0) )
+    // if a satellite, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
+    if(p!=centralgal)
     {
         double Rsat = get_satellite_radius(p, centralgal);
         if(Rsat <= Gal[centralgal].Rvir)

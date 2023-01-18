@@ -62,7 +62,6 @@ int H2prescription;
 int GasPrecessionOn;
 int RamPressureOn;
 int HotStripOn;
-int HeatedToCentral;
 int ReincorporationModel;
 int CoolingExponentialRadiusOn;
 int MvirDefinition;
@@ -70,7 +69,6 @@ int AgeStructOut;
 int DelayedFeedbackOn;
 int HotGasProfileType;
 int MergeTimeScaleForm;
-int MetalMixing;
 
 // binning information
 double FirstBin;

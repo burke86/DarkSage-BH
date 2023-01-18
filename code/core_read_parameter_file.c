@@ -144,10 +144,6 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "HotStripOn");
   addr[nt] = &HotStripOn;
   id[nt++] = INT;
-
-  strcpy(tag[nt], "HeatedToCentral");
-  addr[nt] = &HeatedToCentral;
-  id[nt++] = INT;
     
   strcpy(tag[nt], "ReincorporationModel");
   addr[nt] = &ReincorporationModel;
@@ -176,10 +172,6 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "MergeTimeScaleForm");
   addr[nt] = &MergeTimeScaleForm;
   id[nt++] = INT;
-    
-  strcpy(tag[nt], "MetalMixing");
-  addr[nt] = &MetalMixing;
-  id[nt++] = INT;   
     
   strcpy(tag[nt], "BaryonFrac");
   addr[nt] = &BaryonFrac;
