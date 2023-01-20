@@ -320,6 +320,7 @@ struct GALAXY
   double EjectedPotential;
     double EjectedSpecificEnergy;
     double OutflowSpecificEnergy;
+    double FountainTime;
   double prevHotGasPotential;
   double prevEjectedPotential;
   double prevRvir;

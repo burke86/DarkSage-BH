@@ -22,10 +22,8 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   double feedback_mass[4];
     
   // these terms only used when SupernovaRecipeOn>=3
-  double hot_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
+  double hot_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
     
-  // note that the way I've incorporate energy for a satellite is effectively increase the energy of the hot medium it's trying to go to, rather than decreasing the energy the gas about to be reheated currently sits it.  The net effect is the same.
-  satellite_specific_energy = 0.0;
   j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
   hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
   hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;  
@@ -376,14 +374,6 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
     assert(ejected_cold_mass>=0);
     
     double reheat_eject_sum = reheated_mass + ejected_cold_mass;
-    int kk;
-    double eject_sum=0.0;
-    
-    double Rsat;
-    if(p != centralgal)
-        Rsat = get_satellite_radius(p, centralgal); // should return 0 if a central
-    else
-        Rsat = 1.1 * Gal[centralgal].Rvir; // set to ensure the reincorporation time is properly done -- not to be taken as a literal assignment
 
   if(SupernovaRecipeOn>0 && reheat_eject_sum>MIN_STARFORMATION) // Imposing a minimum. Chosen as MIN_STARFORMATION for convenience.  Makes sense to be same order of magnitude though.
   {
@@ -403,9 +393,8 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
         Gal[p].DiscGas[i] = 0.0;
     }
 
+    Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + reheated_mass * 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum))) / (Gal[p].FountainGas + reheated_mass);
     Gal[p].FountainGas += reheated_mass;
-//      if(Gal[p].EjectedMass + ejected_cold_mass > 0)
-//          Gal[p].R_ejec_av = (Gal[p].EjectedMass * Gal[p].R_ejec_av + ejected_cold_mass * Gal[p].Rvir) / (Gal[p].EjectedMass + ejected_cold_mass);
     Gal[p].OutflowGas += ejected_cold_mass;
 
 	if(Gal[p].DiscGas[i]>0.0)
@@ -429,11 +418,7 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
         
       Gal[p].MetalsColdGas -= Gal[p].DiscGasMetals[i];
       Gal[p].DiscGasMetals[i] = 0.0;
-
     }
-      
-      if((ReincorporationModel>=3) && (ReincorporationModel<6) && (Rsat>Gal[centralgal].Rvir)) update_reincorporation_time(pp, ejected_cold_mass, time, k_now, metallicity);
-
   }
 
 
@@ -462,16 +447,6 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
     
     assert(Gal[p].HotGas>=0);
     assert(Gal[p].MetalsHotGas>=0);
-    
-    // THIS SHOULD BE REDUNDANT WITH CHANGES TO HOW CGM AND EJECTED GAS ARE HANDLED
-    // if a satellite, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
-    if( (p!=centralgal) && (Rsat <= Gal[centralgal].Rvir))
-    {
-            Gal[centralgal].FountainGas += Gal[p].EjectedMass;
-            Gal[centralgal].MetalsFountainGas += Gal[p].MetalsEjectedMass;
-            Gal[p].EjectedMass = 0.0;
-            Gal[p].MetalsEjectedMass = 0.0;
-    }
 
 }
 
@@ -1110,20 +1085,18 @@ void update_HI_H2(int p)
 void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 {
     int k, i;
-    double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, excess_energy, return_metal_mass, new_metals, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
-    double reheated_mass_old, v_wind2, v_therm2, two_vv, vertical_velocity, inv_eject_feedback_specific_energy, energy_onto_hot, returned_mass_hot, returned_mass_cold, R_guess, R_min, R_max, pot_guess, ejected_sum;
+    double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, return_metal_mass, new_metals, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
+    double v_therm2, vertical_velocity, energy_onto_hot, returned_mass_hot, returned_mass_cold, ejected_sum;
     double StellarOutput[2];
-    double m_return, v_launch, v_wind, new_ejected_specific_energy, new_ejected_potential;
-    int update_ejec_energy = 0;
-    int iter;
+    double m_return, v_launch, v_wind, new_ejected_specific_energy;
 
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
+    double tdyn = 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum));
     
     assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
     
     assert(Gal[p].MetalsHotGas>=0);
   
-    satellite_specific_energy = 0.0;
     j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
     hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
     hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
@@ -1181,6 +1154,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             Gal[p].ClassicalMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
             
+            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + reheated_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity)); // enrich gas with new metals from this stellar population
@@ -1213,6 +1187,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             Gal[p].SecularMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
             
+            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + reheated_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
@@ -1235,6 +1210,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             Gal[p].MetalsICS_Age[k] -= return_metal_mass;
             Gal[p].MetalsICS -= return_metal_mass;
             
+            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + reheated_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));

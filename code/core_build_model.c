@@ -295,17 +295,6 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 {
   int p, i, step, centralgal, merger_centralgal, currenthalo, offset, k_now;
   double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt, InstantTimeFrame, StellarOutput[2];
-    double eject_sum;
-    int kk;
-    
-//    for(p = 0; p < ngal; p++)
-//    {
-//        
-//        eject_sum = 0.0;
-//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-//        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-//    }
 
   centralgal = Gal[0].CentralGal;
   if(Gal[centralgal].Type != 0 || Gal[centralgal].HaloNr != halonr)
@@ -314,26 +303,11 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     ABORT(54);
   }
 
-  // basically compute the diff between the hot gas obtained at the end of the 
-  // previous snapshot and the one obtained at the beginning of the new snapshot
-  // using the conservation of baryons 
-
+  // calculate cosmological gas to be added to halo to maintain baryon fraction
   infallingGas = infall_recipe(centralgal, ngal, ZZ[Halo[halonr].SnapNum]);
-    
-    
- 
   
   for(p = 0; p < ngal; p++)
   {
-      if(ReincorporationModel==5)
-      {
-          eject_sum = 0.0;
-          for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-          if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-          assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-          assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
-      }
-
       // Reset SFRs for each galaxy
       for(i=0; i<N_BINS; i++)
         Gal[p].DiscSFR[i] = 0.0;
@@ -341,7 +315,6 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       // check for freshly infallen satellites that need a merger timescale calculated
       if(Gal[p].Type == 1 && Gal[p].MergTime > 999.0)
         Gal[p].MergTime = estimate_merging_time(p, centralgal);
-      
   }
 
     
@@ -352,10 +325,6 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     // Loop over all galaxies in the halo 
     for(p = 0; p < ngal; p++)
     {
-        
-//        eject_sum = 0.0;
-//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
         
 	  DiscGasSum = get_disc_gas(p);
 	  assert(Gal[p].HotGas == Gal[p].HotGas && Gal[p].HotGas >= 0);
@@ -375,94 +344,50 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       if(Gal[p].dT < 0.0)
         Gal[p].dT = deltaT;
         
-//    if(ReincorporationModel==5)
-//    {
-//        eject_sum = 0.0;
-//        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-//      if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-//    }
     
       // hot-gas stripping of satellites --  do before reincorporation to ensure stripping is preventative
       if(HotStripOn>0 && Gal[p].Type == 1 && Gal[p].HotGas > 0.0 && Gal[p].MaxStrippedGas>0.0)
             Gal[p].MaxStrippedGas = strip_from_satellite(halonr, centralgal, p, Gal[p].MaxStrippedGas, k_now);
-        assert(Gal[p].MetalsHotGas>=0);
-        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+      assert(Gal[p].MetalsHotGas>=0);
+      assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
-          
-        // reincorporation of ejected gas.  Was previously for centrals only, but now allowed for satellites too
-//          eject_sum = 0.0;
-//          for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-//          assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-
-        add_infall_to_hot(p, infallingGas / STEPS, k_now);
-          assert(Gal[p].MetalsHotGas>=0);
-        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+      // fresh cosmological added to CGM
+      add_infall_to_hot(p, infallingGas / STEPS, k_now);
+      assert(Gal[p].MetalsHotGas>=0);
+      assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
         
-//        eject_sum = 0.0;
-//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-
-          if(!(ReIncorporationFactor <= 0.0 && ReincorporationModel==0))
-            reincorporate_gas(p, dt, time, k_now);
+      // move outflowing, fountaining, and reincorporating ejected gas as appropriate
+      reincorporate_gas(p, dt, time, k_now);
           
-        if(ReincorporationModel==5)
-        {
-          eject_sum = 0.0;
-          for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-          assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-        }
-
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0)
           ram_pressure_stripping(centralgal, p, k_now);
-        assert(Gal[p].MetalsHotGas>=0);
-        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
       // determine cooling gas given halo properties
       // Preventing cooling when there's no angular momentum, as the code isn't built to handle that.  This only cropped up for Vishnu haloes with 2 particles, which clearly weren't interesting/physical.  Haloes always have some spin otherwise.
       if(!(Gal[p].SpinHot[0]==0 && Gal[p].SpinHot[1]==0 && Gal[p].SpinHot[2]==0))
         {
-            assert(Gal[p].HotGas>=0);
-            assert(Gal[p].MetalsHotGas>=0);
+            coolingGas = cooling_recipe(p, dt);
 
-          coolingGas = cooling_recipe(p, dt);
-            assert(Gal[p].HotGas>=0);
-            assert(Gal[p].MetalsHotGas>=0);
-            assert(coolingGas >= 0);
-            assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
-
-          Gal[p].AccretedGasMass += coolingGas;
-          cool_gas_onto_galaxy(p, coolingGas);
-            assert(Gal[p].HotGas>=0);
-            assert(Gal[p].MetalsHotGas>=0);
-            assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
-
-            
-            if(ReincorporationModel==4)
-            {
-                Gal[p].ReincTimeFresh = (Gal[p].Rvir*sqrt(Gal[p].R2_hot_av) - Gal[p].R2_hot_av) / (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) ; // time=dr/v; v=j/Rhot; dr=Rvir-Rhot
-            }
+            Gal[p].AccretedGasMass += coolingGas;
+            cool_gas_onto_galaxy(p, coolingGas);
             
         }
-        assert(Gal[p].MetalsHotGas>=0);
-        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
       // Update radii of the annuli
       if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && Gal[p].Type==0)
         update_disc_radii(p);
-        assert(Gal[p].MetalsHotGas>=0);
 
       // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
-        if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && (Gal[p].StellarMass>0 || Gal[p].ICS>0 || Gal[p].LocalIGS>0))
-        {
-            InstantTimeFrame = 0.5*(AgeBinEdge[k_now+1] - AgeBinEdge[k_now]);
-            get_RecycleFraction_and_NumSNperMass(0.0, InstantTimeFrame, StellarOutput);
-            RecycleFraction = 1.0*StellarOutput[0];
-            SNperMassFormed = 1.0*StellarOutput[1];
-            
-            delayed_feedback(p, k_now, centralgal, time, dt);
-        }
+      if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && (Gal[p].StellarMass>0 || Gal[p].ICS>0 || Gal[p].LocalIGS>0))
+      {
+        InstantTimeFrame = 0.5*(AgeBinEdge[k_now+1] - AgeBinEdge[k_now]);
+        get_RecycleFraction_and_NumSNperMass(0.0, InstantTimeFrame, StellarOutput);
+        RecycleFraction = 1.0*StellarOutput[0];
+        SNperMassFormed = 1.0*StellarOutput[1];
+
+        delayed_feedback(p, k_now, centralgal, time, dt);
+      }
         
 	  // stars form and then explode!
       if(SfrEfficiency>0.0) // passive H2 channel, mightn't be needed anymore!
@@ -474,24 +399,9 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       assert(Gal[p].SpinGas[0]==Gal[p].SpinGas[0]);
         
         
-        
       // Check for disk instability
       if(DiskInstabilityOn>0)
-      {
-//          double metallicity;
-//          for(i=0; i<N_BINS; i++)
-//          {
-//            metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
-//            assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
-//          }
         check_disk_instability(p, centralgal, dt, step, time, k_now);
-      }
-        
-//        eject_sum = 0.0;
-//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-//        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-
     }
 
     // check for satellite disruption and merger events 
@@ -538,11 +448,6 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         }
      
       }
-        
-//        eject_sum = 0.0;
-//        for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-//        if (!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-//        assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
 
     }
 

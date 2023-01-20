@@ -9,6 +9,54 @@
 #include "core_proto.h"
 
 
+void reincorporate_gas(int p, int centralgal, double dt)
+{
+    double reinc_factor;
+        
+    // reincorporate the fountaining gas
+    if(Gal[p].FountainGas > 0.0)
+    {
+        if(dt >= Gal[p].FountainTime)
+        {
+            Gal[p].HotGas += Gal[p].FountainGas;
+            Gal[p].MetalsHotGas += Gal[p].MetalsFountainGas;
+            Gal[p].FountainGas = 0.0;
+            Gal[p].MetalsFountainGas = 0.0;
+            Gal[p].FountainTime = 0.0;
+        }
+        else
+        {
+            reinc_factor = dt / Gal[p].FountainTime;
+            Gal[p].HotGas += (Gal[p].FountainGas * reinc_factor);
+            Gal[p].MetalsHotGas += (Gal[p].MetalsFountainGas * reinc_factor);
+            
+            Gal[p].FountainGas -= (Gal[p].FountainGas * reinc_factor);
+            Gal[p].MetalsFountainGas -= (Gal[p].MetalsFountainGas * reinc_factor);
+            
+            Gal[p].FountainTime -= dt;
+        }
+    }
+    
+    // recincorporate inflowing gas from the ejected reservoir
+    if(Gal[p].EjectedMass > 0.0)
+    {
+        // use time-scale calculated in the code
+    }
+    
+    // out outflowing gas into the ejected reservoir (or the central's fountain reservoir if appropriate)
+    if(Gal[p].OutflowGas > 0.0)
+    {
+        // first need to calucalte the time-scale for the outflow
+        // I have the specific energy of the reservoir, as I do the thermal and potential at each of Rhot and R200
+        // that gives both a distance and a velocity (interested in the radial component), which gives a time-scale
+        
+        // once ejected, I then need to consider the reincorporation time-scale from there, and update this field, weighted by mass
+    }
+    
+}
+
+
+
 
 void reincorporate_gas(int centralgal, double dt, double time, int k_now)
 {
