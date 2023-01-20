@@ -79,7 +79,8 @@ void init_galaxy(int p, int halonr)
     Gal[p].SecularBulgeMass = 0.0;
     Gal[p].StarsExSitu = 0.0;
     Gal[p].HotGas = 0.0;
-    Gal[p].ReheatedGas = 0.0;
+    Gal[p].FountainGas = 0.0;
+    Gal[p].OutflowGas = 0.0;
     Gal[p].EjectedMass = 0.0;
     Gal[p].LocalIGM = 0.0;
     Gal[p].BlackHoleMass = 0.0;
@@ -104,6 +105,8 @@ void init_galaxy(int p, int halonr)
     Gal[p].SecularMetalsBulgeMass = 0.0;
     Gal[p].MetalsStarsExSitu = 0.0;
     Gal[p].MetalsHotGas = 0.0;
+    Gal[p].MetalsFountainGas = 0.0;
+    Gal[p].MetalsOutflowGas = 0.0;
     Gal[p].MetalsEjectedMass = 0.0;
     Gal[p].MetalsLocalIGM = 0.0;
     Gal[p].MetalsICS = 0.0;

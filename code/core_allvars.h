@@ -318,6 +318,8 @@ struct GALAXY
   // Potential energy for hot and ejected gas components
   double HotGasPotential;
   double EjectedPotential;
+    double EjectedSpecificEnergy;
+    double OutflowSpecificEnergy;
   double prevHotGasPotential;
   double prevEjectedPotential;
   double prevRvir;
@@ -333,7 +335,8 @@ struct GALAXY
   double SecularBulgeMass;
   double StarsExSitu;
   double HotGas;
-  double ReheatedGas;
+  double FountainGas;
+  double OutflowGas;
   double EjectedMass;
   double BlackHoleMass;
   double LocalIGM;
@@ -391,6 +394,8 @@ struct GALAXY
   double SecularMetalsBulgeMass;
   double MetalsStarsExSitu;
   double MetalsHotGas;
+    double MetalsFountainGas;
+    double MetalsOutflowGas;
   double MetalsEjectedMass;
   double MetalsLocalIGM;
   double MetalsICS;

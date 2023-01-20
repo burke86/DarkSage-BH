@@ -50,7 +50,7 @@ double do_AGN_heating(double coolingGas, int centralgal, double dt, double x, do
 void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_centralgal, int centralgal, double dt, int mode, int step, int k_now, double time);
 void update_from_star_formation(int p, double stars, double metallicity, int i);
 void update_from_feedback(int p, int centralgal, double reheated_mass, double metallicity, int i, double ejected_cold_mass, double time, int k_now);
-void update_from_ejection(int p, int centralgal, double ejected_mass, double time, int k_now);
+void update_from_ejection(int p, double ejected_mass, double time, int k_now);
 void stars_to_bulge(int t, int k_now);
 double grow_black_hole(int merger_centralgal, double* disc_mass_ratio);
 void check_disk_instability(int p, int centralgal, double dt, int step, double time, int k_now);
@@ -76,7 +76,7 @@ double exp_f(double x);
 void update_stellardisc_scaleradius(int p);
 void update_gasdisc_scaleradius(int p);
 void walk_down(int i);
-void calculate_feedback_masses(int p, double stars, int i, int centralgal, double area, double max_consume, double hot_specific_energy, double ejected_specific_energy, double *feedback_mass);
+void calculate_feedback_masses(int p, double stars, int i, double max_consume, double hot_specific_energy, double *feedback_mass);
 double NFW_potential(int p, double r);
 int get_stellar_age_bin_index(double time);
 void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_output);

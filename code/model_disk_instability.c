@@ -507,7 +507,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallicity, int centralgal, double r_inner, double r_outer, double time, int k_now)
 {
 	double gas_sink, gas_sf;
-	double stars, reheated_mass, ejected_mass, area;
+	double stars, reheated_mass;
     double metallicity_new;
 	
     if(unstable_gas > Gal[p].DiscGas[i])
@@ -517,13 +517,12 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
     double feedback_mass[4]; 
     
     // these 2 terms only used when SupernovaRecipeOn>=3
-    double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
+    double hot_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
     
     satellite_specific_energy = 0.0;
     j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
     hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
     hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
-    ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
     
 	// Let gas sink -- one may well want to change this formula
     gas_sink = GasSinkRate * unstable_gas;
@@ -577,10 +576,8 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
 	stars = unstable_gas - gas_sink;
 	if(Gal[p].DiscGas[i] > 0.0 && stars > 0.0) // Quasar feedback could blow out the unstable gas
 	{
-        area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-        calculate_feedback_masses(p, stars, i, centralgal, area, gas_sf, hot_specific_energy, ejected_specific_energy, feedback_mass);
+        calculate_feedback_masses(p, stars, i, gas_sf, hot_specific_energy, feedback_mass);
         reheated_mass = feedback_mass[0];
-        ejected_mass = feedback_mass[1];
         stars = feedback_mass[2];
         ejected_cold_mass = feedback_mass[3];
         
@@ -605,7 +602,6 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
         assert(Gal[p].MetalsHotGas>=0);
         assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
 	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i, ejected_cold_mass, time, k_now);
-        update_from_ejection(p, centralgal, ejected_mass, time, k_now);
 
 	}
     
