@@ -227,6 +227,7 @@ void init_galaxy(int p, int halonr)
     Gal[p].prevVhot = 0.0;
     Gal[p].R_ejec_av = Gal[p].Rvir;
     Gal[p].FountainTime = 0.0;
+    Gal[p].OutflowTime = 0.0;
     
 }
 
@@ -1316,6 +1317,9 @@ double get_satellite_potential(int p, int centralgal)
 
 double get_satellite_radius(int p, int centralgal)
 {
+    if(p==centralgal)
+        return 0.0;
+    
     int i;
     double dx;
     double r2 = 0.0;

@@ -11,7 +11,8 @@
 
 void reincorporate_gas(int p, int centralgal, double dt)
 {
-    double reinc_factor;
+    double move_factor;
+    double sat_rad = get_satellite_radius(p, centralgal);
         
     // reincorporate the fountaining gas
     if(Gal[p].FountainGas > 0.0)
@@ -26,241 +27,126 @@ void reincorporate_gas(int p, int centralgal, double dt)
         }
         else
         {
-            reinc_factor = dt / Gal[p].FountainTime;
-            Gal[p].HotGas += (Gal[p].FountainGas * reinc_factor);
-            Gal[p].MetalsHotGas += (Gal[p].MetalsFountainGas * reinc_factor);
-            
-            Gal[p].FountainGas -= (Gal[p].FountainGas * reinc_factor);
-            Gal[p].MetalsFountainGas -= (Gal[p].MetalsFountainGas * reinc_factor);
-            
+            move_factor = dt / Gal[p].FountainTime;
+            Gal[p].HotGas += (Gal[p].FountainGas * move_factor);
+            Gal[p].MetalsHotGas += (Gal[p].MetalsFountainGas * move_factor);
+            Gal[p].FountainGas -= (Gal[p].FountainGas * move_factor);
+            Gal[p].MetalsFountainGas -= (Gal[p].MetalsFountainGas * move_factor);
             Gal[p].FountainTime -= dt;
         }
     }
     
+    
     // recincorporate inflowing gas from the ejected reservoir
+    // CONSIDER IF THIS SHOULD GO TO FOUNTAIN RESERVOIR FIRST
     if(Gal[p].EjectedMass > 0.0)
     {
-        // use time-scale calculated in the code
-    }
-    
-    // out outflowing gas into the ejected reservoir (or the central's fountain reservoir if appropriate)
-    if(Gal[p].OutflowGas > 0.0)
-    {
-        // first need to calucalte the time-scale for the outflow
-        // I have the specific energy of the reservoir, as I do the thermal and potential at each of Rhot and R200
-        // that gives both a distance and a velocity (interested in the radial component), which gives a time-scale
-        
-        // once ejected, I then need to consider the reincorporation time-scale from there, and update this field, weighted by mass
-    }
-    
-}
-
-
-
-
-void reincorporate_gas(int centralgal, double dt, double time, int k_now)
-{
-    // use of "centralgal" here as a label is from old code, when this wasn't called for satelites.  This can now be called for any galaxy.
-    int p = centralgal;
-  double reincorporated, metallicity, eject_sum, eject_metals_sum, reincTime_fac, Vhot;
-    int k, kk;
-    
-//    eject_sum = 0.0;
-//    for(kk=0; kk<=N_AGE_BINS; kk++) eject_sum += Gal[p].EjectedMass_Reinc[kk];
-//    assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-
-    
-  if(ReincorporationModel==0)
-  {
-      // SN velocity is 630km/s, and the condition for reincorporation is that the 
-      // halo has an escape velocity greater than this, i.e. V_SN/sqrt(2) = 445.48km/s
-      double Vcrit = 445.48 * ReIncorporationFactor;
-      assert(Gal[p].HotGas >= Gal[p].MetalsHotGas);
-      if(Gal[p].Vvir > Vcrit)
-        reincorporated = ( Gal[p].Vvir / Vcrit - 1.0 ) * Gal[p].EjectedMass / (Gal[p].Rvir / Gal[p].Vvir) * dt;
-      else
-        reincorporated = 0.0;
-  }
-  else if(ReincorporationModel==1)
-  {
-      double t_reinc = 1.8e4/UnitTime_in_Megayears * (Hubble_h/Gal[p].Mvir);
-      reincorporated = Gal[p].EjectedMass / t_reinc * dt;
-  }
-  else if (ReincorporationModel==2)
-  {
-      reincorporated = Gal[p].EjectedMass * (Gal[p].HotGasPotential - Gal[p].prevHotGasPotential) / (Gal[p].prevEjectedPotential - Gal[p].prevHotGasPotential) / STEPS;
-  }
-  else if ((ReincorporationModel==3) || (ReincorporationModel==4))
-  {
-//      double reincTime_fac = dmin( pow(Gal[p].prevRvir / Gal[p].Rvir, 2.0/STEPS) , 1.0) ;
-      Vhot = (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) / sqrt(Gal[p].R2_hot_av);
-      
-      if(Gal[p].prevRvir - Gal[p].prevRhot > 0.0)
-          reincTime_fac = dmin(1.0, Gal[p].prevVhot/Vhot) * dmin(1.0, dmax(Gal[p].prevRvir - sqrt(Gal[p].R2_hot_av), 0.0) / (Gal[p].prevRvir - Gal[p].prevRhot));
-      else
-          reincTime_fac = 1.0;
-      
-      if(!((reincTime_fac <= 1.0)*(reincTime_fac >= 0.0))) 
-      {
-          printf("reincTime_fac = %e\n", reincTime_fac);
-          printf("Vhot, Gal[p].prevRvir, Gal[p].prevRhot = %e, %e, %e\n", Vhot, Gal[p].prevRvir, Gal[p].prevRhot);
-      }
-      assert(reincTime_fac <= 1.0);
-      assert(reincTime_fac >= 0.0);
-      Gal[p].ReincTime *= reincTime_fac;  // reduce reincorporation time to account for halo growth
-      if(Gal[p].ReincTime <= 0.0 || dt >= Gal[p].ReincTime)
-      {
-          reincorporated = Gal[p].EjectedMass;
-          Gal[p].ReincTime = 0.0;
-      }
-      else
-      {
-          reincorporated = Gal[p].EjectedMass * dt / Gal[p].ReincTime;
-          Gal[p].ReincTime -= dt; // time to reincorporate what's left is reduced by the time that has elapsed
-      }
-
-//      if(Gal[p].ReincTime <= 0.0) Gal[p].ReincTime = 0.001 * dt; // set to small value for instant reincorporation in next sub-time-step
-  }
-  else if (ReincorporationModel==5)
-  {
-      for(k=0; k<k_now; k++) assert(Gal[p].EjectedMass_Reinc[k] <= 0);
-      
-      // halo expansion should speed things up.  Mixing implicity happens between ejecta here too
-      double frac_drop = pow(Gal[p].Rvir / Gal[p].prevRvir, 2.0/STEPS) - 1.0;
-      
-      if (frac_drop >= 1.0)
-      {
-          for(k=k_now+1; k<=N_AGE_BINS; k++)
-          {              
-              Gal[p].EjectedMass_Reinc[k-1] += Gal[p].EjectedMass_Reinc[k];
-              Gal[p].EjectedMass_Reinc[k] = 0.0;
-
-              Gal[p].MetalsEjectedMass_Reinc[k-1] += Gal[p].MetalsEjectedMass_Reinc[k];
-              Gal[p].MetalsEjectedMass_Reinc[k] = 0.0;
-          }
-      }
-      else if (frac_drop > 0.0)
-      {
-          double drop_mass=0.0, drop_metals=0.0;
-          for(k=k_now+1; k<=N_AGE_BINS; k++)
-          {
-              drop_mass = frac_drop * Gal[p].EjectedMass_Reinc[k];
-              drop_metals = frac_drop * Gal[p].MetalsEjectedMass_Reinc[k];
-              
-              Gal[p].EjectedMass_Reinc[k] -= drop_mass;
-              Gal[p].EjectedMass_Reinc[k-1] += drop_mass;
-
-              Gal[p].MetalsEjectedMass_Reinc[k] -= drop_metals;
-              Gal[p].MetalsEjectedMass_Reinc[k-1] += drop_metals;
-          }
-      }
-      
-      eject_sum=0.0;
-      eject_metals_sum=0.0;
-      for(k=k_now; k<=N_AGE_BINS; k++)
-      {
-//          if((Gal[p].EjectedMass_Reinc[k] < MIN_STARFORMATION) || (Gal[p].MetalsEjectedMass_Reinc[k] < MIN_STARFORMATION * BIG_BANG_METALLICITY))
-//          {
-//              Gal[p].EjectedMass_Reinc[k] = 0.0;
-//              Gal[p].MetalsEjectedMass_Reinc[k] = 0.0;
-//          }
-          eject_sum += Gal[p].EjectedMass_Reinc[k];
-          eject_metals_sum += Gal[p].MetalsEjectedMass_Reinc[k];
-      }
-      if(!((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass))) 
-      {
-          printf("eject_sum, Gal[p].EjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-          printf("eject_metals_sum, Gal[p].MetalsEjectedMass = %e, %e\n", eject_sum, Gal[p].EjectedMass);
-      }
-      assert((eject_sum <= 1.01 * Gal[p].EjectedMass) && (eject_sum >= 0.99 * Gal[p].EjectedMass));
-      assert((eject_metals_sum <= 1.01 * Gal[p].MetalsEjectedMass) && (eject_metals_sum >= 0.99 * Gal[p].MetalsEjectedMass));
-      Gal[p].EjectedMass = eject_sum;
-      Gal[p].MetalsEjectedMass = eject_metals_sum;
-
-      
-      reincorporated = Gal[p].EjectedMass_Reinc[k_now] * dt / (time - AgeBinEdge[k_now+1]);
-      if(reincorporated < MIN_STARFORMATION) reincorporated = 0.0;
-      if(reincorporated > Gal[p].EjectedMass_Reinc[k_now]) reincorporated = Gal[p].EjectedMass_Reinc[k_now];
-      if(!(reincorporated >= 0)) printf("reincorporated, Gal[p].EjectedMass_Reinc[k_now] = %e, %e\n", reincorporated, Gal[p].EjectedMass_Reinc[k_now]);
-      assert(reincorporated >= 0);
-  }
-  else
-  {
-      double DeltaR = Gal[p].R_ejec_av - sqrt(Gal[p].R2_hot_av);
-      if(DeltaR>0)
-      {
-          Vhot = (2 * Gal[p].Vvir * Gal[p].CoolScaleRadius) / sqrt(Gal[p].R2_hot_av);
-          reincorporated = Gal[p].EjectedMass * (pow(1.0 - DeltaR/(Gal[p].R_ejec_av - Gal[p].prevRhot), 1.0/STEPS) + dt*Vhot/DeltaR);
-      }
-      else
-      {
-          reincorporated = Gal[p].EjectedMass;
-      }
-  }
-
-    
-  if(reincorporated > 0.0)
-  {
-    check_ejected(centralgal);
-    if(reincorporated < Gal[p].EjectedMass)
-    {
-        if(ReincorporationModel!=5)
+        // use time-scale calculated in the code (calculated/modified below and when the halo grows)
+        if(dt >= Gal[p].ReincTime)
         {
-            metallicity = get_metallicity(Gal[p].EjectedMass, Gal[p].MetalsEjectedMass);
-            assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
+            Gal[p].HotGas += Gal[p].EjectedMass;
+            Gal[p].MetalsHotGas += Gal[p].MetalsEjectedMass;
+            Gal[p].EjectedMass = 0.0;
+            Gal[p].MetalsEjectedMass = 0.0;
+            Gal[p].ReincTime = 0.0; // perhaps should be set to the dynamical time as a default instead, but should make no difference with zero mass
         }
         else
         {
-            metallicity = get_metallicity(Gal[p].EjectedMass_Reinc[k_now], Gal[p].MetalsEjectedMass_Reinc[k_now]);
-            assert(Gal[p].EjectedMass_Reinc[k_now] >= Gal[p].MetalsEjectedMass_Reinc[k_now]);
+            move_factor = dt / Gal[p].ReincTime;
+            Gal[p].HotGas += (Gal[p].EjectedMass * move_factor);
+            Gal[p].MetalsHotGas += (Gal[p].MetalsFountainGas * move_factor);
+            Gal[p].EjectedMass -= (Gal[p].EjectedMass * move_factor);
+            Gal[p].MetalsEjectedMass -= (Gal[p].MetalsEjectedMass * move_factor);
+            Gal[p].ReincTime -= dt;
         }
-        
-        Gal[p].EjectedMass -= reincorporated;
-        Gal[p].MetalsEjectedMass -= metallicity * reincorporated;
-        Gal[p].HotGas += reincorporated;
-        Gal[p].MetalsHotGas += metallicity * reincorporated;
-        
-        if(ReincorporationModel==5)
-        {
-            Gal[p].EjectedMass_Reinc[k_now] -= reincorporated;
-            Gal[p].MetalsEjectedMass_Reinc[k_now] -= metallicity * reincorporated;
-        }
-
     }
-    else
+    
+    
+    // put outflowing gas into the ejected reservoir (or the central's fountain reservoir if appropriate)
+    if(Gal[p].OutflowGas > 0.0)
     {
-        Gal[p].HotGas += Gal[p].EjectedMass;
-        Gal[p].MetalsHotGas += Gal[p].MetalsEjectedMass;
-        Gal[p].EjectedMass = 0.0;
-        Gal[p].MetalsEjectedMass = 0.0;
-        Gal[p].R_ejec_av = Gal[p].Rvir;
+        // update ejected reservoir's reinc time OR central's fountain time first, then move mass accordingly from outflow -> ejected (or fountain of central)
         
-        if(ReincorporationModel==5)
+        move_factor = dt / Gal[p].OutflowTime;
+        const double eject_gas = Gal[p].OutflowGas * dmin(1.0, move_factor);
+        
+        if(p==centralgal || sat_rad > Gal[centralgal].Rvir)
         {
-            Gal[p].EjectedMass_Reinc[k_now] = 0.0;
-            Gal[p].MetalsEjectedMass_Reinc[k_now] = 0.0;
+            // want to energy to calculate where the gas that is ejected gets to before it turns around
+            // first need to work out its initial speed
+            double outflow_kinetic, j_hot, discriminant, outflow_radial_speed;
+            outflow_kinetic = Gal[p].OutflowSpecificEnergy - Gal[p].EjectedPotential - 0.5*sqr(Gal[p].Vvir);
+            j_hot = 2.0 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+            discriminant = 2.0 * outflow_kinetic_final - sqr(j_hot/Gal[p].Rvir);
+            assert(discriminant > 0.0);
+            outflow_radial_speed = sqrt(discriminant);
+            
+            // iterate until the new turnaround radius is found based on the ejected gas's potential
+            double R_min, R_max, R_guess, pot_guess;
+            int iter;
+            R_min = Gal[p].Rvir;
+            R_max = 10 * Gal[p].Rvir;
+            for(iter=0; iter<200; iter++)
+            {
+                R_guess = 0.5 * (R_min + R_max);
+                pot_guess = NFW_potential(p, R_guess); // approximating an NFW potential here for efficiency
+                specific_energy = pot_guess + 0.5*sqr(j_hot/R_guess); // add tangential kinetic energy assuming angular momentum is conserved
+                
+                if(fabs((specific_energy-Gal[p].OutflowSpecificEnergy)/Gal[p].OutflowSpecificEnergy) < 1e-3)
+                    break;
+                
+                if(specific_energy > Gal[p].OutflowSpecificEnergy)
+                    R_max = R_guess;
+                else
+                    R_min = R_guess;
+            }
+
+            // assume time to reincorporate the freshly outflowing gas is that to get to the turnaround point and back, assuming its average speed is half its
+            double reinc_time_new = 4.0 * (R_guess - Gal[p].Rvir) / outflow_radial_speed;
+            Gal[p].ReincTime = (Gal[p].EjectedMass * Gal[p].ReincTime + eject_gas * reinc_time_new) / (Gal[p].EjectedMass + eject_gas);
+            
+            // use time-scale calculated in the code that gets updated whenever mass is added to this reservoir
+            if(dt >= Gal[p].OutflowTime)
+            {
+                Gal[p].EjectedMass += Gal[p].OutflowGas;
+                Gal[p].MetalsEjectedMass += Gal[p].MetalsOutflowMass;
+                Gal[p].OutflowGas = 0.0;
+                Gal[p].MetalsOutflowMass = 0.0;
+                Gal[p].OutflowTime = 0.0;
+            }
+            else
+            {
+                Gal[p].EjectedMass += eject_gas;
+                Gal[p].MetalsEjectedMass += (Gal[p].MetalsOutflowGas * move_factor);
+                Gal[p].OutflowGas -= eject_gas;
+                Gal[p].MetalsOutflowGas -= (Gal[p].MetalsOutflowGas * move_factor);
+                Gal[p].OutflowTime -= dt;
+            }
         }
-    }
-  }
-  assert(Gal[p].HotGas >= Gal[p].MetalsHotGas);
-
-}
-
-
-void update_reincorporation_time(int p, double new_ejected_mass, double time, int k_now, double metallicity)
-{
-    if(ReincorporationModel<5)
-        Gal[p].ReincTime = (Gal[p].EjectedMass * Gal[p].ReincTime + new_ejected_mass * Gal[p].ReincTimeFresh) / (Gal[p].EjectedMass + new_ejected_mass);
-    else
-    {
-        // find the age bin that corresponds to ReincTimeFresh in the future
-        int k=0;
-        for(k=k_now; k<N_AGE_BINS; k++)
+        else
         {
-            if(Gal[p].ReincTimeFresh <= time - AgeBinEdge[k+1]) break;
+            // satellite internal to Rvir, so outflowing gas goes to central's fountain reservoir instead
+            Gal[centralgal].FountainTime = (Gal[centralgal].FountainGas * Gal[centralgal].FountainTime + eject_gas * 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[centralgal].HaloNr].SnapNum))) / (Gal[centralgal].FountainGas + eject_gas);
+            
+            if(dt >= Gal[p].OutflowTime)
+            {
+                Gal[centralgal].FountainMass += Gal[p].OutflowGas;
+                Gal[centralgal].MetalsFountainMass += Gal[p].MetalsOutflowMass;
+                Gal[p].OutflowGas = 0.0;
+                Gal[p].MetalsOutflowMass = 0.0;
+                Gal[p].OutflowTime = 0.0;
+            }
+            else
+            {
+                Gal[centralgal].FountainMass += eject_gas;
+                Gal[centralgal].MetalsFountainMass += (Gal[p].MetalsOutflowGas * move_factor);
+                Gal[p].OutflowGas -= eject_gas;
+                Gal[p].MetalsOutflowGas -= (Gal[p].MetalsOutflowGas * move_factor);
+                Gal[p].OutflowTime -= dt;
+            }
+            
         }
-        Gal[p].EjectedMass_Reinc[k] += new_ejected_mass;
-        Gal[p].MetalsEjectedMass_Reinc[k] += metallicity * new_ejected_mass;
         
     }
+    
 }

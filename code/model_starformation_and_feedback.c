@@ -171,8 +171,10 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
       assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
       assert(Gal[p].MetalsHotGas>=0);
       assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
-      if(reheated_mass > 0.0)
+      if(reheated_mass + ejected_cold_mass > 0.0)
+      {
         update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass, time, k_now);
+      }
 
       if(!(fabs(Gal[p].ColdGas-ColdPre) <= 1.01*fabs(Gal[p].DiscGas[i]-DiscPre) && fabs(Gal[p].ColdGas-ColdPre) >= 0.999*fabs(Gal[p].DiscGas[i]-DiscPre) && (Gal[p].ColdGas-ColdPre)*(Gal[p].DiscGas[i]-DiscPre)>=0.0))
           printf("fabs(Gal[p].ColdGas-ColdPre), fabs(Gal[p].DiscGas[i]-DiscPre) = %e, %e\n", fabs(Gal[p].ColdGas-ColdPre), fabs(Gal[p].DiscGas[i]-DiscPre));
@@ -316,7 +318,10 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
 
     // update the specific energy of the outflowing reservoir (where the stuff to be ejected goes first)
     if(ejected_cold_mass > 0.0)
+    {
         Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_cold_mass * new_ejected_specific_energy) / (Gal[p].OutflowGas + ejected_cold_mass);
+        update_outflow_time(p, ejected_cold_mass, new_ejected_specific_energy);
+    }
         
     feedback_mass[0] = reheated_mass;
 //    feedback_mass[1] = ejected_mass;
@@ -459,6 +464,7 @@ void update_from_ejection(int p, double ejected_mass, double time, int k_now)
     
     if(ejected_mass >= Gal[p].HotGas + Gal[p].FountainGas)
     {
+        update_outflow_time(p, Gal[p].FountainGas, Gal[p].OutflowSpecificEnergy);
         Gal[p].OutflowGas += (Gal[p].HotGas + Gal[p].FountainGas);
         Gal[p].MetalsOutflowGas += (Gal[p].MetalsHotGas + Gal[p].MetalsFountainGas);
         Gal[p].HotGas = 0.0;
@@ -468,6 +474,7 @@ void update_from_ejection(int p, double ejected_mass, double time, int k_now)
     }
     else
     {
+        update_outflow_time(p, ejected_mass, Gal[p].OutflowSpecificEnergy);
         Gal[p].OutflowGas += ejected_mass;
         Gal[p].MetalsOutflowGas += (ejected_mass * (hot_fraction * metallicityHot + (1.0-hot_fraction) * metallicityFountain));
         Gal[p].HotGas -= (ejected_mass * hot_fraction);
@@ -1401,25 +1408,33 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         Gal[p].OutflowSpecificEnergy = eject_specific_energy;
     }
     
-
     update_from_ejection(p, centralgal, ejected_sum, time, k_now);
-        
     update_stellar_dispersion(p);
     
-//    // if a satellite, still need to account for the fact that the ejected reservoir is meant to be zero for satellites inside the virial radius
-//    if(p!=centralgal)
-//    {
-//        double Rsat = get_satellite_radius(p, centralgal);
-//        if(Rsat <= Gal[centralgal].Rvir)
-//        {
-//            Gal[centralgal].HotGas += Gal[p].EjectedMass;
-//            Gal[centralgal].MetalsHotGas += Gal[p].MetalsEjectedMass;
-//            Gal[p].EjectedMass = 0.0;
-//            Gal[p].EjectedMass_Reinc[k_now] = 0.0;
-//            Gal[p].MetalsEjectedMass = 0.0;
-//            Gal[p].MetalsEjectedMass_Reinc[k_now] = 0.0;
-//        }
-//
-//    }
+}
 
+
+void update_outflow_time(int p, double new_mass, double new_specific_energy)
+{
+    double outflow_time, outflow_distance, outflow_kinetic_initial, outflow_kinetic_final, outflow_radial_speed_initial, outflow_radial_speed_final, j_hot, discriminant, new_time;
+    
+    // calculate average radial distance that the outflowing gas has to travel to get outside Rvir
+    outflow_distance = Gal[p].Rvir - sqrt(Gal[p].R2_hot_av);
+    
+    // use energy to calculate an average initial speed.  Subtract the angular component of motion from AM conservation in quadrature to get the radial component
+    outflow_kinetic_initial = new_specific_energy - Gal[p].HotGasPotential - 0.5*sqr(Gal[p].Vvir);
+    j_hot = 2.0 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+    discriminant = 2.0 * outflow_kinetic_initial - sqr(j_hot)/Gal[p].R2_hot_av;
+    assert(discriminant > 0.0);
+    outflow_radial_speed_initial = sqrt(discriminant);
+    
+    // do same for final speed once it reached Rvir
+    outflow_kinetic_final = new_specific_energy - Gal[p].EjectedPotential - 0.5*sqr(Gal[p].Vvir);
+    discriminant = 2.0 * outflow_kinetic_final - sqr(j_hot/Gal[p].Rvir);
+    assert(discriminant > 0.0);
+    outflow_radial_speed_final = sqrt(discriminant);
+
+    // assume an average radial speed is the average of the above initial and final values
+    new_time = 2.0 * outflow_distance / (outflow_radial_speed_initial + outflow_radial_speed_final);
+    Gal[p].OutflowTime = (Gal[p].OutflowGas * Gal[p].OutflowTime + new_mass * new_time) / (Gal[p].OutflowGas + new_mass);
 }
