@@ -1327,6 +1327,7 @@ double get_satellite_radius(int p, int centralgal)
     {
         dx = fabs(Gal[p].Pos[i] - Gal[centralgal].Pos[i]);
         if(dx>HalfBoxLen) dx -= BoxLen;
+        assert(dx<=HalfBoxLen);
         r2 += sqr(dx);
     }
     return sqrt(r2) * AA[Gal[p].SnapNum]; // returns in physical units, not comoving

@@ -408,7 +408,7 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
       Gal[p].DiscGasMetals[i] -= metallicity * reheat_eject_sum;
 
       Gal[p].MetalsFountainGas += metallicity * reheated_mass;
-      Gal[p].MetalsOutflowMass += metallicity * ejected_cold_mass;
+      Gal[p].MetalsOutflowGas += metallicity * ejected_cold_mass;
 
         
 	  assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
@@ -418,7 +418,7 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
 	{
 
         Gal[p].MetalsFountainGas += Gal[p].DiscGasMetals[i] * reheated_mass/reheat_eject_sum;
-        Gal[p].MetalsOutflowMass += Gal[p].DiscGasMetals[i] * ejected_cold_mass/reheat_eject_sum;
+        Gal[p].MetalsOutflowGas += Gal[p].DiscGasMetals[i] * ejected_cold_mass/reheat_eject_sum;
 
         
       Gal[p].MetalsColdGas -= Gal[p].DiscGasMetals[i];
@@ -1367,7 +1367,10 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         
         // update the specific energy of the outflowing reservoir (where the stuff to be ejected goes first)
         if(ejected_cold_mass > 0.0)
+        {
             Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_cold_mass * new_ejected_specific_energy) / (Gal[p].OutflowGas + ejected_cold_mass);
+            update_outflow_time(p, ejected_cold_mass, new_ejected_specific_energy);
+        }
  
         // apply feedback
         metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);

@@ -779,35 +779,39 @@ void add_infall_to_hot(int centralgal, double infallingGas, int k_now)
       Gal[centralgal].EjectedMass = 0.0;
       Gal[centralgal].MetalsEjectedMass = 0.0;
       
-      for(k=k_now; k<=N_AGE_BINS; k++)
-      {
-          Gal[centralgal].EjectedMass_Reinc[k] = 0.0;
-          Gal[centralgal].MetalsEjectedMass_Reinc[k] = 0.0;
-      }
+//      for(k=k_now; k<=N_AGE_BINS; k++)
+//      {
+//          Gal[centralgal].EjectedMass_Reinc[k] = 0.0;
+//          Gal[centralgal].MetalsEjectedMass_Reinc[k] = 0.0;
+//      }
     }
     else
     {
-        for(k=N_AGE_BINS; k>=k_now; k--)
-        {
-            if(Gal[centralgal].EjectedMass_Reinc[k] <= -infallingGas)
-            {
-                Gal[centralgal].EjectedMass -= Gal[centralgal].EjectedMass_Reinc[k];
-                Gal[centralgal].MetalsEjectedMass -= Gal[centralgal].MetalsEjectedMass_Reinc[k];
-                infallingGas += Gal[centralgal].EjectedMass_Reinc[k];
-                Gal[centralgal].EjectedMass_Reinc[k] = 0.0;
-                Gal[centralgal].MetalsEjectedMass_Reinc[k] = 0.0;
-            }
-            else
-            {
-                metallicity = get_metallicity(Gal[centralgal].EjectedMass_Reinc[k], Gal[centralgal].MetalsEjectedMass_Reinc[k]);
-                Gal[centralgal].EjectedMass += infallingGas;
-                Gal[centralgal].MetalsEjectedMass += metallicity * infallingGas;
-                Gal[centralgal].EjectedMass_Reinc[k] += infallingGas;
-                Gal[centralgal].MetalsEjectedMass_Reinc[k] += metallicity * infallingGas;
-                infallingGas = 0.0;
-                break;
-            }
-        }
+        metallicity = get_metallicity(Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass);
+        Gal[centralgal].EjectedMass += infallingGas;
+        Gal[centralgal].MetalsEjectedMass += metallicity * infallingGas;        
+        
+//        for(k=N_AGE_BINS; k>=k_now; k--)
+//        {
+//            if(Gal[centralgal].EjectedMass_Reinc[k] <= -infallingGas)
+//            {
+//                Gal[centralgal].EjectedMass -= Gal[centralgal].EjectedMass_Reinc[k];
+//                Gal[centralgal].MetalsEjectedMass -= Gal[centralgal].MetalsEjectedMass_Reinc[k];
+//                infallingGas += Gal[centralgal].EjectedMass_Reinc[k];
+//                Gal[centralgal].EjectedMass_Reinc[k] = 0.0;
+//                Gal[centralgal].MetalsEjectedMass_Reinc[k] = 0.0;
+//            }
+//            else
+//            {
+//                metallicity = get_metallicity(Gal[centralgal].EjectedMass_Reinc[k], Gal[centralgal].MetalsEjectedMass_Reinc[k]);
+//                Gal[centralgal].EjectedMass += infallingGas;
+//                Gal[centralgal].MetalsEjectedMass += metallicity * infallingGas;
+//                Gal[centralgal].EjectedMass_Reinc[k] += infallingGas;
+//                Gal[centralgal].MetalsEjectedMass_Reinc[k] += metallicity * infallingGas;
+//                infallingGas = 0.0;
+//                break;
+//            }
+//        }
     }
 
   }

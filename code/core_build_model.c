@@ -224,7 +224,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
           }
         }
         else
-        {
+        { // NO ORPHANS SHOULD BE PRESENT IN THE MODEL
           // an orhpan satellite galaxy
           Gal[ngal].deltaMvir = -1.0*Gal[ngal].Mvir;
           Gal[ngal].Mvir = 0.0;
@@ -305,6 +305,12 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 
   // calculate cosmological gas to be added to halo to maintain baryon fraction
   infallingGas = infall_recipe(centralgal, ngal, ZZ[Halo[halonr].SnapNum]);
+    
+  // move mass in outflow and ejected reservoirs based on halo growth and update time-scales accordingly
+  if(infallingGas > 0)
+  {
+      update_galactic_fountain_from_growth(centralgal);
+  }
   
   for(p = 0; p < ngal; p++)
   {
@@ -352,9 +358,12 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
       // fresh cosmological added to CGM
-      add_infall_to_hot(p, infallingGas / STEPS, k_now);
-      assert(Gal[p].MetalsHotGas>=0);
-      assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+      if(p==centralgal)
+      {
+          add_infall_to_hot(p, infallingGas / STEPS, k_now);
+          assert(Gal[p].MetalsHotGas>=0);
+          assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+      }
         
       // move outflowing, fountaining, and reincorporating ejected gas as appropriate
       reincorporate_gas(p, dt, time, k_now);
