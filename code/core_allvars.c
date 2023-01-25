@@ -49,7 +49,6 @@ double Hubble_h;
 double PartMass;
 double BoxLen;
 double EnergySNcode, EnergySN;
-double EtaSNcode, EtaSN;
 
 
 // recipe flags 
@@ -62,7 +61,6 @@ int H2prescription;
 int GasPrecessionOn;
 int RamPressureOn;
 int HotStripOn;
-int ReincorporationModel;
 int CoolingExponentialRadiusOn;
 int MvirDefinition;
 int AgeStructOut;
@@ -75,24 +73,13 @@ double FirstBin;
 double ExponentBin;
 
 // recipe parameters 
-double RecycleFraction;
 double Yield;
-double FracZleaveDisk;
-double ReIncorporationFactor;
 double CoolingScaleSlope;
 double CoolingScaleConst;
 double ThreshMajorMerger;
 double BaryonFrac;
 double SfrEfficiency;
-double FeedbackReheatingEpsilon;
-double FeedbackGasSigma;
-double FeedbackExponent;
-double FeedbackEjectionEfficiency;
-double FeedbackReheatCoupling;
-double FeedbackEjectCoupling;
 double RadioModeEfficiency;
-double QuasarModeEfficiency;
-double BlackHoleGrowthRate;
 double RadiativeEfficiency;
 double H2FractionFactor;
 double H2FractionExponent;
@@ -105,8 +92,6 @@ double DegPerTdyn;
 double Reionization_z0;
 double Reionization_zr;
 double ThresholdSatDisruption;
-double AlphaBurst;
-double BetaBurst;
 double Ratio_Ia_II;
 double HalfBoxLen;
 

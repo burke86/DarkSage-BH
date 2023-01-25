@@ -146,14 +146,16 @@ int main(int argc, char **argv)
     double StellarOutput[2];
     get_RecycleFraction_and_NumSNperMass(0, 1e20, StellarOutput); // arbitrarily large number for upper bound on time
 //    printf("FinalRecycleFraction, SNperMassFormed = %e, %e\n", StellarOutput[0], StellarOutput[1]);
-    if(DelayedFeedbackOn>0)
-        FinalRecycleFraction = 1.0*StellarOutput[0];
-    else
-        FinalRecycleFraction = 1.0 * RecycleFraction;
+    FinalRecycleFraction = 1.0*StellarOutput[0];
     
-    // Used for SupernovaRecipeOn>3.  If DelayedFeedbackOn==1, this will be updated in core_build_model.c.  The value below assumes the instantaneous recycling (and therefore instantaneous feedback) approximation
-    SNperMassFormed = 1.0*StellarOutput[1];
-    
+    // when using the instantaneous recycling approximation
+    // these terms are otherwise regularly updated in core_build_model.c
+    if(DelayedFeedbackOn==0)
+    {
+        RecycleFraction = FinalRecycleFraction;
+        SNperMassFormed = 1.0*StellarOutput[1];
+    }
+        
     HalfBoxLen = 0.5 * BoxLen; // useful to have a field of half the box length for calculating galaxy--galaxy distances
     
     // conversion factors for percentage mass radii to exponential scale radii

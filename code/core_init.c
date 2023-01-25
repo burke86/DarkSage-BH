@@ -44,7 +44,7 @@ void init(void)
 
 void set_units(void)
 {
-
+    // convert some physical input parameters to internal units 
   UnitTime_in_s = UnitLength_in_cm / UnitVelocity_in_cm_per_s;
   UnitTime_in_Megayears = UnitTime_in_s / SEC_PER_MEGAYEAR;
   G = GRAVITY / cube(UnitLength_in_cm) * UnitMass_in_g * sqr(UnitTime_in_s);
@@ -54,8 +54,6 @@ void set_units(void)
   UnitEnergy_in_cgs = UnitMass_in_g * sqr(UnitLength_in_cm) / sqr(UnitTime_in_s);
 
   EnergySNcode = EnergySN / UnitEnergy_in_cgs * Hubble_h;
-  EtaSNcode = EtaSN * (UnitMass_in_g / SOLAR_MASS) / Hubble_h;
-  // convert some physical input parameters to internal units 
   Hubble = HUBBLE * UnitTime_in_s;
 
   // compute a few quantitites 

@@ -73,14 +73,6 @@ void read_parameter_file(char *fname)
   addr[nt] = &ThreshMajorMerger;
   id[nt++] = DOUBLE;
 
-  strcpy(tag[nt], "RecycleFraction");
-  addr[nt] = &RecycleFraction;
-  id[nt++] = DOUBLE;
-
-  strcpy(tag[nt], "ReIncorporationFactor");
-  addr[nt] = &ReIncorporationFactor;
-  id[nt++] = DOUBLE;
-
   strcpy(tag[nt], "CoolingScaleSlope");
   addr[nt] = &CoolingScaleSlope;
   id[nt++] = DOUBLE;
@@ -144,10 +136,6 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "HotStripOn");
   addr[nt] = &HotStripOn;
   id[nt++] = INT;
-    
-  strcpy(tag[nt], "ReincorporationModel");
-  addr[nt] = &ReincorporationModel;
-  id[nt++] = INT;
 
   strcpy(tag[nt], "CoolingExponentialRadiusOn");
   addr[nt] = &CoolingExponentialRadiusOn;
@@ -193,45 +181,13 @@ void read_parameter_file(char *fname)
   addr[nt] = &EnergySN;
   id[nt++] = DOUBLE;
 
-  strcpy(tag[nt], "EtaSN");
-  addr[nt] = &EtaSN;
-  id[nt++] = DOUBLE;
-
   strcpy(tag[nt], "Yield");
   addr[nt] = &Yield;
-  id[nt++] = DOUBLE;
-
-  strcpy(tag[nt], "FracZleaveDisk");
-  addr[nt] = &FracZleaveDisk;
   id[nt++] = DOUBLE;
 
   strcpy(tag[nt], "SfrEfficiency");
   addr[nt] = &SfrEfficiency;
   id[nt++] = DOUBLE;
-
-  strcpy(tag[nt], "FeedbackReheatingEpsilon");
-  addr[nt] = &FeedbackReheatingEpsilon;
-  id[nt++] = DOUBLE;
-
-    strcpy(tag[nt], "FeedbackGasSigma");
-    addr[nt] = &FeedbackGasSigma;
-    id[nt++] = DOUBLE;
-    
-    strcpy(tag[nt], "FeedbackExponent");
-    addr[nt] = &FeedbackExponent;
-    id[nt++] = DOUBLE;
-    
-  strcpy(tag[nt], "FeedbackEjectionEfficiency");
-  addr[nt] = &FeedbackEjectionEfficiency;
-  id[nt++] = DOUBLE;
-
-    strcpy(tag[nt], "FeedbackReheatCoupling");
-    addr[nt] = &FeedbackReheatCoupling;
-    id[nt++] = DOUBLE;
-
-    strcpy(tag[nt], "FeedbackEjectCoupling");
-    addr[nt] = &FeedbackEjectCoupling;
-    id[nt++] = DOUBLE;
     
     strcpy(tag[nt], "Ratio_Ia_II");
     addr[nt] = &Ratio_Ia_II;
@@ -240,14 +196,6 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "RadioModeEfficiency");
   addr[nt] = &RadioModeEfficiency;
   id[nt++] = DOUBLE;
-
-  strcpy(tag[nt], "QuasarModeEfficiency");
-  addr[nt] = &QuasarModeEfficiency;
-  id[nt++] = DOUBLE;
-    
-    strcpy(tag[nt], "BlackHoleGrowthRate");
-    addr[nt] = &BlackHoleGrowthRate;
-    id[nt++] = DOUBLE;
     
     strcpy(tag[nt], "RadiativeEfficiency");
     addr[nt] = &RadiativeEfficiency;
@@ -296,14 +244,6 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "ThresholdSatDisruption");
   addr[nt] = &ThresholdSatDisruption;
   id[nt++] = DOUBLE;
-    
-    strcpy(tag[nt], "AlphaBurst");
-    addr[nt] = &AlphaBurst;
-    id[nt++] = DOUBLE;
-    
-    strcpy(tag[nt], "BetaBurst");
-    addr[nt] = &BetaBurst;
-    id[nt++] = DOUBLE;
     
     strcpy(tag[nt], "NumOutputs");
     addr[nt] = &NOUT;

@@ -95,10 +95,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
         tot_ICS += Gal[i].ICS;
         
         if(i != centralgal)
-        {
             Gal[i].EjectedMass = Gal[i].MetalsEjectedMass = 0.0; // satellite ejected gas goes to central hot reservoir
-            for(k=0; k<=N_AGE_BINS; k++) Gal[i].EjectedMass_Reinc[k] = Gal[i].MetalsEjectedMass_Reinc[k] = 0.0;
-        }
         
     }
 
@@ -168,8 +165,8 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   // Put ejecta from satellites into the hot reservoir of the central
   if(tot_ejected > Gal[centralgal].EjectedMass)
   {
-    Gal[centralgal].HotGas += (tot_ejected - Gal[centralgal].EjectedMass);
-    Gal[centralgal].MetalsHotGas += (tot_ejectedMetals - Gal[centralgal].MetalsEjectedMass);
+    Gal[centralgal].FountainGas += (tot_ejected - Gal[centralgal].EjectedMass);
+    Gal[centralgal].MetalsFountainGas += (tot_ejectedMetals - Gal[centralgal].MetalsEjectedMass);
   }
 
   // take care of any potential numerical issues regarding ejected mass
@@ -199,7 +196,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
   double tidal_strippedGas, tidal_strippedGasMetals;
   double strippedBaryons, strippedICS, strippedICSmetals, strippedICS_age, stripped_ICSmetals_age;
     double r_gal, a_ICS, a_new;//, eject_sum;
-  int k, kk;
+  int k;
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
     
   // Intialise
@@ -231,47 +228,14 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
           
         if(Gal[gal].EjectedMass > strippedGas)
         {
-              metallicity = get_metallicity(Gal[gal].EjectedMass, Gal[gal].MetalsEjectedMass);
-              Gal[gal].EjectedMass -= strippedGas;
-              Gal[centralgal].LocalIGM += strippedGas;
-            
-            if(ReincorporationModel==5)
-            {
-              for(k=N_AGE_BINS; k>=k_now; k--)
-              {
-                  if(strippedGas > Gal[gal].EjectedMass_Reinc[k])
-                  {
-                      strippedGas -= Gal[gal].EjectedMass_Reinc[k];
-                      Gal[gal].MetalsEjectedMass -= Gal[gal].MetalsEjectedMass_Reinc[k];
-                      Gal[centralgal].MetalsLocalIGM += Gal[gal].MetalsEjectedMass_Reinc[k];
-                      Gal[gal].EjectedMass_Reinc[k] = 0.0;
-                      Gal[gal].MetalsEjectedMass_Reinc[k] = 0.0;
-                  }
-                  else
-                  {
-                      metallicity = get_metallicity(Gal[gal].EjectedMass_Reinc[k], Gal[gal].MetalsEjectedMass_Reinc[k]);
-                      Gal[gal].EjectedMass_Reinc[k] -= strippedGas;
-                      Gal[gal].MetalsEjectedMass_Reinc[k] -= metallicity * strippedGas;
-                      Gal[gal].MetalsEjectedMass -= metallicity * strippedGas;
-                      Gal[centralgal].MetalsLocalIGM += metallicity * strippedGas;
-                      strippedGas = 0.0;
-                      break;                      
-                  }
-              }
-            }
-            else
-            {
-                Gal[gal].MetalsEjectedMass -= metallicity * strippedGas;
-                Gal[centralgal].MetalsLocalIGM += metallicity * strippedGas;
-                if(Gal[gal].MetalsEjectedMass < 0) Gal[gal].MetalsEjectedMass = 0.0;
-            }
-            
-//        eject_sum = 0.0;
-//        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[gal].EjectedMass_Reinc[kk];
-//        if (!((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass))) printf("eject_sum, Gal[gal].EjectedMass = %e, %e\n", eject_sum, Gal[gal].EjectedMass);
-//        assert((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass));
+            metallicity = get_metallicity(Gal[gal].EjectedMass, Gal[gal].MetalsEjectedMass);
+            Gal[gal].EjectedMass -= strippedGas;
+            Gal[centralgal].LocalIGM += strippedGas;
 
-
+            Gal[gal].MetalsEjectedMass -= metallicity * strippedGas;
+            Gal[centralgal].MetalsLocalIGM += metallicity * strippedGas;
+            if(Gal[gal].MetalsEjectedMass < 0) Gal[gal].MetalsEjectedMass = 0.0;
+            
         }
         else
         {
@@ -280,22 +244,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
               strippedGas -= Gal[gal].EjectedMass;
               Gal[gal].EjectedMass = 0.0;
               Gal[gal].MetalsEjectedMass = 0.0;
-            
-            if(ReincorporationModel==5)
-            {
-              for(k=k_now; k<=N_AGE_BINS; k++)
-              {
-                Gal[gal].EjectedMass_Reinc[k] = 0.0;
-                Gal[gal].MetalsEjectedMass_Reinc[k] = 0.0;
-              }
-            }
         }
-        
-//        eject_sum = 0.0;
-//        for(kk=k_now; kk<=N_AGE_BINS; kk++) eject_sum += Gal[gal].EjectedMass_Reinc[kk];
-//        if (!((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass))) printf("eject_sum, Gal[gal].EjectedMass = %e, %e\n", eject_sum, Gal[gal].EjectedMass);
-//        assert((eject_sum <= 1.01 * Gal[gal].EjectedMass) && (eject_sum >= 0.99 * Gal[gal].EjectedMass));
-
           
           assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
           assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
@@ -760,10 +709,9 @@ double do_reionization(int gal, double Zcurr)
 
 
 
-void add_infall_to_hot(int centralgal, double infallingGas, int k_now)
+void add_infall_to_hot(int centralgal, double infallingGas)
 {
   double metallicity;
-  int k;
 
   assert(Gal[centralgal].HotGas == Gal[centralgal].HotGas && Gal[centralgal].HotGas >= 0);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
@@ -778,40 +726,12 @@ void add_infall_to_hot(int centralgal, double infallingGas, int k_now)
       infallingGas += Gal[centralgal].EjectedMass;
       Gal[centralgal].EjectedMass = 0.0;
       Gal[centralgal].MetalsEjectedMass = 0.0;
-      
-//      for(k=k_now; k<=N_AGE_BINS; k++)
-//      {
-//          Gal[centralgal].EjectedMass_Reinc[k] = 0.0;
-//          Gal[centralgal].MetalsEjectedMass_Reinc[k] = 0.0;
-//      }
     }
     else
     {
         metallicity = get_metallicity(Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass);
         Gal[centralgal].EjectedMass += infallingGas;
         Gal[centralgal].MetalsEjectedMass += metallicity * infallingGas;        
-        
-//        for(k=N_AGE_BINS; k>=k_now; k--)
-//        {
-//            if(Gal[centralgal].EjectedMass_Reinc[k] <= -infallingGas)
-//            {
-//                Gal[centralgal].EjectedMass -= Gal[centralgal].EjectedMass_Reinc[k];
-//                Gal[centralgal].MetalsEjectedMass -= Gal[centralgal].MetalsEjectedMass_Reinc[k];
-//                infallingGas += Gal[centralgal].EjectedMass_Reinc[k];
-//                Gal[centralgal].EjectedMass_Reinc[k] = 0.0;
-//                Gal[centralgal].MetalsEjectedMass_Reinc[k] = 0.0;
-//            }
-//            else
-//            {
-//                metallicity = get_metallicity(Gal[centralgal].EjectedMass_Reinc[k], Gal[centralgal].MetalsEjectedMass_Reinc[k]);
-//                Gal[centralgal].EjectedMass += infallingGas;
-//                Gal[centralgal].MetalsEjectedMass += metallicity * infallingGas;
-//                Gal[centralgal].EjectedMass_Reinc[k] += infallingGas;
-//                Gal[centralgal].MetalsEjectedMass_Reinc[k] += metallicity * infallingGas;
-//                infallingGas = 0.0;
-//                break;
-//            }
-//        }
     }
 
   }

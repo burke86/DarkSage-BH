@@ -308,9 +308,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     
   // move mass in outflow and ejected reservoirs based on halo growth and update time-scales accordingly
   if(infallingGas > 0)
-  {
       update_galactic_fountain_from_growth(centralgal);
-  }
+  
   
   for(p = 0; p < ngal; p++)
   {
@@ -360,13 +359,13 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       // fresh cosmological added to CGM
       if(p==centralgal)
       {
-          add_infall_to_hot(p, infallingGas / STEPS, k_now);
+          add_infall_to_hot(p, infallingGas / STEPS);
           assert(Gal[p].MetalsHotGas>=0);
           assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
       }
         
       // move outflowing, fountaining, and reincorporating ejected gas as appropriate
-      reincorporate_gas(p, dt, time, k_now);
+      reincorporate_gas(p, centralgal, dt);
           
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0)
@@ -399,7 +398,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       }
         
 	  // stars form and then explode!
-      if(SfrEfficiency>0.0) // passive H2 channel, mightn't be needed anymore!
+      if(SfrEfficiency>0.0) // passive H2 channel, can be switched off if one sets this to zero
         starformation_and_feedback(p, centralgal, dt, step, time, k_now);
 
       // precess gas disc
@@ -410,7 +409,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         
       // Check for disk instability
       if(DiskInstabilityOn>0)
-        check_disk_instability(p, centralgal, dt, step, time, k_now);
+        check_disk_instability(p, dt, step, time, k_now);
     }
 
     // check for satellite disruption and merger events 

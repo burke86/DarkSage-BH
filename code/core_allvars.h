@@ -328,7 +328,6 @@ struct GALAXY
     double prevRhot;
     double prevVhot;
   double ReincTime;
-  double ReincTimeFresh;
 
   // baryonic reservoirs 
   double ColdGas;
@@ -374,9 +373,6 @@ struct GALAXY
     double EjectedSNGasMass;
     double EjectedQuasarGasMass;
     double MaxStrippedGas;
-    
-    double EjectedMass_Reinc[N_AGE_BINS+1];
-    double MetalsEjectedMass_Reinc[N_AGE_BINS+1];
     
   // Instability tracking
   int TotInstabEvents;
@@ -510,7 +506,6 @@ extern double PartMass;
 extern double Hubble_h;
 extern double BoxLen;
 extern double EnergySNcode, EnergySN;
-extern double EtaSNcode, EtaSN;
 
 // binning information
 extern double   FirstBin;
@@ -526,7 +521,6 @@ extern int    H2prescription;
 extern int    GasPrecessionOn;
 extern int    RamPressureOn;
 extern int    HotStripOn;
-extern int    ReincorporationModel;
 extern int    CoolingExponentialRadiusOn;
 extern int    MvirDefinition;
 extern int    AgeStructOut;
@@ -535,24 +529,13 @@ extern int    HotGasProfileType;
 extern int    MergeTimeScaleForm;
 
 // recipe parameters 
-extern double RecycleFraction;
 extern double Yield;
-extern double FracZleaveDisk;
-extern double ReIncorporationFactor;
 extern double CoolingScaleSlope;
 extern double CoolingScaleConst;
 extern double ThreshMajorMerger;
 extern double BaryonFrac;
 extern double SfrEfficiency;
-extern double FeedbackReheatingEpsilon;
-extern double FeedbackGasSigma;
-extern double FeedbackExponent;
-extern double FeedbackEjectionEfficiency;
-extern double FeedbackReheatCoupling;
-extern double FeedbackEjectCoupling;
 extern double RadioModeEfficiency;
-extern double QuasarModeEfficiency;
-extern double BlackHoleGrowthRate;
 extern double RadiativeEfficiency;
 extern double H2FractionFactor;
 extern double H2FractionExponent;
@@ -565,8 +548,6 @@ extern double DegPerTdyn;
 extern double Reionization_z0;
 extern double Reionization_zr;
 extern double ThresholdSatDisruption;
-extern double AlphaBurst;
-extern double BetaBurst;
 extern double Ratio_Ia_II;
 
 extern double UnitLength_in_cm,
@@ -602,6 +583,7 @@ extern int FileNum;
 double DiscBinEdge[N_BINS+1];
 double AgeBinEdge[N_AGE_BINS+1];
 int RetroCount, ProCount;
+double RecycleFraction;
 double FinalRecycleFraction;
 double SNperMassFormed;
 double HalfBoxLen;

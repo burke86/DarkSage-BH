@@ -12,7 +12,7 @@
 
 void starformation_and_feedback(int p, int centralgal, double dt, int step, double time, int k_now)
 {
-  double strdot, stars, reheated_mass, ejected_mass, metallicity, stars_sum, area, SFE_H2, f_H2_const, DiscGasSum, DiscStarsSum, DiscPre, ColdPre;
+  double strdot, stars, reheated_mass, metallicity, stars_sum, area, SFE_H2, f_H2_const, DiscGasSum, DiscStarsSum, DiscPre, ColdPre;
   double r_inner, r_outer;
   double reff, tdyn, cold_crit, strdotfull, H2sum, new_metals; // For SFprescription==3
 
@@ -173,7 +173,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
       assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
       if(reheated_mass + ejected_cold_mass > 0.0)
       {
-        update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass, time, k_now);
+        update_from_feedback(p, reheated_mass, metallicity, i, ejected_cold_mass);
       }
 
       if(!(fabs(Gal[p].ColdGas-ColdPre) <= 1.01*fabs(Gal[p].DiscGas[i]-DiscPre) && fabs(Gal[p].ColdGas-ColdPre) >= 0.999*fabs(Gal[p].DiscGas[i]-DiscPre) && (Gal[p].ColdGas-ColdPre)*(Gal[p].DiscGas[i]-DiscPre)>=0.0))
@@ -222,10 +222,11 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
     if(stars > max_consume)
         stars = max_consume;
     
-
+    v_wind = 0.0; // initialise to avoid warning on compile
+    
     if(SupernovaRecipeOn > 0 && Gal[p].DiscGas[i] > 0.0 && stars>=MIN_STARS_FOR_SN)
     {
-        energy_feedback = FeedbackReheatCoupling * stars * EnergySNcode * SNperMassFormed; // still controlled by a coupling efficiency for practical testing purposes
+        energy_feedback = stars * EnergySNcode * SNperMassFormed; // still controlled by a coupling efficiency for practical testing purposes
         m_return = RecycleFraction * stars;
 
         annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
@@ -368,9 +369,8 @@ void update_from_star_formation(int p, double stars, double metallicity, int i)
 
 
 
-void update_from_feedback(int p, int centralgal, double reheated_mass, double metallicity, int i, double ejected_cold_mass, double time, int k_now)
+void update_from_feedback(int p, double reheated_mass, double metallicity, int i, double ejected_cold_mass)
 {
-    assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
     assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
     assert(Gal[p].HotGas>=0);
     assert(Gal[p].MetalsHotGas>=0);
@@ -456,7 +456,7 @@ void update_from_feedback(int p, int centralgal, double reheated_mass, double me
 }
 
 
-void update_from_ejection(int p, double ejected_mass, double time, int k_now)
+void update_from_ejection(int p, double ejected_mass)
 {    // feedback from spheroidal stars and excess energy from quasars will cause CGM gas to outflow    
     double metallicityHot = get_metallicity(Gal[p].HotGas, Gal[p].MetalsHotGas);
     double metallicityFountain = get_metallicity(Gal[p].FountainGas, Gal[p].MetalsFountainGas);
@@ -1095,7 +1095,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, return_metal_mass, new_metals, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
     double v_therm2, vertical_velocity, energy_onto_hot, returned_mass_hot, returned_mass_cold, ejected_sum;
     double StellarOutput[2];
-    double m_return, v_launch, v_wind, new_ejected_specific_energy;
+    double v_launch, v_wind, new_ejected_specific_energy;
 
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     double tdyn = 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum));
@@ -1107,14 +1107,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
     hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
     hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
-    
-    if(!(Gal[p].OutflowSpecificEnergy>hot_specific_energy))
-    {
-        printf("Gal[p].OutflowSpecificEnergy, hot_specific_energy = %e, %e\n", Gal[p].OutflowSpecificEnergy, hot_specific_energy);
-        printf("Ejected potential, Hot potential = %e, %e\n", Gal[centralgal].EjectedPotential, Gal[centralgal].HotGasPotential);
-        printf("centralgal, Rvir = %i, %e\n", centralgal, Gal[centralgal].Rvir);
-    }
-    assert(Gal[p].OutflowSpecificEnergy>hot_specific_energy);
+
     
     
     // loop over age bins prior to the current one and calculate the return fraction and SN per remaining mass
@@ -1145,7 +1138,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         // deal with stellar outflow from merger-driven bulge
         if(Gal[p].ClassicalBulgeMassAge[k]>0)
         {
-            energy_onto_hot += (FeedbackReheatCoupling * Gal[p].ClassicalBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k]); // energy from feedback of these stars goes to ejecting hot gas
+            energy_onto_hot += (Gal[p].ClassicalBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k]); // energy from feedback of these stars goes to ejecting hot gas
             metallicity = get_metallicity(Gal[p].ClassicalBulgeMassAge[k], Gal[p].ClassicalMetalsBulgeMassAge[k]);
             
             return_mass = ReturnFraction[k] * Gal[p].ClassicalBulgeMassAge[k];
@@ -1161,7 +1154,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             Gal[p].ClassicalMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
             
-            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + reheated_mass);
+            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity)); // enrich gas with new metals from this stellar population
@@ -1178,7 +1171,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         // same for instability-driven bulge
         if(Gal[p].SecularBulgeMassAge[k]>0)
         {
-            energy_onto_hot += (FeedbackReheatCoupling * Gal[p].SecularBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k]);
+            energy_onto_hot += (Gal[p].SecularBulgeMassAge[k] * EnergySNcode * SNperMassRemaining[k]);
             metallicity = get_metallicity(Gal[p].SecularBulgeMassAge[k], Gal[p].SecularMetalsBulgeMassAge[k]);
             
             return_mass = ReturnFraction[k] * Gal[p].SecularBulgeMassAge[k];
@@ -1194,7 +1187,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             Gal[p].SecularMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
             
-            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + reheated_mass);
+            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
@@ -1203,7 +1196,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         // same for intracluster stars
         if(Gal[p].ICS_Age[k]>0)
         {
-            energy_onto_hot += (FeedbackReheatCoupling * Gal[p].ICS_Age[k] * EnergySNcode * SNperMassRemaining[k]);
+            energy_onto_hot += (Gal[p].ICS_Age[k] * EnergySNcode * SNperMassRemaining[k]);
             metallicity = get_metallicity(Gal[p].ICS_Age[k], Gal[p].MetalsICS_Age[k]);
             
             return_mass = ReturnFraction[k] * Gal[p].ICS_Age[k];
@@ -1217,7 +1210,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             Gal[p].MetalsICS_Age[k] -= return_metal_mass;
             Gal[p].MetalsICS -= return_metal_mass;
             
-            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + reheated_mass);
+            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
@@ -1241,6 +1234,17 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         }
         
     }
+    
+    
+    if((energy_onto_hot>0) && (Gal[p].OutflowSpecificEnergy <= hot_specific_energy))
+    {
+        printf("Gal[p].OutflowGas, Gal[p].FountainGas = %e, %e\n", Gal[p].OutflowGas, Gal[p].FountainGas);
+        printf("Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS = %e, %e, %e\n", Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS);
+        printf("Gal[p].OutflowSpecificEnergy, hot_specific_energy = %e, %e\n", Gal[p].OutflowSpecificEnergy, hot_specific_energy);
+        printf("Ejected potential, Hot potential = %e, %e\n", Gal[centralgal].EjectedPotential, Gal[centralgal].HotGasPotential);
+        printf("centralgal, Rvir = %i, %e\n", centralgal, Gal[centralgal].Rvir);
+        assert(Gal[p].OutflowSpecificEnergy>hot_specific_energy);
+    }
 
     
     // loop over disc annuli
@@ -1258,7 +1262,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
             if(SNperMassRemaining[k]<=0 || ReturnFraction[k]<=0 || Gal[p].DiscStarsAge[i][k]<=0) continue;
             
             // initial calculation of reheated mass from supernovae
-            energy_feedback += (FeedbackReheatCoupling * Gal[p].DiscStarsAge[i][k] * EnergySNcode * SNperMassRemaining[k]);
+            energy_feedback += (Gal[p].DiscStarsAge[i][k] * EnergySNcode * SNperMassRemaining[k]);
 
             // stellar mass loss
             metallicity = get_metallicity(Gal[p].DiscStarsAge[i][k], Gal[p].DiscStarsMetalsAge[i][k]);
@@ -1333,7 +1337,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
                 
                 if(!(reheated_mass>=0)) 
                 {
-                    printf("new_ejected_specific_energy, ejected_specific_energy = %e, %e\n", new_ejected_specific_energy, ejected_specific_energy);
+                    printf("new_ejected_specific_energy = %e\n", new_ejected_specific_energy);
                     printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
                     printf("returned_mass_cold, v_launch, v_wind, Vvir = %e, %e, %e, %e\n", returned_mass_cold, v_launch, v_wind, Gal[p].Vvir);
                 }
@@ -1377,7 +1381,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         
         assert(Gal[p].MetalsHotGas>=0);
         assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
-        update_from_feedback(p, centralgal, reheated_mass, metallicity, i, ejected_cold_mass, time, k_now);
+        update_from_feedback(p, reheated_mass, metallicity, i, ejected_cold_mass);
         
         // there could be excess energy from delayed feedback in principle; gets added to energy dumped onto hot stuff
         energy_onto_hot += ((1.0 - norm_ratio) * energy_feedback);
@@ -1411,7 +1415,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
         Gal[p].OutflowSpecificEnergy = eject_specific_energy;
     }
     
-    update_from_ejection(p, centralgal, ejected_sum, time, k_now);
+    update_from_ejection(p, ejected_sum);
     update_stellar_dispersion(p);
     
 }
@@ -1419,7 +1423,7 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 
 void update_outflow_time(int p, double new_mass, double new_specific_energy)
 {
-    double outflow_time, outflow_distance, outflow_kinetic_initial, outflow_kinetic_final, outflow_radial_speed_initial, outflow_radial_speed_final, j_hot, discriminant, new_time;
+    double outflow_distance, outflow_kinetic_initial, outflow_kinetic_final, outflow_radial_speed_initial, outflow_radial_speed_final, j_hot, discriminant, new_time;
     
     // calculate average radial distance that the outflowing gas has to travel to get outside Rvir
     outflow_distance = Gal[p].Rvir - sqrt(Gal[p].R2_hot_av);

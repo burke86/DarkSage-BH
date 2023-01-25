@@ -206,12 +206,6 @@ void init_galaxy(int p, int halonr)
             Gal[p].VelDispStarsAge[j][k] = c_s;
         }
     }
-    
-    for(k=0; k<=N_AGE_BINS; k++)
-    {
-        Gal[p].EjectedMass_Reinc[k] = 0.0;
-        Gal[p].MetalsEjectedMass_Reinc[k] = 0.0;
-    }
 
 
 //    update_disc_radii(p);
@@ -221,7 +215,6 @@ void init_galaxy(int p, int halonr)
     Gal[p].prevHotGasPotential = 0.0;
     Gal[p].prevEjectedPotential = 0.0;
     Gal[p].ReincTime = 0.0;
-    Gal[p].ReincTimeFresh = 0.0;
     Gal[p].prevRvir = 0.0;
     Gal[p].prevRhot = 0.0;
     Gal[p].prevVhot = 0.0;
@@ -745,9 +738,7 @@ void update_disc_radii(int p)
         const double c_gdisc = Gal[p].Rvir / Gal[p].GasDiscScaleRadius;
         const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) * inv_Rvir;
         const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
-        double vrot, rrat, RonRvir, AvHotPotential, reincTime, intgd1, intgd2;//, BulgeIntegral, ss, ff;
-        int kmax;
-        double Rhot = sqrt(Gal[p].R2_hot_av);
+        double vrot, rrat, RonRvir, AvHotPotential;
         double j2_mbulge = sqr(Gal[p].SpinClassicalBulge[0]) + sqr(Gal[p].SpinClassicalBulge[1]) + sqr(Gal[p].SpinClassicalBulge[2]);
         double a_av, a_new, a_av_prev;
         M_DM = 1.0; // random initialisation to trigger if statement
@@ -880,22 +871,6 @@ void update_disc_radii(int p)
             Gal[p].HotGasPotential = AvHotPotential;
             Gal[p].EjectedPotential = gsl_spline_eval(spline2, 1.0*Gal[p].Rvir, acc);
             
-            // calculate reioncorpotation time for freshly ejected gas, based on the current potential
-            if(ReincorporationModel==3)
-            {
-                reincTime = 0.0;
-                kmax = k+1;
-                intgd1 = 1.0 / sqrt(2*(Gal[p].EjectedPotential - analytic_potential_reduced[kmax]));
-                for(k=kmax; k>0; k--)
-                {
-                    intgd2 = 1.0 / sqrt(2*(Gal[p].EjectedPotential - analytic_potential_reduced[k-1]));
-                    reincTime += (analytic_r_reduced[k] - analytic_r_reduced[k-1]) * 0.5 * (intgd1 + intgd2);
-                    if(analytic_r_reduced[k-1] <= Rhot) break;
-                    intgd1 = 0.0 + intgd2;
-                }
-                Gal[p].ReincTimeFresh = reincTime;
-            }
-            
             gsl_spline_free (spline);
             gsl_spline_free (spline2);
             gsl_interp_accel_free (acc);
@@ -961,26 +936,6 @@ void update_disc_radii(int p)
             assert(Gal[p].a_InstabBulge > 0 && !isinf(Gal[p].a_InstabBulge));
 
             Gal[p].EjectedPotential = dmax(0.9999*Gal[p].HotGasPotential, gsl_spline_eval(spline2, Gal[p].Rvir, acc)); // ensures the ejected potential mass is always a little higher (less negative, i.e. closer to zero) than hot (which it should be by definition).  This is only needed in niche instances where analytic_r doesn't probe deep enough
-            
-            // calculate reioncorpotation time for freshly ejected gas, based on the current potential
-            if(ReincorporationModel==3)
-            {
-                reincTime = 0.0;
-                kmax = k+1;
-                intgd1 = 1.0 / sqrt(2*(Gal[p].EjectedPotential - analytic_potential[kmax]));
-                for(k=kmax; k>0; k--)
-                {
-                    intgd2 = 1.0 / sqrt(2*(Gal[p].EjectedPotential - analytic_potential[k-1]));
-                    reincTime += (analytic_r[k] - analytic_r[k-1]) * 0.5 * (intgd1 + intgd2);
-                    if(analytic_r[k-1] <= Rhot) break;
-                    intgd1 = 0.0 + intgd2;
-                }
-                Gal[p].ReincTimeFresh = reincTime;
-            }
-//            else if(ReincorporationModel==5)
-//            {
-//                
-//            }
             
             
             gsl_spline_free (spline);

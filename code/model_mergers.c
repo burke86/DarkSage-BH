@@ -123,17 +123,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
         assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
         assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
     }
-  
-  if(BetaBurst>0.0) // deprecated for new default model
-    collisional_starburst_recipe(disc_mass_ratio, merger_centralgal, centralgal, dt, 0, step, k_now, time);
-
-  if(BlackHoleGrowthRate>0.0) // deprecated for new default model
-  {
-      double BHaccrete = grow_black_hole(merger_centralgal, disc_mass_ratio);
-      if(AGNrecipeOn>0)
-        quasar_mode_wind(p, BHaccrete, centralgal, time, k_now);
-  }
-    
+      
     // If galaxy collision was retrograde, remove artifically added angular momentum from the disc by shrinking it
     double J_current = 0.0;
     double J_shouldhave = 0.0;
@@ -171,13 +161,6 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
     Gal[merger_centralgal].NumMajorMergers += 1;
     Gal[p].mergeType = 2;  // Mark as major merger
       
-    if(BetaBurst>0)
-    {
-      for(i=N_BINS-1; i>=0; i--)
-      {
-          deal_with_unstable_gas(gas_mass_ratio*Gal[merger_centralgal].DiscGas[i], merger_centralgal, i, get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]), merger_centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1], time, k_now);
-      }
-    }
   }
   else
   {
@@ -198,7 +181,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
           metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
           assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
       }
-  	check_disk_instability(merger_centralgal, centralgal, dt, step, time, k_now);
+  	check_disk_instability(merger_centralgal, dt, step, time, k_now);
   }
   else
     update_stellardisc_scaleradius(p); // will already be done within check_disk_instability otherwise
@@ -206,57 +189,14 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 
 
 
-double grow_black_hole(int merger_centralgal, double* disc_mass_ratio)
-{
-  double BHaccrete, BHaccrete_tot, metallicity;//, accrete_ratio, DiscGasSum;
-  int i;
-
-  BHaccrete_tot = 0.0;
-
-  for(i=0; i<N_BINS; i++)
-  {
-	if(Gal[merger_centralgal].DiscGas[i] > 0.0)
-	{
-		BHaccrete = BlackHoleGrowthRate * disc_mass_ratio[i] / (1.0 + sqr(280.0 / Gal[merger_centralgal].Vvir)) * Gal[merger_centralgal].DiscGas[i];
-		assert(disc_mass_ratio[i]<=1.0);
-        assert(BHaccrete>=0.0);
-		if(BHaccrete > Gal[merger_centralgal].DiscGas[i]) // This could only be possible if BlackHoleGrowthRate is set to >1.0, which shouldn't happen...
-		{
-			BHaccrete_tot += Gal[merger_centralgal].DiscGas[i];
-			Gal[merger_centralgal].ColdGas -= Gal[merger_centralgal].DiscGas[i];
-			Gal[merger_centralgal].MetalsColdGas -= Gal[merger_centralgal].DiscGasMetals[i];
-			Gal[merger_centralgal].DiscGas[i] = 0.0;
-			Gal[merger_centralgal].DiscGasMetals[i] = 0.0;
-		}
-		else
-		{
-			BHaccrete_tot += BHaccrete;
-			metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-			Gal[merger_centralgal].DiscGas[i] -= BHaccrete;
-			Gal[merger_centralgal].DiscGasMetals[i] -= BHaccrete * metallicity;
-			if(Gal[merger_centralgal].DiscGasMetals[i]<0.0) Gal[merger_centralgal].DiscGasMetals[i] = 0.0;
-			Gal[merger_centralgal].ColdGas -= BHaccrete;
-			Gal[merger_centralgal].MetalsColdGas -= BHaccrete * metallicity;
-			
-		}
-	}
-  }
-
-  Gal[merger_centralgal].BlackHoleMass += ((1.0 - RadiativeEfficiency) * BHaccrete_tot); // the intertial mass lost by that accreted is not captured by the BH
-    assert(Gal[merger_centralgal].BlackHoleMass>=0.0);
-  return BHaccrete_tot;
-}
-
-
-
-void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k_now)
+void quasar_mode_wind(int p, float BHaccrete)
 { // I should probably out through the centralgal ID here
     double quasar_energy, DiscGasSum;
     double annulus_radius, annulus_velocity, cold_specific_energy, ejected_specific_energy, j_hot, hot_thermal_and_kinetic, hot_specific_energy, ejected_mass, ejected_metals, Delta_specific_energy, vertical_velocity;
     int k;
 
     // work out total energy in quasar wind (eta*m*c^2)
-    quasar_energy = QuasarModeEfficiency * RadiativeEfficiency * BHaccrete * sqr(C / UnitVelocity_in_cm_per_s);
+    quasar_energy = RadiativeEfficiency * BHaccrete * sqr(C / UnitVelocity_in_cm_per_s);
 
     // specific energy of hot and ejected reservoirs
     j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
@@ -338,7 +278,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal, double time, int k
     assert(Delta_specific_energy > 0);
     ejected_mass = quasar_energy / Delta_specific_energy;
     
-    update_from_ejected(p, ejected_mass, time, k_now);
+    update_from_ejection(p, ejected_mass);
 }
 
 
