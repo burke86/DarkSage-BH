@@ -394,7 +394,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         RecycleFraction = 1.0*StellarOutput[0];
         SNperMassFormed = 1.0*StellarOutput[1];
 
-        delayed_feedback(p, k_now, centralgal, time, dt);
+        delayed_feedback(p, k_now, time, dt);
       }
         
 	  // stars form and then explode!

@@ -84,7 +84,7 @@ double indef_integral_mremnant_IMF(double m, int piece);
 double integrate_mremnant_IMF(double m0, double m1);
 double get_numSN_perMass(double t0, double t1);
 double dmin(double x, double y);
-void delayed_feedback(int p, int k_now, int centralgal, double time, double dt);
+void delayed_feedback(int p, int k_now, double time, double dt);
 double get_satellite_potential(int p, int centralgal);
 double get_satellite_radius(int p, int centralgal);
 double Hubble_sqr_z(int snap);

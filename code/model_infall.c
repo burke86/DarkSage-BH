@@ -224,6 +224,9 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
     if(r_gal > Gal[centralgal].Rvir)
     { // gradually strip ejected gas when satellite is outside the virial radius
         assert(Gal[gal].EjectedMass>=Gal[gal].MetalsEjectedMass);
+        
+        if(!(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass))
+            printf("Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass = %e, %e\n", Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass);
         assert(Gal[centralgal].EjectedMass>=Gal[centralgal].MetalsEjectedMass);
           
         if(Gal[gal].EjectedMass > strippedGas)
@@ -235,6 +238,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             Gal[gal].MetalsEjectedMass -= metallicity * strippedGas;
             Gal[centralgal].MetalsLocalIGM += metallicity * strippedGas;
             if(Gal[gal].MetalsEjectedMass < 0) Gal[gal].MetalsEjectedMass = 0.0;
+            assert(Gal[gal].EjectedMass >= Gal[gal].MetalsEjectedMass);
+
             
         }
         else
@@ -391,6 +396,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
       Gal[gal].MetalsHotGas = 0.0;
       Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
       Gal[centralgal].MetalsEjectedMass += Gal[gal].MetalsEjectedMass;
+      assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
       Gal[gal].EjectedMass = 0.0;
       Gal[gal].MetalsEjectedMass = 0.0;
   }
@@ -429,6 +435,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
           // Gets rid of any ejected gas immediately if ram pressure is strong enough
           Gal[centralgal].EjectedMass += Gal[gal].EjectedMass;
           Gal[centralgal].MetalsEjectedMass += Gal[gal].MetalsEjectedMass;
+          assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
           Gal[gal].EjectedMass = 0.0;
           Gal[gal].MetalsEjectedMass = 0.0;
           
@@ -732,6 +739,7 @@ void add_infall_to_hot(int centralgal, double infallingGas)
         metallicity = get_metallicity(Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass);
         Gal[centralgal].EjectedMass += infallingGas;
         Gal[centralgal].MetalsEjectedMass += metallicity * infallingGas;        
+        assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
     }
 
   }

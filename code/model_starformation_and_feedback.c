@@ -462,6 +462,11 @@ void update_from_ejection(int p, double ejected_mass)
     double metallicityFountain = get_metallicity(Gal[p].FountainGas, Gal[p].MetalsFountainGas);
     double hot_fraction = Gal[p].HotGas / (Gal[p].HotGas + Gal[p].FountainGas);
     
+    if(Gal[p].OutflowSpecificEnergy < Gal[p].EjectedPotential + 0.5*sqr(Gal[p].Vvir))
+        Gal[p].OutflowSpecificEnergy = Gal[p].EjectedPotential + 0.5*sqr(Gal[p].Vvir);
+    
+    
+    // strictly speaking, shouldn't the distance and initial speeds be different compared to gas that goes from cold->outflowing directly?
     if(ejected_mass >= Gal[p].HotGas + Gal[p].FountainGas)
     {
         update_outflow_time(p, Gal[p].FountainGas, Gal[p].OutflowSpecificEnergy);
@@ -1089,7 +1094,7 @@ void update_HI_H2(int p)
 
 
 
-void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
+void delayed_feedback(int p, int k_now, double time, double dt)
 {
     int k, i;
     double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, return_metal_mass, new_metals, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
@@ -1238,12 +1243,13 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
     
     if((energy_onto_hot>0) && (Gal[p].OutflowSpecificEnergy <= hot_specific_energy))
     {
-        printf("Gal[p].OutflowGas, Gal[p].FountainGas = %e, %e\n", Gal[p].OutflowGas, Gal[p].FountainGas);
-        printf("Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS = %e, %e, %e\n", Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS);
-        printf("Gal[p].OutflowSpecificEnergy, hot_specific_energy = %e, %e\n", Gal[p].OutflowSpecificEnergy, hot_specific_energy);
-        printf("Ejected potential, Hot potential = %e, %e\n", Gal[centralgal].EjectedPotential, Gal[centralgal].HotGasPotential);
-        printf("centralgal, Rvir = %i, %e\n", centralgal, Gal[centralgal].Rvir);
-        assert(Gal[p].OutflowSpecificEnergy>hot_specific_energy);
+        Gal[p].OutflowSpecificEnergy = Gal[p].EjectedPotential + hot_thermal_and_kinetic; // set as the minimum
+//        printf("Gal[p].OutflowGas, Gal[p].FountainGas = %e, %e\n", Gal[p].OutflowGas, Gal[p].FountainGas);
+//        printf("Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS = %e, %e, %e\n", Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS);
+//        printf("Gal[p].OutflowSpecificEnergy, hot_specific_energy = %e, %e\n", Gal[p].OutflowSpecificEnergy, hot_specific_energy);
+//        printf("Ejected potential, Hot potential = %e, %e\n", Gal[centralgal].EjectedPotential, Gal[centralgal].HotGasPotential);
+//        printf("centralgal, Rvir = %i, %e\n", centralgal, Gal[centralgal].Rvir);
+//        assert(Gal[p].OutflowSpecificEnergy>hot_specific_energy);
     }
 
     
@@ -1423,25 +1429,17 @@ void delayed_feedback(int p, int k_now, int centralgal, double time, double dt)
 
 void update_outflow_time(int p, double new_mass, double new_specific_energy)
 {
-    double outflow_distance, outflow_kinetic_initial, outflow_kinetic_final, outflow_radial_speed_initial, outflow_radial_speed_final, j_hot, discriminant, new_time;
+    if(new_mass <= 0.0) return;
     
-    // calculate average radial distance that the outflowing gas has to travel to get outside Rvir
-    outflow_distance = Gal[p].Rvir - sqrt(Gal[p].R2_hot_av);
+    double outflow_kinetic_initial, outflow_kinetic_final, new_time;
     
-    // use energy to calculate an average initial speed.  Subtract the angular component of motion from AM conservation in quadrature to get the radial component
-    outflow_kinetic_initial = new_specific_energy - Gal[p].HotGasPotential - 0.5*sqr(Gal[p].Vvir);
-    j_hot = 2.0 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-    discriminant = 2.0 * outflow_kinetic_initial - sqr(j_hot)/Gal[p].R2_hot_av;
-    assert(discriminant > 0.0);
-    outflow_radial_speed_initial = sqrt(discriminant);
-    
-    // do same for final speed once it reached Rvir
+    // assume kinetic energy is initially radial and the gas must move from R=0 to R=Rvir to have outflowed
+    outflow_kinetic_initial = new_specific_energy - Gal[p].Potential[0] - 0.5*sqr(Gal[p].Vvir);
     outflow_kinetic_final = new_specific_energy - Gal[p].EjectedPotential - 0.5*sqr(Gal[p].Vvir);
-    discriminant = 2.0 * outflow_kinetic_final - sqr(j_hot/Gal[p].Rvir);
-    assert(discriminant > 0.0);
-    outflow_radial_speed_final = sqrt(discriminant);
-
+    
     // assume an average radial speed is the average of the above initial and final values
-    new_time = 2.0 * outflow_distance / (outflow_radial_speed_initial + outflow_radial_speed_final);
+    new_time = 2.0 * Gal[p].Rvir / (outflow_kinetic_initial + outflow_kinetic_final);
     Gal[p].OutflowTime = (Gal[p].OutflowGas * Gal[p].OutflowTime + new_mass * new_time) / (Gal[p].OutflowGas + new_mass);
+
+    assert(Gal[p].OutflowTime >= 0.0);
 }

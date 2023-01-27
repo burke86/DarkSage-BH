@@ -59,6 +59,7 @@ void reincorporate_gas(int p, int centralgal, double dt)
             Gal[p].MetalsFountainGas += (Gal[p].MetalsEjectedMass * move_factor);
             Gal[p].EjectedMass -= (Gal[p].EjectedMass * move_factor);
             Gal[p].MetalsEjectedMass -= (Gal[p].MetalsEjectedMass * move_factor);
+            assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
             Gal[p].ReincTime -= dt;
         }
     }
@@ -69,6 +70,8 @@ void reincorporate_gas(int p, int centralgal, double dt)
     {
         // update ejected reservoir's reinc time OR central's fountain time first, then move mass accordingly from outflow -> ejected (or fountain of central)
         
+        if(!(Gal[p].OutflowTime > 0.0)) printf("Gal[p].OutflowTime = %e\n", Gal[p].OutflowTime);
+        assert(Gal[p].OutflowTime > 0.0);
         move_factor = dt / Gal[p].OutflowTime;
         const double eject_gas = Gal[p].OutflowGas * dmin(1.0, move_factor);
         
@@ -114,6 +117,8 @@ void reincorporate_gas(int p, int centralgal, double dt)
             {
                 Gal[p].EjectedMass += Gal[p].OutflowGas;
                 Gal[p].MetalsEjectedMass += Gal[p].MetalsOutflowGas;
+                assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
+
                 Gal[p].OutflowGas = 0.0;
                 Gal[p].MetalsOutflowGas = 0.0;
                 Gal[p].OutflowTime = 0.0;
@@ -122,6 +127,8 @@ void reincorporate_gas(int p, int centralgal, double dt)
             {
                 Gal[p].EjectedMass += eject_gas;
                 Gal[p].MetalsEjectedMass += (Gal[p].MetalsOutflowGas * move_factor);
+                assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
+
                 Gal[p].OutflowGas -= eject_gas;
                 Gal[p].MetalsOutflowGas -= (Gal[p].MetalsOutflowGas * move_factor);
                 Gal[p].OutflowTime -= dt;
@@ -174,9 +181,9 @@ void update_galactic_fountain_from_growth(int p)
     if(Gal[p].OutflowGas > 0.0)
     {
         // what new average kinetic energy would be needed to maintain the outflow time-scale?
-        const double outflow_distance = Gal[p].Rvir - sqrt(Gal[p].R2_hot_av);
+        const double outflow_distance = Gal[p].Rvir;
         const double radial_speed_av = outflow_distance / Gal[p].OutflowTime;
-        const double radial_speed_init = radial_speed_av + (Gal[p].EjectedPotential + 0.5*sqr(j_hot/Gal[p].Rvir) - Gal[p].HotGasPotential - 0.5*sqr(j_hot)/Gal[p].R2_hot_av) / (2.0 * radial_speed_av);
+        const double radial_speed_init = radial_speed_av + (Gal[p].EjectedPotential - Gal[p].Potential[0]) / (2.0 * radial_speed_av);
         
         if(radial_speed_init < 0.0)
         {
@@ -207,7 +214,7 @@ void update_galactic_fountain_from_growth(int p)
     if(Gal[p].EjectedMass > 0.0)
     {
         // what new average kinetic energy would be needed to maintain the reincorporation time-scale of the ejected reservoir?
-        if(Gal[p].EjectedSpecificEnergy < Gal[p].EjectedPotential + thermal + 0.5*sqr(j_hot/Gal[p].Rvir))
+        if(Gal[p].EjectedSpecificEnergy < Gal[p].EjectedPotential + thermal)
         { // ejected specific energy from last snapshot is no longer enough for the gas to be ejected at all
             Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + Gal[p].EjectedMass * t_dyn) / (Gal[p].FountainGas + Gal[p].EjectedMass);
             Gal[p].FountainGas += Gal[p].EjectedMass;
@@ -226,10 +233,17 @@ void update_galactic_fountain_from_growth(int p)
             for(iter=0; iter<iter_max; iter++)
             {
                 R_guess = 0.5 * (R_min + R_max);
-                energy_guess = NFW_potential(p, R_guess) + 0.5*sqr(j_hot/R_guess) + thermal;
+                energy_guess = NFW_potential(p, R_guess) + thermal;
                 if(fabs((energy_guess-Gal[p].EjectedSpecificEnergy)/Gal[p].EjectedSpecificEnergy) < 1e-3)
                     break;
             }
+            
+            if(iter==iter_max)
+            {
+                printf("R_min, R_guess, R_max, Rvir = %e, %e, %e, %e\n", R_min, R_guess, R_max, Gal[p].Rvir);
+                printf("energy_guess, Gal[p].EjectedSpecificEnergy = %e, %e\n", energy_guess, Gal[p].EjectedSpecificEnergy);
+            }
+            
             assert(iter<iter_max);
             Rratio = (R_guess-Gal[p].Rvir) / (R_guess-Gal[p].prevRvir);
             assert(Rratio < 1.0);
