@@ -307,6 +307,8 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->SecularBulgeMass = g->SecularBulgeMass;
   o->StarsExSitu = g->StarsExSitu;
   o->HotGas = g->HotGas;
+    o->FountainGas = g->FountainGas;
+    o->OutflowGas = g->OutflowGas;
   o->EjectedMass = g->EjectedMass;
   o->LocalIGM = g->LocalIGM;
   o->BlackHoleMass = g->BlackHoleMass;
@@ -319,6 +321,8 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->SecularMetalsBulgeMass = g->SecularMetalsBulgeMass;
   o->MetalsStarsExSitu = g->MetalsStarsExSitu;
   o->MetalsHotGas = g->MetalsHotGas;
+    o->MetalsFountainGas = g->MetalsFountainGas;
+    o->MetalsOutflowGas = g->MetalsOutflowGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
   o->MetalsLocalIGM = g->MetalsLocalIGM;
   o->MetalsICS = g->MetalsICS;

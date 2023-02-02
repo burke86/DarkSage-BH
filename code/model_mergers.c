@@ -208,13 +208,12 @@ void quasar_mode_wind(int p, float BHaccrete)
     hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
     hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
     
+
+    
     if(Gal[p].OutflowGas > 0.0)
-        ejected_specific_energy = Gal[p].OutflowSpecificEnergy;
-    else
-    {
         ejected_specific_energy = dmax(Gal[p].OutflowSpecificEnergy, Gal[p].EjectedPotential + hot_thermal_and_kinetic);
-        Gal[p].OutflowSpecificEnergy = ejected_specific_energy;
-    }
+    else
+        ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic; // don't want an initialised value of 0 to mess things up
 
 
 	for(k=0; k<N_BINS; k++)
@@ -238,6 +237,7 @@ void quasar_mode_wind(int p, float BHaccrete)
         if(ejected_mass>=Gal[p].DiscGas[k]) 
         {
             Gal[p].OutflowGas += Gal[p].DiscGas[k];
+            assert(Gal[p].OutflowGas >= 0.0);
             Gal[p].MetalsOutflowGas += Gal[p].DiscGasMetals[k];
                         
             if(k<N_BINS-1)
@@ -258,7 +258,10 @@ void quasar_mode_wind(int p, float BHaccrete)
         else
         {
             ejected_metals = ejected_mass * get_metallicity(Gal[p].DiscGas[k], Gal[p].DiscGasMetals[k]);
+            assert(Gal[p].OutflowGas + ejected_mass >= 0.0);
+            Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_mass * ejected_specific_energy) / (Gal[p].OutflowGas + ejected_mass);
             Gal[p].OutflowGas += ejected_mass;
+            assert(Gal[p].OutflowGas >= 0.0);
             Gal[p].MetalsOutflowGas += ejected_metals;
             
             Gal[p].ColdGas -= ejected_mass;
@@ -275,10 +278,21 @@ void quasar_mode_wind(int p, float BHaccrete)
 
     // any remaining energy now used to eject the hot gas
     Delta_specific_energy = ejected_specific_energy - hot_specific_energy;
-    assert(Delta_specific_energy > 0);
-    ejected_mass = quasar_energy / Delta_specific_energy;
     
-    update_from_ejection(p, ejected_mass);
+    if(!(Delta_specific_energy > 0))
+    {
+        printf("ejected_specific_energy, hot_specific_energy = %e, %e\n", ejected_specific_energy, hot_specific_energy);
+    }
+    
+    assert(Delta_specific_energy > 0);
+    ejected_mass = dmin(quasar_energy / Delta_specific_energy, Gal[p].FountainGas + Gal[p].HotGas);
+    
+    if(Gal[p].OutflowGas + ejected_mass > 0.0)
+    {
+        Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_mass * ejected_specific_energy) / (Gal[p].OutflowGas + ejected_mass);
+        assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
+        update_from_ejection(p, ejected_mass);
+    }
 }
 
 
@@ -616,11 +630,14 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
     
   // Deciding to add any remaining ICS of the satellite (which would be stripped down) to the merger-driven bulge for a minor merger
   // Same for intrahalo black holes
+  // Similar deal for outflowing and fountaining gas
   if(mass_ratio<ThreshMajorMerger)
   {
       Gal[t].ClassicalBulgeMass += Gal[p].ICS;
       Gal[t].ClassicalMetalsBulgeMass += Gal[p].MetalsICS;
       Gal[t].BlackHoleMass += Gal[p].ICBHmass;
+      Gal[t].HotGas += (Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass);
+      Gal[t].MetalsHotGas += (Gal[p].MetalsFountainGas + Gal[p].MetalsOutflowGas + Gal[p].MetalsEjectedMass);
   }
   else
   {
@@ -628,6 +645,13 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
       Gal[t].MetalsICS += Gal[p].MetalsICS;
       Gal[t].ICBHnum += Gal[p].ICBHnum;
       Gal[t].ICBHmass += Gal[p].ICBHmass;
+      
+      if(Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass > 0.0)
+      {
+          Gal[t].FountainTime = (Gal[t].FountainGas * Gal[t].FountainTime + (Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass) * Gal[t].Rvir/Gal[t].Vvir) / (Gal[t].FountainGas + Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass);
+          Gal[t].FountainGas += (Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass);
+          Gal[t].MetalsFountainGas += (Gal[p].MetalsFountainGas + Gal[p].MetalsOutflowGas + Gal[p].MetalsEjectedMass);
+      }
   }
 
   Gal[t].StarsFromH2 += Gal[p].StarsFromH2;
@@ -688,15 +712,9 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
 
   Gal[t].HotGas += Gal[p].HotGas;
   Gal[t].MetalsHotGas += Gal[p].MetalsHotGas;
-  
-  Gal[t].HotGas += Gal[p].EjectedMass;
-  Gal[t].MetalsHotGas += Gal[p].MetalsEjectedMass;
 
   Gal[t].BlackHoleMass += Gal[p].BlackHoleMass;
   assert(Gal[t].BlackHoleMass>=0.0);
-    
-    // would it make more sense to assume the ICBHs of the satellite make it into the progenitor galaxy for a minor merger?
-
   
 
   for(step = 0; step < STEPS; step++)

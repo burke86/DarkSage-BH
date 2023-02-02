@@ -366,10 +366,12 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         
       // move outflowing, fountaining, and reincorporating ejected gas as appropriate
       reincorporate_gas(p, centralgal, dt);
+        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
           
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0)
           ram_pressure_stripping(centralgal, p, k_now);
+        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
 
       // determine cooling gas given halo properties
       // Preventing cooling when there's no angular momentum, as the code isn't built to handle that.  This only cropped up for Vishnu haloes with 2 particles, which clearly weren't interesting/physical.  Haloes always have some spin otherwise.

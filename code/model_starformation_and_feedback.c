@@ -221,9 +221,7 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
     
     if(stars > max_consume)
         stars = max_consume;
-    
-    v_wind = 0.0; // initialise to avoid warning on compile
-    
+        
     if(SupernovaRecipeOn > 0 && Gal[p].DiscGas[i] > 0.0 && stars>=MIN_STARS_FOR_SN)
     {
         energy_feedback = stars * EnergySNcode * SNperMassFormed; // still controlled by a coupling efficiency for practical testing purposes
@@ -238,14 +236,14 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
         v_therm2 = sqr(Gal[p].Vvir);
         escape_velocity2 = 2.0 * (Gal[p].EjectedPotential - Gal[p].Potential[i]);
         
+        v_launch = sqrt(energy_feedback * 2.0 / m_return); // launch velocity of returned gas based on pure energy
+        if(0.25*sqr(v_launch) >= sqr(Gal[p].Vvir))
+            v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
+        else
+            v_wind = 0.0;
+        
         if(reheat_specific_energy>0.0)
         {            
-            v_launch = sqrt(energy_feedback * 2.0 / m_return); // launch velocity of returned gas based on pure energy
-            if(0.25*sqr(v_launch) > sqr(Gal[p].Vvir))
-                v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
-            else
-                v_wind = 0.0;
-            
             if(sqr(annulus_velocity + v_wind) < escape_velocity2)
             {
                 ejected_cold_mass = 0.0;
@@ -277,6 +275,79 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
             reheated_mass = 0.0;
             ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
             new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
+        }
+        
+        
+        // the ejected gas has to have a minimum energy. If it doesn't, likely the wrong sign was chosen in the v_wind expression
+        if(v_wind > 0.0 && new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
+        {
+            
+//            printf("before changing v_wind sign\n");
+//            printf("new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2 = %e, %e, %e\n", new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2);
+
+            // swap sign in v_wind equation
+            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir));
+            
+            // go through other equations again
+            if(reheat_specific_energy>0.0)
+            {            
+                if(sqr(annulus_velocity + v_wind) < escape_velocity2)
+                {
+                    ejected_cold_mass = 0.0;
+                    new_ejected_specific_energy = 0.0;
+                    reheated_mass = energy_feedback / reheat_specific_energy;
+                }
+                else if(sqr(annulus_velocity - v_wind) > escape_velocity2)
+                {
+                    reheated_mass = 0.0;
+                    ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
+                    new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
+                }
+                else
+                {
+                    ejected_cold_mass = m_return * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
+                    reheated_mass = m_return * v_launch / v_wind - ejected_cold_mass;
+                    new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
+                }
+                
+                
+                if(ejected_cold_mass<0 || reheated_mass<0) 
+                {
+                    printf("reheated_mass, ejected_cold_mass, stars = %e, %e, %e\n", reheated_mass, ejected_cold_mass, stars);
+                    printf("energy_feedback, escape_velocity2 = %e, %e\n", energy_feedback, escape_velocity2);
+                }
+            }
+            else
+            {
+                reheated_mass = 0.0;
+                ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
+                new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
+            }
+            
+//            if(!(new_ejected_specific_energy >= Gal[p].EjectedPotential + 0.5*v_therm2))
+//            {
+//                printf("after changing v_wind sign\n");
+//                printf("new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2 = %e, %e, %e\n", new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2);
+//            }
+//
+//            assert(new_ejected_specific_energy >= Gal[p].EjectedPotential + 0.5*v_therm2);
+        }
+        
+        // if this still hasn't been fulfilled, the only logical remaining solution is for all feedback-affected gas to be reheated
+        if(new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
+        {
+            ejected_cold_mass = 0.0;
+            new_ejected_specific_energy = 0.0;
+            
+            if(reheat_specific_energy > 0.0)
+                reheated_mass = energy_feedback / reheat_specific_energy;
+            else
+                reheated_mass = max_consume;
+        }
+   
+        if(!(reheated_mass>=0))
+        {
+            printf("reheated_mass, reheat_specific_energy = %e, %e\n", reheated_mass, reheat_specific_energy);
         }
             
         assert(ejected_cold_mass>=0);
@@ -320,6 +391,18 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
     // update the specific energy of the outflowing reservoir (where the stuff to be ejected goes first)
     if(ejected_cold_mass > 0.0)
     {
+        if(!(new_ejected_specific_energy - Gal[p].Potential[0] - 0.5*sqr(Gal[p].Vvir) > 0.0))
+        {
+            printf("new_ejected_specific_energy, Gal[p].Potential[0], 0.5*sqr(Gal[p].Vvir) = %e, %e, %e\n", new_ejected_specific_energy, Gal[p].Potential[0], 0.5*sqr(Gal[p].Vvir));
+            printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
+            printf("v_wind = %e\n", v_wind);
+            printf("sqr(annulus_velocity + v_wind), escape_velocity2, sqr(annulus_velocity - v_wind) = %e, %e, %e\n", sqr(annulus_velocity + v_wind), escape_velocity2, sqr(annulus_velocity - v_wind));
+        }
+        
+        
+        assert(new_ejected_specific_energy - Gal[p].Potential[0] - 0.5*sqr(Gal[p].Vvir) > 0.0);
+        
+        assert(Gal[p].OutflowGas + ejected_cold_mass >= 0.0);
         Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_cold_mass * new_ejected_specific_energy) / (Gal[p].OutflowGas + ejected_cold_mass);
         update_outflow_time(p, ejected_cold_mass, new_ejected_specific_energy);
     }
@@ -398,9 +481,11 @@ void update_from_feedback(int p, double reheated_mass, double metallicity, int i
         Gal[p].DiscGas[i] = 0.0;
     }
 
-    Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + reheated_mass * 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum))) / (Gal[p].FountainGas + reheated_mass);
+    if(reheated_mass > 0.0)
+        Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + reheated_mass * 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum))) / (Gal[p].FountainGas + reheated_mass);
     Gal[p].FountainGas += reheated_mass;
     Gal[p].OutflowGas += ejected_cold_mass;
+      assert(Gal[p].OutflowGas >= 0.0);
 
 	if(Gal[p].DiscGas[i]>0.0)
 	{
@@ -462,15 +547,26 @@ void update_from_ejection(int p, double ejected_mass)
     double metallicityFountain = get_metallicity(Gal[p].FountainGas, Gal[p].MetalsFountainGas);
     double hot_fraction = Gal[p].HotGas / (Gal[p].HotGas + Gal[p].FountainGas);
     
+    assert(ejected_mass >= 0.0);
+    
     if(Gal[p].OutflowSpecificEnergy < Gal[p].EjectedPotential + 0.5*sqr(Gal[p].Vvir))
         Gal[p].OutflowSpecificEnergy = Gal[p].EjectedPotential + 0.5*sqr(Gal[p].Vvir);
     
+    if(!(Gal[p].OutflowSpecificEnergy > Gal[p].Potential[0] + 0.5*sqr(Gal[p].Vvir)))
+    {
+        printf("Gal[p].OutflowSpecificEnergy = %e\n", Gal[p].OutflowSpecificEnergy);
+        printf("0.5*sqr(Gal[p].Vvir) = %e\n", 0.5*sqr(Gal[p].Vvir));
+        printf("Gal[p].Potential[0], Gal[p].EjectedPotential = %e, %e\n", Gal[p].Potential[0], Gal[p].EjectedPotential);
+    }
     
+    assert(Gal[p].OutflowSpecificEnergy > Gal[p].Potential[0] + 0.5*sqr(Gal[p].Vvir));
+
     // strictly speaking, shouldn't the distance and initial speeds be different compared to gas that goes from cold->outflowing directly?
     if(ejected_mass >= Gal[p].HotGas + Gal[p].FountainGas)
     {
         update_outflow_time(p, Gal[p].FountainGas, Gal[p].OutflowSpecificEnergy);
         Gal[p].OutflowGas += (Gal[p].HotGas + Gal[p].FountainGas);
+        assert(Gal[p].OutflowGas >= 0.0);
         Gal[p].MetalsOutflowGas += (Gal[p].MetalsHotGas + Gal[p].MetalsFountainGas);
         Gal[p].HotGas = 0.0;
         Gal[p].MetalsHotGas = 0.0;
@@ -481,6 +577,8 @@ void update_from_ejection(int p, double ejected_mass)
     {
         update_outflow_time(p, ejected_mass, Gal[p].OutflowSpecificEnergy);
         Gal[p].OutflowGas += ejected_mass;
+        assert(Gal[p].OutflowGas >= 0.0);
+
         Gal[p].MetalsOutflowGas += (ejected_mass * (hot_fraction * metallicityHot + (1.0-hot_fraction) * metallicityFountain));
         Gal[p].HotGas -= (ejected_mass * hot_fraction);
         Gal[p].MetalsHotGas -= (ejected_mass * hot_fraction * metallicityHot);
@@ -1159,7 +1257,8 @@ void delayed_feedback(int p, int k_now, double time, double dt)
             Gal[p].ClassicalMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
             
-            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
+            if(Gal[p].FountainGas + return_mass > 0.0)
+                Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity)); // enrich gas with new metals from this stellar population
@@ -1192,7 +1291,8 @@ void delayed_feedback(int p, int k_now, double time, double dt)
             Gal[p].SecularMetalsBulgeMass -= return_metal_mass;
             Gal[p].MetalsStellarMass -= return_metal_mass;
             
-            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
+            if(Gal[p].FountainGas + return_mass > 0.0)
+                Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
@@ -1215,7 +1315,8 @@ void delayed_feedback(int p, int k_now, double time, double dt)
             Gal[p].MetalsICS_Age[k] -= return_metal_mass;
             Gal[p].MetalsICS -= return_metal_mass;
             
-            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
+            if(Gal[p].FountainGas + return_mass > 0.0)
+                Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + return_mass * tdyn) / (Gal[p].FountainGas + return_mass);
             Gal[p].FountainGas += return_mass;
             Gal[p].MetalsFountainGas += return_metal_mass;
             Gal[p].MetalsFountainGas += (inv_FinalRecycleFraction * return_mass * Yield * (1-metallicity));
@@ -1244,6 +1345,8 @@ void delayed_feedback(int p, int k_now, double time, double dt)
     if((energy_onto_hot>0) && (Gal[p].OutflowSpecificEnergy <= hot_specific_energy))
     {
         Gal[p].OutflowSpecificEnergy = Gal[p].EjectedPotential + hot_thermal_and_kinetic; // set as the minimum
+        assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
+
 //        printf("Gal[p].OutflowGas, Gal[p].FountainGas = %e, %e\n", Gal[p].OutflowGas, Gal[p].FountainGas);
 //        printf("Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS = %e, %e, %e\n", Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS);
 //        printf("Gal[p].OutflowSpecificEnergy, hot_specific_energy = %e, %e\n", Gal[p].OutflowSpecificEnergy, hot_specific_energy);
@@ -1312,17 +1415,15 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         v_therm2 = sqr(Gal[p].Vvir);
         escape_velocity2 = -2.0 * Gal[p].Potential[i];
         
+        v_launch = sqrt(energy_feedback * 2.0 / returned_mass_cold); // launch velocity of returned gas based on pure energy
+        if(0.25*sqr(v_launch) >= sqr(Gal[p].Vvir))
+            v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
+        else
+            v_wind = 0.0;
+        
         // new terms to calculate directly ejected component
         if(reheat_specific_energy>0)
         {            
-            // initialise for while-loop
-            
-            v_launch = sqrt(energy_feedback * 2.0 / returned_mass_cold); // launch velocity of returned gas based on pure energy
-            if(0.25*sqr(v_launch) > sqr(Gal[p].Vvir))
-                v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
-            else
-                v_wind = 0.0;
-
             if(sqr(annulus_velocity + v_wind) < escape_velocity2)
             {
                 ejected_cold_mass = 0.0;
@@ -1359,6 +1460,64 @@ void delayed_feedback(int p, int k_now, double time, double dt)
             new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
         }
         
+        
+        // check ejected energy and swap sign in v_wind expression if it doesn't make sense
+        if(v_wind > 0 && new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
+        {
+            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // swap sign
+            
+            // recalculate the other terms
+            if(reheat_specific_energy>0)
+            {            
+                if(sqr(annulus_velocity + v_wind) < escape_velocity2)
+                {
+                    ejected_cold_mass = 0.0;
+                    new_ejected_specific_energy = 0.0;
+                    reheated_mass = energy_feedback / reheat_specific_energy;
+                }
+                else if(sqr(annulus_velocity - v_wind) > escape_velocity2)
+                {
+                    reheated_mass = 0.0;
+                    ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
+                    new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
+                }
+                else
+                {
+                    ejected_cold_mass = returned_mass_cold * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
+                    reheated_mass = returned_mass_cold * v_launch / v_wind - ejected_cold_mass;
+                    new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
+                    
+                    if(!(reheated_mass>=0)) 
+                    {
+                        printf("new_ejected_specific_energy = %e\n", new_ejected_specific_energy);
+                        printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
+                        printf("returned_mass_cold, v_launch, v_wind, Vvir = %e, %e, %e, %e\n", returned_mass_cold, v_launch, v_wind, Gal[p].Vvir);
+                    }
+                    assert(reheated_mass>=0);
+
+                }
+                
+            }
+            else
+            {
+                reheated_mass = 0.0;
+                ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
+                new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
+            }
+        }
+        
+        // if this still hasn't been fulfilled, the only logical remaining solution is for all feedback-affected gas to be reheated
+        if(new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
+        {
+            ejected_cold_mass = 0.0;
+            new_ejected_specific_energy = 0.0;
+            
+            if(reheat_specific_energy > 0.0)
+                reheated_mass = energy_feedback / reheat_specific_energy;
+            else
+                reheated_mass = Gal[p].DiscGas[i]; 
+        }
+        
         reheat_eject_sum = reheated_mass + ejected_cold_mass;
         if(!(reheat_eject_sum>=0)) printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
         assert(reheat_eject_sum>=0);
@@ -1378,7 +1537,19 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         // update the specific energy of the outflowing reservoir (where the stuff to be ejected goes first)
         if(ejected_cold_mass > 0.0)
         {
+            if(!(new_ejected_specific_energy - Gal[p].Potential[0] - 0.5*sqr(Gal[p].Vvir) > 0.0))
+            {
+                printf("new_ejected_specific_energy, Gal[p].Potential[0], 0.5*sqr(Gal[p].Vvir) = %e, %e, %e\n", new_ejected_specific_energy, Gal[p].Potential[0], 0.5*sqr(Gal[p].Vvir));
+                printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
+                printf("v_wind = %e\n", v_wind);
+                printf("sqr(annulus_velocity + v_wind), escape_velocity2, sqr(annulus_velocity - v_wind) = %e, %e, %e\n", sqr(annulus_velocity + v_wind), escape_velocity2, sqr(annulus_velocity - v_wind));
+            }
+
+            
+            assert(new_ejected_specific_energy - Gal[p].Potential[0] - 0.5*sqr(Gal[p].Vvir) > 0.0);
+            assert(Gal[p].OutflowGas + ejected_cold_mass > 0.0);
             Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_cold_mass * new_ejected_specific_energy) / (Gal[p].OutflowGas + ejected_cold_mass);
+            assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
             update_outflow_time(p, ejected_cold_mass, new_ejected_specific_energy);
         }
  
@@ -1393,36 +1564,70 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         energy_onto_hot += ((1.0 - norm_ratio) * energy_feedback);
     }
     
-    // should probably rename, but is the amount of gas ejected from the CGM from spheroid-star feedback
+    // below, ejected_sum is the amount of gas ejected from the CGM from spheroid-star feedback
     // assume the gas ejected from this will end up with the same specific energy as the stuff that was ejected from the ISM.
-    if(Gal[p].OutflowGas > 0.0)
-    {
-        ejected_sum = energy_onto_hot / (Gal[p].OutflowSpecificEnergy - hot_specific_energy);
-        
-        if(ejected_sum > Gal[p].HotGas + Gal[p].FountainGas)
-        {
-            ejected_sum = Gal[p].HotGas + Gal[p].FountainGas;
-            eject_specific_energy = energy_onto_hot / ejected_sum + hot_specific_energy;
-            Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_sum * eject_specific_energy) / (Gal[p].OutflowGas + ejected_sum);
-        }
-    }
-    else
+    // if there's nothing to eject, there's nothing to be done with the energy UNLESS I USE IT TO INCREASE THE SPECIFIC ENERGY OF THE EJECTED RESERVOIR
+    if(Gal[p].HotGas + Gal[p].FountainGas > 0.0)
     { 
-        eject_specific_energy = dmax(Gal[p].OutflowSpecificEnergy, Gal[p].EjectedPotential + hot_thermal_and_kinetic);
-        assert(eject_specific_energy > hot_specific_energy);
-        ejected_sum = energy_onto_hot / (eject_specific_energy - hot_specific_energy);
-        
-        if(ejected_sum > Gal[p].HotGas + Gal[p].FountainGas)
+        if(Gal[p].OutflowGas > 0.0)
         {
-            ejected_sum = Gal[p].HotGas + Gal[p].FountainGas;
-            eject_specific_energy = energy_onto_hot / ejected_sum + hot_specific_energy;
+            eject_specific_energy = dmax(Gal[p].OutflowSpecificEnergy, Gal[p].EjectedPotential + hot_thermal_and_kinetic);
+            assert(eject_specific_energy - hot_specific_energy > 0.0);
+            ejected_sum = energy_onto_hot / (eject_specific_energy - hot_specific_energy);
+            assert(eject_specific_energy != INFINITY);
+
+            if(ejected_sum > Gal[p].HotGas + Gal[p].FountainGas)
+            {
+                ejected_sum = Gal[p].HotGas + Gal[p].FountainGas;
+                assert(ejected_sum > 0.0);
+                assert(energy_onto_hot != INFINITY);
+                assert(hot_specific_energy != INFINITY);
+                eject_specific_energy = energy_onto_hot / ejected_sum + hot_specific_energy;
+            }
+            
+            assert(Gal[p].OutflowGas + ejected_sum > 0.0);
+            assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
+            
+            
+            
+            assert(eject_specific_energy != INFINITY);
+
+            Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_sum * eject_specific_energy) / (Gal[p].OutflowGas + ejected_sum);
+            
+            if(!(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy))
+            {
+                printf("Gal[p].OutflowSpecificEnergy = %e\n", Gal[p].OutflowSpecificEnergy);
+                printf("Gal[p].OutflowGas, ejected_sum = %e, %e\n", Gal[p].OutflowGas, ejected_sum);
+                printf("eject_specific_energy = %e\n", eject_specific_energy);
+                printf("Gal[p].EjectedPotential, hot_thermal_and_kinetic = %e, %e\n", Gal[p].EjectedPotential, hot_thermal_and_kinetic);
+                printf("energy_onto_hot = %e\n", energy_onto_hot);
+            }
+            assert(eject_specific_energy != INFINITY);
+            assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
+        }
+        else
+        { 
+            eject_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
+            assert(eject_specific_energy > hot_specific_energy);
+            ejected_sum = energy_onto_hot / (eject_specific_energy - hot_specific_energy);
+            
+            if(ejected_sum > Gal[p].HotGas + Gal[p].FountainGas)
+            {
+                ejected_sum = Gal[p].HotGas + Gal[p].FountainGas;
+                assert(ejected_sum > 0.0);
+                eject_specific_energy = energy_onto_hot / ejected_sum + hot_specific_energy;
+            }
+            
+            Gal[p].OutflowSpecificEnergy = eject_specific_energy;
+            assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
         }
         
-        Gal[p].OutflowSpecificEnergy = eject_specific_energy;
+        assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
+        update_from_ejection(p, ejected_sum);
     }
     
-    update_from_ejection(p, ejected_sum);
     update_stellar_dispersion(p);
+    
     
 }
 
@@ -1441,5 +1646,13 @@ void update_outflow_time(int p, double new_mass, double new_specific_energy)
     new_time = 2.0 * Gal[p].Rvir / (outflow_kinetic_initial + outflow_kinetic_final);
     Gal[p].OutflowTime = (Gal[p].OutflowGas * Gal[p].OutflowTime + new_mass * new_time) / (Gal[p].OutflowGas + new_mass);
 
+    if(!(Gal[p].OutflowTime >= 0.0))
+    {
+        printf("new_mass, new_specific_energy = %e, %e\n", new_mass, new_specific_energy);
+        printf("Gal[p].OutflowGas, Gal[p].OutflowTime = %e, %e\n", Gal[p].OutflowGas, Gal[p].OutflowTime);
+        printf("new_time = %e\n", new_time);
+        printf("outflow_kinetic_initial, outflow_kinetic_final = %e, %e\n", outflow_kinetic_initial, outflow_kinetic_final);
+        printf("Gal[p].Potential[0], Gal[p].EjectedPotential,  0.5*sqr(Gal[p].Vvir) = %e, %e, %e\n", Gal[p].Potential[0], Gal[p].EjectedPotential,  0.5*sqr(Gal[p].Vvir));
+    }
     assert(Gal[p].OutflowTime >= 0.0);
 }

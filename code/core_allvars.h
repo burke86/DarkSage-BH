@@ -82,6 +82,8 @@ struct GALAXY_OUTPUT
   float SecularBulgeMass;
   float StarsExSitu;
   float HotGas;
+  float FountainGas;
+  float OutflowGas;
   float EjectedMass;
   float LocalIGM;
   float BlackHoleMass;
@@ -134,6 +136,8 @@ struct GALAXY_OUTPUT
   float SecularMetalsBulgeMass;
   float MetalsStarsExSitu;
   float MetalsHotGas;
+  float MetalsFountainGas;
+  float MetalsOutflowGas;
   float MetalsEjectedMass;
   float MetalsLocalIGM;
   float MetalsICS;
