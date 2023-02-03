@@ -234,8 +234,10 @@ void quasar_mode_wind(int p, float BHaccrete)
             ejected_mass = Gal[p].DiscGas[k]; // if the ejected reservoir is a lower energy state, then there should be no problem ejecting all the gas.
         }
         
-        if(ejected_mass>=Gal[p].DiscGas[k]) 
+        if(ejected_mass >= Gal[p].DiscGas[k]) 
         {
+            update_outflow_time(p, Gal[p].DiscGas[k], ejected_specific_energy);
+            Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + Gal[p].DiscGas[k] * ejected_specific_energy) / (Gal[p].OutflowGas + Gal[p].DiscGas[k]);
             Gal[p].OutflowGas += Gal[p].DiscGas[k];
             assert(Gal[p].OutflowGas >= 0.0);
             Gal[p].MetalsOutflowGas += Gal[p].DiscGasMetals[k];
@@ -255,10 +257,11 @@ void quasar_mode_wind(int p, float BHaccrete)
             Gal[p].DiscGas[k] = 0.0;
             Gal[p].DiscGasMetals[k] = 0.0;
         }
-        else
+        else if(ejected_mass >= 0.0)
         {
             ejected_metals = ejected_mass * get_metallicity(Gal[p].DiscGas[k], Gal[p].DiscGasMetals[k]);
             assert(Gal[p].OutflowGas + ejected_mass >= 0.0);
+            update_outflow_time(p, ejected_mass, ejected_specific_energy);
             Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_mass * ejected_specific_energy) / (Gal[p].OutflowGas + ejected_mass);
             Gal[p].OutflowGas += ejected_mass;
             assert(Gal[p].OutflowGas >= 0.0);

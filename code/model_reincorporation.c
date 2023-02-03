@@ -295,7 +295,7 @@ void update_galactic_fountain_from_growth(int p)
         {
             double R_min, R_max, R_guess, energy_guess, Rratio;
             int iter;
-            const int iter_max=200;
+            const int iter_max=50;
             R_min = Gal[p].Rvir;
             R_max = 10 * Gal[p].Rvir;
             

@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/TNG100-2/2
+OutputDir               /Users/adam/DarkSage_runs/TNG100-2/3
 
 FirstFile                   0
 LastFile                    15
@@ -104,8 +104,8 @@ H2FractionExponent          0.92   ;Also controls the H2/HI ratio calculation. (
 
 
 %%%= For H2prescription=1 =%%%
-ClumpFactor                 1.0     ; Controls the clump factor which affects H2/HI. (1.0 for Fu+13)
-ClumpExponent               0.7     ; Controls the clump factor which affects H2/HI. (0.7 for Fu+13)
+ClumpFactor                 1.0     ; Controls the clump factor, which affects H2/HI. (1.0 for Fu+13)
+ClumpExponent               0.7     ; Controls the clump factor, which affects H2/HI. (0.7 for Fu+13)
 %%%= ==================== =%%%
 
 

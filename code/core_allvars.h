@@ -216,6 +216,8 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float SecularBulgeMass[N_AGE_BINS];
     float StarsExSitu[N_AGE_BINS];
   float HotGas;
+  float FountainGas;
+  float OutflowGas;
   float EjectedMass;
   float LocalIGM;
   float BlackHoleMass;
@@ -251,6 +253,8 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
   float SecularMetalsBulgeMass[N_AGE_BINS];
   float MetalsStarsExSitu[N_AGE_BINS];
   float MetalsHotGas;
+  float MetalsFountainGas;
+  float MetalsOutflowGas;
   float MetalsEjectedMass;
   float MetalsLocalIGM;
   float MetalsICS[N_AGE_BINS];
