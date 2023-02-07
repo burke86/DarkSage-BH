@@ -707,7 +707,7 @@ void update_disc_radii(int p)
     
     if(Gal[p].Mvir>0.0 && BTT<1.0)
     {
-        const double hot_fraction = Gal[p].HotGas * inv_Rvir; // when assuming a singular isothermal sphere
+        const double hot_fraction = (Gal[p].HotGas + Gal[p].FountainGas + Gal[p].OutflowGas) * inv_Rvir; // when assuming a singular isothermal sphere
 //        const double exponent_support =  -3.0*(1.0-BTT)/Gal[p].StellarDiscScaleRadius;
         const double exponent_support =  -1.0 / Gal[p].RotSupportScaleRadius;
         const int NUM_R_BINS=51;
@@ -715,7 +715,7 @@ void update_disc_radii(int p)
         // when assuming a beta profile
         const double c_beta = Gal[p].c_beta;
         const double cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
-        const double hot_stuff = Gal[p].HotGas * cb_term;
+        const double hot_stuff = (Gal[p].HotGas + Gal[p].FountainGas + Gal[p].OutflowGas) * cb_term;
         if(!(c_beta>=0))
         {
             printf("c_beta, z, SnapNum = %e, %e, %i\n", c_beta, z, Gal[p].SnapNum);
@@ -1292,7 +1292,7 @@ double get_satellite_radius(int p, int centralgal)
 double get_satellite_mass(int p)
 {
     // 'virial mass' should always include baryons, but tidal stripping can cause this to fall below the baryon mass
-    return dmax(Gal[p].Mvir, Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass);
+    return dmax(Gal[p].Mvir, Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass + Gal[p].EjectedMass + Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].ICBHmass + Gal[p].ICS);
 }
 
 
@@ -1336,12 +1336,12 @@ double get_Mhost_internal(int p, int centralgal, double dr)
         
         double M_hot;
         if(HotGasProfileType==0)
-            M_hot = Gal[centralgal].HotGas * SatelliteRadius / Rvir_host;
+            M_hot = (Gal[centralgal].HotGas + Gal[centralgal].FountainGas + Gal[centralgal].OutflowGas) * SatelliteRadius / Rvir_host;
         else
         {
             const double c_beta = Gal[centralgal].c_beta;
             const double cb_term = 1.0/(1.0 - c_beta * atan(1.0/c_beta));
-            const double hot_stuff = Gal[centralgal].HotGas * cb_term;
+            const double hot_stuff = (Gal[centralgal].HotGas + Gal[centralgal].FountainGas + Gal[centralgal].OutflowGas) * cb_term;
             const double RonRvir = SatelliteRadius / Rvir_host;
             M_hot = hot_stuff * (RonRvir - c_beta * atan(RonRvir/c_beta));
         }
