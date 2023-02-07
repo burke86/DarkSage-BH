@@ -497,6 +497,8 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->StellarFormationMass[k] = g->StellarFormationMassAge[k];
   }
   o->HotGas = g->HotGas;
+    o->FountainGas = g->FountainGas;
+    o->OutflowGas = g->OutflowGas;
   o->EjectedMass = g->EjectedMass;
   o->LocalIGM = g->LocalIGM;
   o->BlackHoleMass = g->BlackHoleMass;
@@ -515,6 +517,8 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->VelDispBulge[k] = g->VelDispBulgeAge[k];
   }
   o->MetalsHotGas = g->MetalsHotGas;
+    o->MetalsFountainGas = g->MetalsFountainGas;
+    o->MetalsOutflowGas = g->MetalsOutflowGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
   o->MetalsLocalIGM = g->MetalsLocalIGM;
    

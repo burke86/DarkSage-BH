@@ -88,7 +88,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
         tot_stellarMass += Gal[i].StellarMass;
         tot_BHMass += (Gal[i].BlackHoleMass + Gal[i].ICBHmass);
         tot_coldMass += Gal[i].ColdGas;
-        tot_hotMass += Gal[i].HotGas;
+        tot_hotMass += (Gal[i].HotGas + Gal[i].FountainGas + Gal[i].OutflowGas);
         tot_ejected += Gal[i].EjectedMass;
         tot_ejectedMetals += Gal[i].MetalsEjectedMass;
         
