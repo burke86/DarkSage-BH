@@ -215,6 +215,9 @@ void reincorporate_gas(int p, int centralgal, double dt)
 void update_galactic_fountain_from_growth(int p)
 { // p should be a central galaxy
     
+    // no point doing this function if the halo has not actually grown!
+    if(Gal[p].Rvir <= Gal[p].prevRvir) return;
+    
     // need to call this to make sure that relevant potential energies of reservoirs are updated
     update_disc_radii(p);
     
@@ -346,6 +349,10 @@ void update_galactic_fountain_from_growth(int p)
             if(Rratio<1.0)
                 Gal[p].ReincTime *= Rratio; // reduce reincorporation time based on the reduction in distance
             
+            if(!(Gal[p].ReincTime >= 0.0 && Gal[p].ReincTime==Gal[p].ReincTime))
+            {
+                printf("Gal[p].ReincTime, Rratio = %e, %e\n", Gal[p].ReincTime, Rratio);
+            }
             assert(Gal[p].ReincTime >= 0.0 && Gal[p].ReincTime==Gal[p].ReincTime);
         }
 

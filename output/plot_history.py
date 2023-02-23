@@ -13,8 +13,8 @@ warnings.filterwarnings("ignore")
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
 #indir = '/Users/adam/DarkSage/output/results/millennium/'
-#indir = '/Users/adam/DarkSage_runs/TNG100-2/1/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/52/'
+#indir = '/Users/adam/DarkSage_runs/MTNG_mini/2/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/56/'
 sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
@@ -93,6 +93,11 @@ elif sim==6:
 elif sim==7:
     h = 0.6774
     vol = (75.0/h)**3 * len(filenumbers)/16.
+    Omega_M = 0.3089
+    Omega_L = 0.6911
+elif sim==8:
+    h = 0.6774
+    vol = (62.5/h)**3 * len(filenumbers)/8.
     Omega_M = 0.3089
     Omega_L = 0.6911
 # add here 'elif sim==8:' etc for a new simulation

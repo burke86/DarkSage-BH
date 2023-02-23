@@ -448,7 +448,7 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
     m_sum = Gal[t].ClassicalBulgeMass + Gal[p].StellarMass + Gal[p].ICS;
     for(s=0; s<3; s++)
     {        
-        Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + J_sat_disc*Gal[p].SpinStars[s]) / m_sum;
+        Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + J_sat_disc*Gal[p].SpinStars[s]) / m_sum; // assuming any ICS of the satellite don't contribute to J
         
     }
       

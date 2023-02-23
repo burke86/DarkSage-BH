@@ -659,7 +659,7 @@ void update_disc_radii(int p)
 //    update_instab_bulge_size(p);
     
     // Determine the distribution of dark matter in the halo =====
-    M_DM_tot = Gal[p].Mvir - Gal[p].HotGas - Gal[p].ColdGas - Gal[p].StellarMass - Gal[p].ICS - Gal[p].BlackHoleMass; // One may want to include Ejected Gas in this too
+    M_DM_tot = Gal[p].Mvir - Gal[p].HotGas - Gal[p].ColdGas - Gal[p].StellarMass - Gal[p].ICS - Gal[p].BlackHoleMass - Gal[p].OutflowGas - Gal[p].FountainGas; // One may want to include Ejected Gas in this too
     
     if(M_DM_tot < 0.0) M_DM_tot = 0.0;
     

@@ -238,7 +238,7 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
         
         v_launch = sqrt(energy_feedback * 2.0 / m_return); // launch velocity of returned gas based on pure energy
         if(0.25*sqr(v_launch) >= sqr(Gal[p].Vvir))
-            v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
+            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
         else
             v_wind = 0.0;
         
@@ -1417,7 +1417,7 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         
         v_launch = sqrt(energy_feedback * 2.0 / returned_mass_cold); // launch velocity of returned gas based on pure energy
         if(0.25*sqr(v_launch) >= sqr(Gal[p].Vvir))
-            v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
+            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
         else
             v_wind = 0.0;
         
