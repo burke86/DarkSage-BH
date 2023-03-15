@@ -229,25 +229,28 @@ void init_galaxy(int p, int halonr)
 double get_disk_radius(int halonr, int p)
 {
     // See Mo, Mao & White (1998) eq12, and using a Bullock style lambda.
-    double SpinMagnitude, SpinParameter, radius;
+    // This is a legacy calculation that is made use of, but does NOT represent actual disc size in Dark Sage at all
+    double SpinMagnitude, radius;
     
-    SpinMagnitude = sqrt(Halo[halonr].Spin[0] * Halo[halonr].Spin[0] +
-                         Halo[halonr].Spin[1] * Halo[halonr].Spin[1] + Halo[halonr].Spin[2] * Halo[halonr].Spin[2]);
+    if(Gal[p].Type==0)
+    {
+        SpinMagnitude = sqrt(Halo[halonr].Spin[0] * Halo[halonr].Spin[0] +
+                             Halo[halonr].Spin[1] * Halo[halonr].Spin[1] + Halo[halonr].Spin[2] * Halo[halonr].Spin[2]);
+        
+        if(SpinMagnitude==0 && Gal[p].DiskScaleRadius>=0) return Gal[p].DiskScaleRadius;
+        radius = SpinMagnitude / (2.0 * Gal[p].Vvir);
+    }
+    else
+        radius = Gal[p].DiskScaleRadius * pow(Gal[p].Mvir/(Gal[p].Mvir-Gal[p].deltaMvir), 0.666667);
     
-    if(SpinMagnitude==0 && Gal[p].DiskScaleRadius>=0) return Gal[p].DiskScaleRadius;
-    
-    SpinParameter = SpinMagnitude / (1.414 * Gal[p].Vvir * Gal[p].Rvir);
-    
-    radius = (SpinParameter / 1.414) * Gal[p].Rvir;
-    
-    if(radius <= 0.0 || radius!=radius || radius==INFINITY)
+    if(!(radius>0.0))
     {
         if(!(SpinMagnitude>0)) printf("ERROR: Halo with SpinMagntiude of 0\n");
         printf("radius, SpinMagnitude, Vvir, Rvir = %e, %e, %e %e\n", radius, SpinMagnitude, Gal[p].Vvir, Gal[p].Rvir);
         printf("halo Mvirs = %e, %e, %e, %i\n", Halo[halonr].Mvir1, Halo[halonr].Mvir2, Halo[halonr].Mvir3, Halo[halonr].Len);
         radius = 0.0;
     }
-    assert(radius>0);
+    assert(radius>0.0);
     
     return radius;
     

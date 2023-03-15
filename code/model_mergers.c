@@ -159,8 +159,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
     stars_to_bulge(merger_centralgal, k_now);
     Gal[merger_centralgal].LastMajorMerger = time;
     Gal[merger_centralgal].NumMajorMergers += 1;
-    Gal[p].mergeType = 2;  // Mark as major merger
-      
+    Gal[p].mergeType = 2;  // Mark as major merger      
   }
   else
   {
@@ -172,7 +171,6 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
   Gal[p].mergeIntoGalaxyNr = Gal[merger_centralgal].GalaxyNr;
 
 
-    
     
   if(DiskInstabilityOn>0)
   {

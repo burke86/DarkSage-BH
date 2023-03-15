@@ -218,8 +218,8 @@ void update_galactic_fountain_from_growth(int p)
     // no point doing this function if the halo has not actually grown!
     if(Gal[p].Rvir <= Gal[p].prevRvir) return;
     
-    // need to call this to make sure that relevant potential energies of reservoirs are updated
-    update_disc_radii(p);
+    // ideally should call this to make sure that relevant potential energies of reservoirs are updated, but costly!
+//    update_disc_radii(p);
     
     double reinc_mass, metallicity;
     const double t_dyn = Gal[p].Rvir / Gal[p].Vvir;

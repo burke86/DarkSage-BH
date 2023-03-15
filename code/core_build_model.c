@@ -162,6 +162,7 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
           {  // update for centrals or satellites that have been tidally stripped (the way Rvir is calculated changes for satellites, and is potentially subject to an artificial rise immediately after infall)
               Gal[ngal].Rvir = get_virial_radius(halonr, ngal);
               Gal[ngal].Mvir = get_virial_mass(halonr, ngal);
+              Gal[ngal].DiskScaleRadius = get_disk_radius(halonr, ngal); // Only update the scale radius for centrals.  Satellites' spin will be too variable and untrustworthy for new cooling.
           }
           else
               Gal[ngal].deltaMvir = 0.0;
@@ -188,7 +189,6 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 
             Gal[ngal].Vvir = get_virial_velocity(halonr, ngal); // Keeping Vvir fixed for subhaloes
               
-            Gal[ngal].DiskScaleRadius = get_disk_radius(halonr, ngal); // Only update the scale radius for centrals.  Satellites' spin will be too variable and untrustworthy for new cooling.
               
             SpinMag = sqrt(sqr(Halo[halonr].Spin[0]) + sqr(Halo[halonr].Spin[1]) + sqr(Halo[halonr].Spin[2]));
             if(SpinMag>0)
@@ -384,8 +384,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
             
         }
 
-      // Update radii of the annuli
-      if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && Gal[p].Type==0)
+      // Update radii of the annuli.  Done again at end of full time-step, so seems redundant on first sub-time-step (costly)
+      if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && step!=0)
         update_disc_radii(p);
 
       // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
@@ -478,7 +478,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       
     if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0)
     {
-        if(Gal[p].Type==0) update_disc_radii(p);
+        update_disc_radii(p);
         update_HI_H2(p);
     }
       
