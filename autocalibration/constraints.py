@@ -57,19 +57,23 @@ ssfrbins = np.arange(ssfrlow,ssfrupp,dssfr)
 Nmin = 5 # minimum number of galaxies expected in a mass bin for the simulation volume, based on observations, to warrant fitting to that bin for mass functions
 
 # Manually set information for the simulation
-sim = 1
+sim = 2
 files = range(8)
 if sim==0: # TNG300
     h0 = 0.6774
     Omega0 = 0.3089
     vol = (205.0/h0)**3 * (1.0*len(files)/128.)
     age_alist_file = '/Users/adam/Illustris/alist_TNG.txt'
-else: # Genesis small calibration box
+elif sim==1: # Genesis small calibration box
     h0 = 0.6751
     Omega0 = 0.3121
     vol = (75.0/h0)**3 * (1.0*len(files)/8.)
     age_alist_file = '/Users/adam/Genesis_calibration_trees/L75n324/alist.txt'
-
+else:
+    h0 = 0.6774
+    Omega0 = 0.3089
+    vol = (62.5/h0)**3 * (1.0*len(files)/8.)
+    age_alist_file = '/Users/adam/MTNG_trees/MTNG_alist.txt'
 
 # These are two easily create variables of these different shapes without
 # actually storing a reference ourselves; we don't need it

@@ -14,13 +14,13 @@ warnings.filterwarnings("ignore")
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
 #indir = '/Users/adam/DarkSage/output/results/millennium/'
-#indir = '/Users/adam/DarkSage_runs/MTNG_mini/2/' # directory where the Dark Sage data are
-indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/56/'
-sim = 4 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
+indir = '/Users/adam/DarkSage_runs/MTNG_mini/13g/' # directory where the Dark Sage data are
+#indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/56/'
+sim = 8 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2, 6 = TNG300-1, 7 = TNG100-2, 8 = MTNG_mini
 
 fpre = 'model_z0.000' # what is the prefix name of the z=0 files
-files = range(8) # list of file numbers you want to read
+files = range(44) # list of file numbers you want to read
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
 Nage = 30 # number of age bins used for stars -- should only be used for calibrating when delayed feedback is on
@@ -66,7 +66,7 @@ elif sim==7:
     OmegaLambda = 0.6911
 elif sim==8:
     h = 0.6774
-    Lbox = 62.5/h * (len(files)/8.)**(1./3)
+    Lbox = 62.5/h #* (len(files)/44.)**(1./3)
     Omega = 0.3089
     OmegaLambda = 0.6911
     

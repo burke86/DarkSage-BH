@@ -156,6 +156,10 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
           Gal[ngal].Len = Halo[halonr].Len;
           Gal[ngal].Vmax = Halo[halonr].Vmax;
           assert(Gal[ngal].LenMax>=Gal[ngal].Len);
+            
+            if(halonr == Halo[halonr].FirstHaloInFOFgroup)
+                Gal[ngal].Vvir = get_virial_velocity(halonr, ngal); // Keeping Vvir fixed for subhaloes
+
 
           Gal[ngal].deltaMvir = get_virial_mass(halonr, ngal) - Gal[ngal].Mvir;
           if(halonr == Halo[halonr].FirstHaloInFOFgroup || Gal[ngal].deltaMvir<0.0)
@@ -187,7 +191,6 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
             Gal[ngal].mergeIntoID = -1;
             Gal[ngal].MergTime = 999.9;            
 
-            Gal[ngal].Vvir = get_virial_velocity(halonr, ngal); // Keeping Vvir fixed for subhaloes
               
               
             SpinMag = sqrt(sqr(Halo[halonr].Spin[0]) + sqr(Halo[halonr].Spin[1]) + sqr(Halo[halonr].Spin[2]));
@@ -307,9 +310,11 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
   infallingGas = infall_recipe(centralgal, ngal, ZZ[Halo[halonr].SnapNum]);
     
   // move mass in outflow and ejected reservoirs based on halo growth and update time-scales accordingly
+    assert(Gal[centralgal].OutflowGas >= 0.0);
   if(infallingGas > 0)
       update_galactic_fountain_from_growth(centralgal);
-  
+    assert(Gal[centralgal].OutflowGas >= 0.0);
+
   
   for(p = 0; p < ngal; p++)
   {
@@ -364,14 +369,17 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
           assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
       }
         
+        assert(Gal[p].OutflowGas >= 0.0);
       // move outflowing, fountaining, and reincorporating ejected gas as appropriate
       reincorporate_gas(p, centralgal, dt);
         assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+        assert(Gal[p].OutflowGas >= 0.0);
           
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0)
           ram_pressure_stripping(centralgal, p, k_now);
         assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+        assert(Gal[p].OutflowGas >= 0.0);
 
       // determine cooling gas given halo properties
       // Preventing cooling when there's no angular momentum, as the code isn't built to handle that.  This only cropped up for Vishnu haloes with 2 particles, which clearly weren't interesting/physical.  Haloes always have some spin otherwise.
@@ -385,8 +393,10 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         }
 
       // Update radii of the annuli.  Done again at end of full time-step, so seems redundant on first sub-time-step (costly)
+        assert(Gal[p].OutflowGas >= 0.0);
       if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && step!=0)
         update_disc_radii(p);
+        assert(Gal[p].OutflowGas >= 0.0);
 
       // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
       if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && (Gal[p].StellarMass>0 || Gal[p].ICS>0 || Gal[p].LocalIGS>0))
@@ -395,13 +405,17 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         get_RecycleFraction_and_NumSNperMass(0.0, InstantTimeFrame, StellarOutput);
         RecycleFraction = 1.0*StellarOutput[0];
         SNperMassFormed = 1.0*StellarOutput[1];
-
+          
+          assert(Gal[p].OutflowGas >= 0.0);
         delayed_feedback(p, k_now, time, dt);
+          assert(Gal[p].OutflowGas >= 0.0);
       }
         
 	  // stars form and then explode!
       if(SfrEfficiency>0.0) // passive H2 channel, can be switched off if one sets this to zero
         starformation_and_feedback(p, centralgal, dt, step, time, k_now);
+    assert(Gal[p].OutflowGas >= 0.0);
+
 
       // precess gas disc
       if(GasPrecessionOn && Gal[p].StellarMass>0.0 && get_disc_gas(p)>0.0)

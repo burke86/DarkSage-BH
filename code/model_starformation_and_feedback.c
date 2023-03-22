@@ -173,6 +173,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
       assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
       if(reheated_mass + ejected_cold_mass > 0.0)
       {
+          assert(Gal[p].OutflowGas >= 0.0);
         update_from_feedback(p, reheated_mass, metallicity, i, ejected_cold_mass);
       }
 
@@ -460,7 +461,8 @@ void update_from_feedback(int p, double reheated_mass, double metallicity, int i
     assert(metallicity>=0);
     assert(reheated_mass>=0);
     assert(ejected_cold_mass>=0);
-    
+    assert(Gal[p].OutflowGas >= 0.0);
+  
     double reheat_eject_sum = reheated_mass + ejected_cold_mass;
 
   if(SupernovaRecipeOn>0 && reheat_eject_sum>MIN_STARFORMATION) // Imposing a minimum. Chosen as MIN_STARFORMATION for convenience.  Makes sense to be same order of magnitude though.
@@ -1204,7 +1206,7 @@ void delayed_feedback(int p, int k_now, double time, double dt)
     double tdyn = 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum));
     
     assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
-    
+    assert(Gal[p].OutflowGas >= 0.0);
     assert(Gal[p].MetalsHotGas>=0);
   
     j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
@@ -1558,6 +1560,7 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         
         assert(Gal[p].MetalsHotGas>=0);
         assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+        assert(Gal[p].OutflowGas >= 0.0);
         update_from_feedback(p, reheated_mass, metallicity, i, ejected_cold_mass);
         
         // there could be excess energy from delayed feedback in principle; gets added to energy dumped onto hot stuff
@@ -1641,9 +1644,10 @@ void update_outflow_time(int p, double new_mass, double new_specific_energy)
     // assume kinetic energy is initially radial and the gas must move from R=0 to R=Rvir to have outflowed
     outflow_kinetic_initial = new_specific_energy - Gal[p].Potential[0] - 0.5*sqr(Gal[p].Vvir);
     outflow_kinetic_final = new_specific_energy - Gal[p].EjectedPotential - 0.5*sqr(Gal[p].Vvir);
+    if(outflow_kinetic_final < 0.0) outflow_kinetic_final = 0.0;
     
     // assume an average radial speed is the average of the above initial and final values
-    new_time = 2.0 * Gal[p].Rvir / (outflow_kinetic_initial + outflow_kinetic_final);
+    new_time = 1.414 * Gal[p].Rvir / (sqrt(outflow_kinetic_initial) + sqrt(outflow_kinetic_final));
     Gal[p].OutflowTime = (Gal[p].OutflowGas * Gal[p].OutflowTime + new_mass * new_time) / (Gal[p].OutflowGas + new_mass);
 
     if(!(Gal[p].OutflowTime >= 0.0))

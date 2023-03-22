@@ -154,6 +154,7 @@ def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
         NtotGalsSum += NtotGals
         fin.close()
 
+    print('NtotGalsSum =', NtotGalsSum)
     G = np.empty(NtotGalsSum, dtype=Galdesc)[fields] # Intialise the galaxy array
     NtotGalsSum = 0 # reset for next loop
 
@@ -166,6 +167,11 @@ def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
         GalsPerTree = np.fromfile(fin, np.dtype((np.int32, Ntrees)),1) # Read the number of gals in each tree
         G1 = np.fromfile(fin, Galdesc, NtotGals) # Read all the galaxy data
         fin.close()
+        if not NtotGals == len(G1[fields[0]]):
+            print('Oddity in NtotGals in file', i)
+#            print('Ntrees, NtotGals, NtotGalsSum, len(G1) = ', Ntrees, NtotGals, NtotGalsSum, len(G1[fields[0]]))
+#            print('GalsPerTree', GalsPerTree, '\n')
+        NtotGals = len(G1[fields[0]])
         G[NtotGalsSum:NtotGalsSum+NtotGals] = G1[fields]
         NtotGalsSum += NtotGals
 

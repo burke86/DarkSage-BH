@@ -15,7 +15,8 @@ void reincorporate_gas(int p, int centralgal, double dt)
     double sat_rad = get_satellite_radius(p, centralgal);
     const double t_dyn = 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[centralgal].HaloNr].SnapNum));
     assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
-    
+    assert(Gal[p].OutflowGas >= 0.0);
+
     // reincorporate the fountaining gas
     if(Gal[p].FountainGas > 0.0)
     {
@@ -89,13 +90,17 @@ void reincorporate_gas(int p, int centralgal, double dt)
     {
         // update ejected reservoir's reinc time OR central's fountain time first, then move mass accordingly from outflow -> ejected (or fountain of central)
         
-        if(!(Gal[p].OutflowTime > 0.0)) printf("Gal[p].OutflowTime, Gal[p].OutflowGas = %e, %e\n", Gal[p].OutflowTime, Gal[p].OutflowGas);
+//        if(!(Gal[p].OutflowTime > 0.0)) 
+//        printf("1: Gal[p].OutflowTime, Gal[p].OutflowGas = %e, %e\n", Gal[p].OutflowTime, Gal[p].OutflowGas);
         
         if(Gal[p].OutflowTime > 0.0)
             move_factor = dt / Gal[p].OutflowTime;
         else
             move_factor = 1.0;
         const double eject_gas = Gal[p].OutflowGas * dmin(1.0, move_factor);
+        assert(eject_gas >= 0.0);
+        assert(eject_gas <= Gal[p].OutflowGas);
+//        printf("2: Gal[p].OutflowTime, Gal[p].OutflowGas = %e, %e\n", Gal[p].OutflowTime, Gal[p].OutflowGas);
         
         if(p==centralgal || sat_rad > Gal[centralgal].Rvir)
         {
@@ -133,7 +138,7 @@ void reincorporate_gas(int p, int centralgal, double dt)
                     R_min = R_guess;
             }
 
-            // assume time to reincorporate the freshly outflowing gas is that to get to the turnaround point and back, assuming its average speed is half its
+            // assume time to reincorporate the freshly outflowing gas is that to get to the turnaround point and back, assuming its average speed is half its outflow speed
             double reinc_time_new;
             if(outflow_radial_speed > 0.0)
                 reinc_time_new = 4.0 * (R_guess - Gal[p].Rvir) / outflow_radial_speed;
@@ -151,6 +156,7 @@ void reincorporate_gas(int p, int centralgal, double dt)
             assert(Gal[p].ReincTime >= 0 && Gal[p].ReincTime == Gal[p].ReincTime);
             
             // use time-scale calculated in the code that gets updated whenever mass is added to this reservoir
+//            printf("3: Gal[p].OutflowTime, Gal[p].OutflowGas = %e, %e\n", Gal[p].OutflowTime, Gal[p].OutflowGas);
             if(reinc_time_new <= 0.0)
             { // if this isn't positive, then the outflowing material immediately turns around in effect
                 if(Gal[p].FountainGas + Gal[p].OutflowGas > 0)
@@ -161,7 +167,7 @@ void reincorporate_gas(int p, int centralgal, double dt)
                 Gal[p].MetalsOutflowGas = 0.0;
                 Gal[p].OutflowTime = 0.0;
             }
-            if(move_factor >= 1.0)
+            else if(move_factor >= 1.0)
             {
                 Gal[p].EjectedMass += Gal[p].OutflowGas;
                 Gal[p].MetalsEjectedMass += Gal[p].MetalsOutflowGas;
@@ -173,13 +179,22 @@ void reincorporate_gas(int p, int centralgal, double dt)
             }
             else
             {
+//                printf("4: Gal[p].OutflowTime, Gal[p].OutflowGas = %e, %e\n", Gal[p].OutflowTime, Gal[p].OutflowGas);
                 Gal[p].EjectedMass += eject_gas;
                 Gal[p].MetalsEjectedMass += (Gal[p].MetalsOutflowGas * move_factor);
                 assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass);
 
+                assert(Gal[p].OutflowGas >= 0.0);
+                if(Gal[p].OutflowGas - eject_gas < 0.0) printf("Gal[p].OutflowGas, Gal[p].OutflowTime = %e, %e\n", Gal[p].OutflowGas, Gal[p].OutflowTime);
                 Gal[p].OutflowGas -= eject_gas;
                 Gal[p].MetalsOutflowGas -= (Gal[p].MetalsOutflowGas * move_factor);
                 Gal[p].OutflowTime -= dt;
+                assert(eject_gas >= 0.0);
+                if(!(Gal[p].OutflowGas >= 0.0))
+                {
+                    printf("eject_gas, Gal[p].OutflowGas, move_factor, Gal[p].OutflowTime, dt = %e, %e, %e, %e, %e\n", eject_gas, Gal[p].OutflowGas, move_factor, Gal[p].OutflowTime, dt);
+                }
+                assert(Gal[p].OutflowGas >= 0.0);
             }
         }
         else
@@ -200,9 +215,11 @@ void reincorporate_gas(int p, int centralgal, double dt)
             {
                 Gal[centralgal].FountainGas += eject_gas;
                 Gal[centralgal].MetalsFountainGas += (Gal[p].MetalsOutflowGas * move_factor);
+                assert(Gal[p].OutflowGas >= 0.0);
                 Gal[p].OutflowGas -= eject_gas;
                 Gal[p].MetalsOutflowGas -= (Gal[p].MetalsOutflowGas * move_factor);
                 Gal[p].OutflowTime -= dt;
+                assert(Gal[p].OutflowGas >= 0.0);
             }
             
         }
@@ -226,18 +243,18 @@ void update_galactic_fountain_from_growth(int p)
     
     // quantity same for hot, fountain, and outflow reservoirs
     const double thermal = 0.5 * sqr(Gal[p].Vvir);
-    const double potential_and_thermal = Gal[p].HotGasPotential + thermal;
-//    const double j_hot = 2.0 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-//    const double hot_specific_energy = potential_and_thermal + 0.5*sqr(j_hot)/Gal[p].R2_hot_av;
+    const double potential_and_thermal = Gal[p].Potential[0] + thermal;
+    const double j_hot = 2.0 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+    const double hot_specific_energy = Gal[p].HotGasPotential + thermal + 0.5*sqr(j_hot)/Gal[p].R2_hot_av;
     
     if(Gal[p].OutflowGas > 0.0)
     {
         // what new average kinetic energy would be needed to maintain the outflow time-scale?
-        const double outflow_distance = Gal[p].Rvir;
-        const double radial_speed_av = outflow_distance / Gal[p].OutflowTime;
-        const double radial_speed_init = radial_speed_av + (Gal[p].EjectedPotential - Gal[p].Potential[0]) / (2.0 * radial_speed_av);
+//        const double radial_speed_init = radial_speed_av + 1.414*sqrt(Gal[p].EjectedPotential - Gal[p].Potential[0]);
+        const double radial_speed_ejec = 2.0*Gal[p].Rvir/Gal[p].OutflowTime - sqrt( 2.0*(Gal[p].OutflowSpecificEnergy - potential_and_thermal) );
+        const double target_outflow_energy = thermal + Gal[p].EjectedPotential + 0.5 * sqr(radial_speed_ejec);
         
-        if(radial_speed_init < 0.0)
+        if(!(radial_speed_ejec > 0.0 && target_outflow_energy>hot_specific_energy))
         {
             // can't preserve the time-scale for the outflow, assume all the outflowing gas is now fountaining
             if(Gal[p].FountainGas + Gal[p].OutflowGas > 0.0)
@@ -248,11 +265,10 @@ void update_galactic_fountain_from_growth(int p)
             Gal[p].MetalsOutflowGas = 0.0;
             Gal[p].OutflowTime = 0.0;
         }
-        else
+        else if(Gal[p].OutflowSpecificEnergy < target_outflow_energy)
         {
             // use energy conservation, assuming outflow timescale remains, to calculate previously outflowing gas that no longer has enough energy to make it outside Rvir
-            const double target_outflow_energy = potential_and_thermal + 0.5 * sqr(radial_speed_init);
-            reinc_mass = Gal[p].OutflowGas * (target_outflow_energy - Gal[p].OutflowSpecificEnergy) / (target_outflow_energy - potential_and_thermal);
+            reinc_mass = dmax(0.0, Gal[p].OutflowGas * (target_outflow_energy - Gal[p].OutflowSpecificEnergy)/target_outflow_energy);
 
 //            if(!(reinc_mass <= Gal[p].OutflowGas)) printf("reinc_mass, Gal[p].OutflowGas = %e, %e\n", reinc_mass, Gal[p].OutflowGas);
 //            assert(reinc_mass <= Gal[p].OutflowGas);
@@ -279,6 +295,10 @@ void update_galactic_fountain_from_growth(int p)
                 Gal[p].OutflowTime = 0.0;
             }
         }
+//        else
+//        {
+//            Gal[p].OutflowSpecificEnergy = target_outflow_energy; // make energy self-consistent with speed
+//        }
     }
     
     if(Gal[p].EjectedMass > 0.0)
