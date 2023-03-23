@@ -216,7 +216,6 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
     double reheated_mass, ejected_cold_mass, fac;
     double energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, escape_velocity2, vertical_velocity, v_therm2;
     double v_launch, m_return, v_wind, new_ejected_specific_energy;
-    double reheated_ejected_sum, aquad, bquad, cquad;
     
     if(max_consume > Gal[p].DiscGas[i])
         max_consume = Gal[p].DiscGas[i];
@@ -239,21 +238,10 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
         escape_velocity2 = 2.0 * (Gal[p].EjectedPotential - Gal[p].Potential[i]);
         
         v_launch = sqrt(energy_feedback * 2.0 / m_return); // launch velocity of returned gas based on pure energy
-        
-        // new expression (23/03/23)
-        aquad = v_therm2 + sqr(vertical_velocity * m_return / Gal[p].DiscGas[i]);
-        bquad = m_return * ( 2.0 * vertical_velocity * m_return / Gal[p].DiscGas[i] * (v_launch - vertical_velocity) - sqr(v_launch) - sqr(vertical_velocity) );
-        cquad = sqr(m_return * (v_launch - vertical_velocity));
-        
-        assert(sqr(bquad) - 4.0*aquad*cquad >= 0.0);
-        reheated_ejected_sum = dmax((-bquad + sqrt(sqr(bquad) - 4.0*aquad*cquad)) / (2.0*aquad), (-bquad - sqrt(sqr(bquad) - 4.0*aquad*cquad)) / (2.0*aquad));
-        assert(reheated_ejected_sum > 0.0);
-        v_wind = m_return / reheated_ejected_sum * (v_launch - (1.0 - reheated_ejected_sum/Gal[p].DiscGas[i]) * vertical_velocity);
-//        
-//        if(0.25*sqr(v_launch) >= sqr(Gal[p].Vvir))
-//            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
-//        else
-//            v_wind = 0.0;
+        if(0.25*sqr(v_launch) >= sqr(Gal[p].Vvir))
+            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
+        else
+            v_wind = 0.0;
         
         if(reheat_specific_energy>0.0)
         {            
@@ -268,13 +256,13 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
             {
                 if(Gal[p].SnapNum > 50) printf("annulus_velocity, v_wind, escape_velocity, v_launch, Vvir = %e, %e, %e, %e, %e\n", annulus_velocity, v_wind, sqrt(escape_velocity2), v_launch, Gal[p].Vvir);
                 reheated_mass = 0.0;
-                ejected_cold_mass = reheated_ejected_sum;
+                ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
                 new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
             }
             else
             {
-                ejected_cold_mass = reheated_ejected_sum * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
-                reheated_mass = reheated_ejected_sum - ejected_cold_mass;
+                ejected_cold_mass = m_return * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
+                reheated_mass = m_return * v_launch / v_wind - ejected_cold_mass;
                 new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
             }
             
@@ -288,65 +276,83 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
         else
         {
             reheated_mass = 0.0;
-            ejected_cold_mass = reheated_ejected_sum;
+            ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
             new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
         }
         
+        double LHS = m_return * v_launch;
+        double RHS = (reheated_mass + ejected_cold_mass) * v_wind;
+        if(!(LHS < 1.01*RHS && LHS > 0.99*RHS))
+        {
+            printf("LHS, RHS = %e, %e\n", LHS, RHS);
+            printf("m_return, v_launch = %e, %e\n", m_return, v_launch);
+            printf("reheated_mass, ejected_cold_mass, v_wind = %e, %e, %e", reheated_mass, ejected_cold_mass, v_wind);
+        }
+//        assert(LHS < 1.01*RHS && LHS > 0.99*RHS);
         
-//        // the ejected gas has to have a minimum energy. If it doesn't, likely the wrong sign was chosen in the v_wind expression
-//        if(v_wind > 0.0 && new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
-//        {
-//            
-////            printf("before changing v_wind sign\n");
-////            printf("new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2 = %e, %e, %e\n", new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2);
-//
-//            // swap sign in v_wind equation
-//            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir));
-//            
-//            // go through other equations again
-//            if(reheat_specific_energy>0.0)
-//            {            
-//                if(sqr(annulus_velocity + v_wind) < escape_velocity2)
-//                {
-//                    ejected_cold_mass = 0.0;
-//                    new_ejected_specific_energy = 0.0;
-//                    reheated_mass = energy_feedback / reheat_specific_energy;
-//                }
-//                else if(sqr(annulus_velocity - v_wind) > escape_velocity2)
-//                {
-//                    reheated_mass = 0.0;
-//                    ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
-//                    new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
-//                }
-//                else
-//                {
-//                    ejected_cold_mass = m_return * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
-//                    reheated_mass = m_return * v_launch / v_wind - ejected_cold_mass;
-//                    new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
-//                }
-//                
-//                
-//                if(ejected_cold_mass<0 || reheated_mass<0) 
-//                {
-//                    printf("reheated_mass, ejected_cold_mass, stars = %e, %e, %e\n", reheated_mass, ejected_cold_mass, stars);
-//                    printf("energy_feedback, escape_velocity2 = %e, %e\n", energy_feedback, escape_velocity2);
-//                }
-//            }
-//            else
+        
+        // the ejected gas has to have a minimum energy. If it doesn't, likely the wrong sign was chosen in the v_wind expression
+        if(!(LHS < 1.01*RHS && LHS > 0.99*RHS))
+        {
+            
+//            printf("before changing v_wind sign\n");
+//            printf("new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2 = %e, %e, %e\n", new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2);
+
+            // swap sign in v_wind equation
+            v_wind = 0.5*v_launch + sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir));
+            
+            // go through other equations again
+            if(reheat_specific_energy>0.0)
+            {            
+                if(sqr(annulus_velocity + v_wind) < escape_velocity2)
+                {
+                    ejected_cold_mass = 0.0;
+                    new_ejected_specific_energy = 0.0;
+                    reheated_mass = energy_feedback / reheat_specific_energy;
+                }
+                else if(sqr(annulus_velocity - v_wind) > escape_velocity2)
+                {
+                    reheated_mass = 0.0;
+                    ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
+                    new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
+                }
+                else
+                {
+                    ejected_cold_mass = m_return * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
+                    reheated_mass = m_return * v_launch / v_wind - ejected_cold_mass;
+                    new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
+                }
+                
+                
+                if(ejected_cold_mass<0 || reheated_mass<0) 
+                {
+                    printf("reheated_mass, ejected_cold_mass, stars = %e, %e, %e\n", reheated_mass, ejected_cold_mass, stars);
+                    printf("energy_feedback, escape_velocity2 = %e, %e\n", energy_feedback, escape_velocity2);
+                }
+            }
+            else
+            {
+                reheated_mass = 0.0;
+                ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
+                new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
+            }
+            
+//            if(!(new_ejected_specific_energy >= Gal[p].EjectedPotential + 0.5*v_therm2))
 //            {
-//                reheated_mass = 0.0;
-//                ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
-//                new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
+//                printf("after changing v_wind sign\n");
+//                printf("new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2 = %e, %e, %e\n", new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2);
 //            }
-//            
-////            if(!(new_ejected_specific_energy >= Gal[p].EjectedPotential + 0.5*v_therm2))
-////            {
-////                printf("after changing v_wind sign\n");
-////                printf("new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2 = %e, %e, %e\n", new_ejected_specific_energy, Gal[p].EjectedPotential, 0.5*v_therm2);
-////            }
-////
-////            assert(new_ejected_specific_energy >= Gal[p].EjectedPotential + 0.5*v_therm2);
-//        }
+//
+//            assert(new_ejected_specific_energy >= Gal[p].EjectedPotential + 0.5*v_therm2);
+        }
+        
+        RHS = (reheated_mass + ejected_cold_mass) * v_wind;
+        if(!(LHS < 1.01*RHS && LHS > 0.99*RHS))
+        {
+            printf("\nLHS, RHS = %e, %e\n", LHS, RHS);
+            printf("reheated_mass, ejected_cold_mass, v_wind = %e, %e, %e", reheated_mass, ejected_cold_mass, v_wind);
+        }
+        assert(LHS < 1.01*RHS && LHS > 0.99*RHS);
         
         // if this still hasn't been fulfilled, the only logical remaining solution is for all feedback-affected gas to be reheated
         if(new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
@@ -1216,7 +1222,6 @@ void delayed_feedback(int p, int k_now, double time, double dt)
     double v_therm2, vertical_velocity, energy_onto_hot, returned_mass_hot, returned_mass_cold, ejected_sum;
     double StellarOutput[2];
     double v_launch, v_wind, new_ejected_specific_energy;
-    double reheated_ejected_sum, aquad, bquad, cquad;
 
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     double tdyn = 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum));
@@ -1434,60 +1439,50 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         escape_velocity2 = 2.0 * (Gal[p].EjectedPotential - Gal[p].Potential[i]);
         
         v_launch = sqrt(energy_feedback * 2.0 / returned_mass_cold); // launch velocity of returned gas based on pure energy
-
-        // new expression (23/03/23)
-        double m_return = return_mass;
-        aquad = v_therm2 + sqr(vertical_velocity * m_return / Gal[p].DiscGas[i]);
-        bquad = m_return * ( 2.0 * vertical_velocity * m_return / Gal[p].DiscGas[i] * (v_launch - vertical_velocity) - sqr(v_launch) - sqr(vertical_velocity) );
-        cquad = sqr(m_return * (v_launch - vertical_velocity));
+        if(0.25*sqr(v_launch) >= sqr(Gal[p].Vvir))
+            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
+        else
+            v_wind = 0.0;
         
-        
-        assert(sqr(bquad) - 4.0*aquad*cquad >= 0.0);
-        reheated_ejected_sum = dmax((-bquad + sqrt(sqr(bquad) - 4.0*aquad*cquad)) / (2.0*aquad), (-bquad - sqrt(sqr(bquad) - 4.0*aquad*cquad)) / (2.0*aquad));
-        assert(reheated_ejected_sum > 0.0);
-        v_wind = m_return / reheated_ejected_sum * (v_launch - (1.0 - reheated_ejected_sum/Gal[p].DiscGas[i]) * vertical_velocity);
-//        
-//        if(0.25*sqr(v_launch) >= sqr(Gal[p].Vvir))
-//            v_wind = 0.5*v_launch - sqrt(0.25*sqr(v_launch) - sqr(Gal[p].Vvir)); // sign choice in this equation!
-//        else
-//            v_wind = 0.0;
-        
-        if(reheat_specific_energy>0.0)
+        // new terms to calculate directly ejected component
+        if(reheat_specific_energy>0)
         {            
             if(sqr(annulus_velocity + v_wind) < escape_velocity2)
             {
-                if(Gal[p].SnapNum > 50) printf("annulus_velocity, v_wind, escape_velocity, v_launch, Vvir = %e, %e, %e, %e, %e\n", annulus_velocity, v_wind, sqrt(escape_velocity2), v_launch, Gal[p].Vvir);
                 ejected_cold_mass = 0.0;
                 new_ejected_specific_energy = 0.0;
                 reheated_mass = energy_feedback / reheat_specific_energy;
             }
             else if(sqr(annulus_velocity - v_wind) > escape_velocity2)
             {
-                if(Gal[p].SnapNum > 50) printf("annulus_velocity, v_wind, escape_velocity, v_launch, Vvir = %e, %e, %e, %e, %e\n", annulus_velocity, v_wind, sqrt(escape_velocity2), v_launch, Gal[p].Vvir);
                 reheated_mass = 0.0;
-                ejected_cold_mass = reheated_ejected_sum;
+                ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
                 new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
             }
             else
             {
-                ejected_cold_mass = reheated_ejected_sum * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
-                reheated_mass = reheated_ejected_sum - ejected_cold_mass;
+                ejected_cold_mass = returned_mass_cold * v_launch / v_wind * (0.5 - (escape_velocity2 - sqr(annulus_velocity) - sqr(v_wind)) / (4.0 * annulus_velocity * v_wind) );
+                reheated_mass = returned_mass_cold * v_launch / v_wind - ejected_cold_mass;
                 new_ejected_specific_energy = (energy_feedback - reheated_mass*reheat_specific_energy) / ejected_cold_mass + cold_specific_energy;
+                
+                if(!(reheated_mass>=0)) 
+                {
+                    printf("new_ejected_specific_energy = %e\n", new_ejected_specific_energy);
+                    printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
+                    printf("returned_mass_cold, v_launch, v_wind, Vvir = %e, %e, %e, %e\n", returned_mass_cold, v_launch, v_wind, Gal[p].Vvir);
+                }
+                assert(reheated_mass>=0);
+
             }
             
-            
-            if(ejected_cold_mass<0 || reheated_mass<0) 
-            {
-                printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
-                printf("energy_feedback, escape_velocity2 = %e, %e\n", energy_feedback, escape_velocity2);
-            }
         }
         else
         {
             reheated_mass = 0.0;
-            ejected_cold_mass = reheated_ejected_sum;
+            ejected_cold_mass = 2.0 * energy_feedback / (v_therm2 + sqr(v_wind));
             new_ejected_specific_energy = energy_feedback / ejected_cold_mass + cold_specific_energy;
-        }        
+        }
+        
         
 //        // check ejected energy and swap sign in v_wind expression if it doesn't make sense
 //        if(v_wind > 0 && new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
