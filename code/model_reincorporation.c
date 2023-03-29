@@ -106,15 +106,16 @@ void reincorporate_gas(int p, int centralgal, double dt)
         {
             // want to energy to calculate where the gas that is ejected gets to before it turns around
             // first need to work out its initial speed
-            double outflow_kinetic, j_hot, discriminant, outflow_radial_speed;
+            // not considering any tangential motion anymore
+            double outflow_kinetic, outflow_radial_speed; //j_hot, discriminant, ;
             const double thermal = 0.5 * sqr(Gal[p].Vvir);
             outflow_kinetic = Gal[p].OutflowSpecificEnergy - Gal[p].EjectedPotential - thermal;
-            j_hot = 2.0 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-            discriminant = 2.0 * outflow_kinetic - sqr(j_hot/Gal[p].Rvir);
+//            j_hot = 2.0 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+//            discriminant = 2.0 * outflow_kinetic - sqr(j_hot/Gal[p].Rvir);
             
             
-            if(discriminant > 0.0)
-                outflow_radial_speed = sqrt(discriminant);
+            if(outflow_kinetic > 0.0)
+                outflow_radial_speed = sqrt(2.0 * outflow_kinetic);
             else
                 outflow_radial_speed = 0.0;
             
@@ -127,7 +128,7 @@ void reincorporate_gas(int p, int centralgal, double dt)
             {
                 R_guess = 0.5 * (R_min + R_max);
                 pot_guess = NFW_potential(p, R_guess); // approximating an NFW potential here for efficiency
-                specific_energy = pot_guess + 0.5*sqr(j_hot/R_guess) + thermal; // add thermal and tangential kinetic energy assuming angular momentum is conserved
+                specific_energy = pot_guess + thermal; // add thermal and tangential kinetic energy assuming angular momentum is conserved
                 
                 if(fabs((specific_energy-Gal[p].OutflowSpecificEnergy)/Gal[p].OutflowSpecificEnergy) < 1e-3)
                     break;

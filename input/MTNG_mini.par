@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/MTNG_mini/13g/
+OutputDir               /Users/adam/DarkSage_runs/MTNG_mini/13k/
 
 FirstFile                   0
 LastFile                    43
@@ -92,7 +92,7 @@ SfrEfficiency               1.0     ; can be used to renormalise the typical dep
 Ratio_Ia_II                 0.2     ; number ratio of Type Ia (binary accretion) to Type II (core collapse) supernovae. Affects the total number of supernovae (and therefore total feedback energy) per unit mass of stars formed.
 
 CoolingScaleSlope           0.23    ; cf. eq. 18 of Stevens et al. (2017)
-CoolingScaleConst           1.1
+CoolingScaleConst           1.15
 
 RadioModeEfficiency         1.0     ; can be used to test different accretion models with a variable normalised accretion rate. Essentially degenerate with RadiativeEfficiency for AGN feedback.
 

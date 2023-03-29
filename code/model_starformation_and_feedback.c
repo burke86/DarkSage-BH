@@ -248,12 +248,7 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
         else if(sqr(v_wind - annulus_velocity) > escape_velocity2) // the wind speed is high enough to eject all the gas instead of just reheating it
         {
             reheated_mass = 0.0;
-            new_ejected_specific_energy = cold_specific_energy + 0.5*(v_therm2 + v_wind2);
-            if(new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
-            {
-                printf("Replaced new_ejected_specific_energy from %e with %e\n", new_ejected_specific_energy, Gal[p].EjectedPotential + 0.5*v_therm2);
-                new_ejected_specific_energy = Gal[p].EjectedPotential + 0.5*v_therm2;
-            }
+            new_ejected_specific_energy = dmax(cold_specific_energy + 0.5*(v_therm2 + v_wind2), Gal[p].EjectedPotential + 0.5*v_therm2);
             ejected_cold_mass = energy_feedback / (new_ejected_specific_energy - cold_specific_energy);
         }
         else if(sqr(v_wind + annulus_velocity) > escape_velocity2) // the wind speed is enough to eject some of the gas
@@ -1354,12 +1349,7 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         else if(sqr(v_wind - annulus_velocity) > escape_velocity2) // the wind speed is high enough to eject all the gas instead of just reheating it
         {
             reheated_mass = 0.0;
-            new_ejected_specific_energy = cold_specific_energy + 0.5*(v_therm2 + v_wind2);
-            if(new_ejected_specific_energy < Gal[p].EjectedPotential + 0.5*v_therm2)
-            {
-                printf("Replaced new_ejected_specific_energy from %e with %e\n", new_ejected_specific_energy, Gal[p].EjectedPotential + 0.5*v_therm2);
-                new_ejected_specific_energy = Gal[p].EjectedPotential + 0.5*v_therm2;
-            }
+            new_ejected_specific_energy = dmax(cold_specific_energy + 0.5*(v_therm2 + v_wind2), Gal[p].EjectedPotential + 0.5*v_therm2);
             ejected_cold_mass = energy_feedback / (new_ejected_specific_energy - cold_specific_energy);
         }
         else if(sqr(v_wind + annulus_velocity) > escape_velocity2) // the wind speed is enough to eject some of the gas

@@ -105,7 +105,7 @@ void quasar_mode_wind(int p, float BHaccrete);
 
 double get_metallicity(double gas, double metals);
 double get_virial_velocity(int halonr, int p);
-double get_virial_radius(int halonr, int p);
+double get_virial_radius(int halonr, int p, double Mvir);
 double get_virial_mass(int halonr, int p);
 double get_disk_radius(int halonr, int p);
 

@@ -157,19 +157,25 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
           Gal[ngal].Vmax = Halo[halonr].Vmax;
           assert(Gal[ngal].LenMax>=Gal[ngal].Len);
             
+              
             if(halonr == Halo[halonr].FirstHaloInFOFgroup)
+            {
+                Gal[ngal].deltaMvir = get_virial_mass(halonr, ngal) - Gal[ngal].Mvir;
                 Gal[ngal].Vvir = get_virial_velocity(halonr, ngal); // Keeping Vvir fixed for subhaloes
-
-
-          Gal[ngal].deltaMvir = get_virial_mass(halonr, ngal) - Gal[ngal].Mvir;
-          if(halonr == Halo[halonr].FirstHaloInFOFgroup || Gal[ngal].deltaMvir<0.0)
-          {  // update for centrals or satellites that have been tidally stripped (the way Rvir is calculated changes for satellites, and is potentially subject to an artificial rise immediately after infall)
-              Gal[ngal].Rvir = get_virial_radius(halonr, ngal);
-              Gal[ngal].Mvir = get_virial_mass(halonr, ngal);
-              Gal[ngal].DiskScaleRadius = get_disk_radius(halonr, ngal); // Only update the scale radius for centrals.  Satellites' spin will be too variable and untrustworthy for new cooling.
-          }
-          else
-              Gal[ngal].deltaMvir = 0.0;
+                Gal[ngal].Mratio = Gal[ngal].Mvir / (Gal[ngal].Len * PartMass);
+                Gal[ngal].Mvir = get_virial_mass(halonr, ngal);
+                Gal[ngal].Rvir = get_virial_radius(halonr, ngal, Gal[ngal].Mvir);
+            }
+            else
+            {
+                double Mvir_sat = get_virial_mass(halonr, ngal);
+                if(Gal[ngal].Mratio > 0.0 && Gal[ngal].Mratio < 1.0) Mvir_sat *= Gal[ngal].Mratio;
+                Gal[ngal].deltaMvir = Mvir_sat - Gal[ngal].Mvir;
+                Gal[ngal].Mvir = Mvir_sat;
+                Gal[ngal].Rvir = get_virial_radius(halonr, ngal, Mvir_sat);
+            }
+                
+        Gal[ngal].DiskScaleRadius = get_disk_radius(halonr, ngal); // Only update the scale radius for centrals.  Satellites' spin will be too variable and untrustworthy for new cooling.
 
           Gal[ngal].Cooling = 0.0;
           Gal[ngal].Heating = 0.0;

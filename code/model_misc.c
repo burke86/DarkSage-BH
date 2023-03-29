@@ -67,9 +67,11 @@ void init_galaxy(int p, int halonr)
     Gal[p].Len = Halo[halonr].Len;
     Gal[p].LenMax = Halo[halonr].Len;
     Gal[p].Vmax = Halo[halonr].Vmax;
+//    Gal[p].Mratio = 0.0; // needs a value assigned before Mvir calculated
     Gal[p].Vvir = get_virial_velocity(halonr, p);
     Gal[p].Mvir = get_virial_mass(halonr, p);
-    Gal[p].Rvir = get_virial_radius(halonr, p);
+    Gal[p].Rvir = get_virial_radius(halonr, p, Gal[p].Mvir);
+    Gal[p].Mratio = Gal[p].Mvir / (Halo[halonr].Len * PartMass); // proper starting value
     
     Gal[p].deltaMvir = 0.0;
     
@@ -339,7 +341,7 @@ double get_virial_mass(int halonr, int p)
     }
     else if(p!=-1)
     {
-        return Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass + Gal[p].ICS;
+        return Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass + Gal[p].ICS + Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].ICBHmass;
     }
     else
         return 0.0;
@@ -351,7 +353,7 @@ double get_virial_velocity(int halonr, int p)
 {
     double Rvir;
     
-    Rvir = get_virial_radius(halonr, p);
+    Rvir = get_virial_radius(halonr, p, 0.0);
     
     if(Rvir > 0.0)
         return sqrt(G * get_virial_mass(halonr, p) / Rvir);
@@ -361,7 +363,7 @@ double get_virial_velocity(int halonr, int p)
 
 
 
-double get_virial_radius(int halonr, int p)
+double get_virial_radius(int halonr, int p, double Mvir)
 {
     // return Halo[halonr].Rvir;  // Used for Bolshoi
     
@@ -371,7 +373,9 @@ double get_virial_radius(int halonr, int p)
     rhocrit = 3 * hubble_of_z_sq / (8 * M_PI * G);
     fac = 1 / (200 * 4 * M_PI / 3.0 * rhocrit);
     
-    return cbrt(get_virial_mass(halonr, p) * fac);
+    if(Mvir<=0.0) Mvir = get_virial_mass(halonr, p);
+    
+    return cbrt(Mvir * fac);
 }
 
 double Hubble_sqr_z(int snap)

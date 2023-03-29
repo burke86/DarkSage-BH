@@ -186,8 +186,8 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     }
       
     // NEW WAY OF DOING RADIO MODE MEMORY
-    if(AGNrate < Gal[p].MaxRadioModeAccretionRate)
-          AGNrate = Gal[p].MaxRadioModeAccretionRate; // don't let current accretion rate be lower than in history
+//    if(AGNrate < Gal[p].MaxRadioModeAccretionRate)
+//          AGNrate = Gal[p].MaxRadioModeAccretionRate; // don't let current accretion rate be lower than in history
       
     // accretion onto BH is always limited by the Eddington rate 
     EDDrate = 1.4444444444e37 * Gal[p].BlackHoleMass / UnitEnergy_in_cgs * UnitTime_in_s; // 1.4444444444e37 = 1.3e48 / 9e10

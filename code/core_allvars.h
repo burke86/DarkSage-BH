@@ -318,6 +318,7 @@ struct GALAXY
   double Rvir;
   double Vvir;
   double Vmax;
+    double Mratio;
     
   // Radius and potential energy of each annulus boundary
   double DiscRadii[N_BINS+1];
