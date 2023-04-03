@@ -251,6 +251,8 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
           Gal[ngal].Type = 2;
         }
       }
+        
+        if(Gal[ngal].TypeMax < Gal[ngal].Type) Gal[ngal].TypeMax = Gal[ngal].Type;
 
       // Note: Galaxies that are already type 2 do not need special treatment at this point 
       if(Gal[ngal].Type < 0 || Gal[ngal].Type > 2)
@@ -453,8 +455,15 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         // only consider mergers or disruption for halo-to-baryonic mass ratios below the threshold
         // or for satellites with no baryonic mass (they don't grow and will otherwise hang around forever)
         currentMvir = Gal[p].Mvir - Gal[p].deltaMvir * (1.0 - ((double)step + 1.0) / (double)STEPS);
-        galaxyBaryons = Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass;
-        if((galaxyBaryons == 0.0) || (galaxyBaryons > 0.0 && (currentMvir / galaxyBaryons <= ThresholdSatDisruption)))        
+        galaxyBaryons = Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass + Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].ICS + Gal[p].ICBHmass; // not adding ejected gas as it outside the virial radius, strictly
+          
+          double reionization_modifier;
+          if(ReionizationOn)
+            reionization_modifier = do_reionization(p, ZZ[Halo[halonr].SnapNum]);
+          else
+            reionization_modifier = 1.0;
+          
+        if((galaxyBaryons == 0.0) || (galaxyBaryons > 0.0 && (currentMvir / galaxyBaryons <= ThresholdSatDisruption / reionization_modifier)))        
         {
           if(Gal[p].Type==1) 
             merger_centralgal = centralgal;
@@ -499,7 +508,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0)
     {
         update_disc_radii(p);
-        update_HI_H2(p);
+        update_HI_H2(p, time, k_now);
     }
       
     Gal[p].prevHotGasPotential = Gal[p].HotGasPotential;

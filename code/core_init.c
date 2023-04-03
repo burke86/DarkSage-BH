@@ -63,7 +63,7 @@ void set_units(void)
   P_0 = 5.93e-12 / UnitMass_in_g * UnitLength_in_cm * UnitTime_in_s * UnitTime_in_s;
     
   // Constant used in calculating ionized fraction
-  uni_ion_term = 7.271e-17 * sqr(cube(UnitLength_in_cm) / (UnitMass_in_g * UnitTime_in_s) * Hubble_h);
+  uni_ion_term = 0.25*1.346e-17 * sqr(cube(UnitLength_in_cm) / (UnitMass_in_g * UnitTime_in_s * Hubble_h));
 
 }
 

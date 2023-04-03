@@ -43,6 +43,7 @@ do {                                                                \
 struct GALAXY_OUTPUT  
 {
   int   Type;
+    int TypeMax;
   long long   GalaxyIndex;
   int   HaloIndex;
   int SimulationHaloIndex;
@@ -177,6 +178,7 @@ struct GALAXY_OUTPUT
 struct GALAXY_OUTPUT_LARGE // new for age dimension
 {
   int   Type;
+    int TypeMax;
   long long   GalaxyIndex;
   int   HaloIndex;
   int SimulationHaloIndex;
@@ -293,6 +295,7 @@ struct GALAXY_OUTPUT_LARGE // new for age dimension
 struct GALAXY
 {
   int   Type;
+    int TypeMax;
   int   GalaxyNr;
   int   HaloNr;
   long long  MostBoundID;
@@ -598,6 +601,9 @@ double SNperMassFormed;
 double HalfBoxLen;
 double DiscScalePercentConversion[9];
 double DiscScalePercentValues[9];
+double UVB_z[ABSOLUTEMAXSNAPS];
+double UVMW_perSFRdensity;
+double Sigma_R1_fac;
 
 #ifdef MINIMIZE_IO
 extern char *ptr_treedata, *ptr_galaxydata, *ptr_galsnapdata[ABSOLUTEMAXSNAPS];

@@ -53,7 +53,7 @@ void starformation_and_feedback(int p, int centralgal, double dt, int step, doub
   Gal[p].SfrDiskColdGas[step] = Gal[p].ColdGas;
   Gal[p].SfrDiskColdGasMetals[step] = Gal[p].MetalsColdGas; // I believe TAO wants these fields.  Otherwise irrelevant
     
-  update_HI_H2(p);
+  update_HI_H2(p, time, k_now);
     
   if(SFprescription==2) // Prescription based on SAGE
   {
@@ -991,16 +991,20 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
     }
 }
 
-void update_HI_H2(int p)
+void update_HI_H2(int p, double time, int k_now)
 {
     double area, f_H2, f_H2_HI, Pressure, f_sigma;
-    int i;
+    int i, iter, iter_max;
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
     double galaxy_ion_term, sigma_gas, full_ratio, interrim;
     double s, Zp, chi, c_f, Sigma_comp0, Tau_c;
     double X_H, Z, f_neutral, Y_He;
     
+    double SFE_H2 = 4.35e-4 / Hubble_h * UnitTime_in_s / SEC_PER_MEGAYEAR; // This says if SfrEfficiency==1.0, then the time-scale for H2 consumption is 2.3 Gyr (Bigiel et al. 2011)
+
+    
     sigma_gas = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s;
+    iter_max = 100;
     
     if(Gal[p].Vvir>0.0 && Gal[p].ColdGas>0.0)
     {
@@ -1063,39 +1067,88 @@ void update_HI_H2(int p)
                     f_H2_HI = H2FractionFactor * pow(Pressure/P_0, H2FractionExponent);
 
             }
-
             
-            // solve for f_neutral, which will lead to absolute H2 and HI masses per annulus
-            if(f_H2_HI > 0.0)
+            if(Z >= 0.025)
+                X_H = 0.753 - 1.26*Z;
+            else
+                X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
+            
+            Y_He = 1.0 - X_H - Z;
+
+            if(H2prescription == 3)
             {
-                if(Z >= 0.025)
-                    X_H = 0.753 - 1.26*Z;
-                else
-                    X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
-                
-                Y_He = 1.0 - X_H - Z;
-                
-                f_H2 = X_H / (1.0/f_H2_HI + 1);
-                full_ratio = galaxy_ion_term * f_H2 * sqr(area / (X_H * Gal[p].DiscGas[i])) * 0.25*(3*X_H+1);
-                
-                interrim = full_ratio - sqrt(full_ratio*(full_ratio+4.0)); // order of operations for the computer can matter
-                f_neutral = 0.5 * (2.0 + interrim);
-//                if(f_neutral>1.0) f_neutral = 1.0; 
+//                double f_H2_HI_old = 0.5; // guess to initialise
+                double av_dist = 0.25*(Gal[p].DiscRadii[i+1] - Gal[p].DiscRadii[i]);
+                double Sbar = av_dist * 1e4/Hubble_h;
+                double Sbar5 = Sbar*Sbar*Sbar*Sbar*Sbar;
+                double Dstar = 0.17 * (2.0 + Sbar5) / (1.0 + Sbar5);
+                double DMW2 = sqr(Z/0.0127);
+                double gbar = sqrt(sqr(Dstar) + DMW2);
+                double UMW, alphabar, Sigma_R1, mass_H2_guess, SFR_guess;
+//                for(iter=0; iter<iter_max; iter++)
+//                {
+//                    f_H2 = X_H / (1.0/f_H2_HI_old + 1);
+//                    full_ratio = galaxy_ion_term * f_H2 * sqr(area / (X_H * Gal[p].DiscGas[i])) * (3*X_H+1);
+//                    interrim = full_ratio - sqrt(full_ratio*(full_ratio+4.0)); // order of operations for the computer can matter
+//                    f_neutral = 0.5 * (2.0 + interrim);
+//                    if(f_neutral > 0.0)
+//                    {
+//                        mass_H2_guess = f_H2 * Gal[p].DiscGas[i];
+//                        SFR_guess = SfrEfficiency * SFE_H2 * mass_H2_guess;
+                SFR_guess = Gal[p].DiscStarsAge[i][k_now] / ((1.0 - RecycleFraction) * (AgeBinEdge[k_now] - time));
+                        UMW = dmax(UVB_z[Gal[p].SnapNum], UVMW_perSFRdensity * sqr(av_dist) / SFR_guess);
+                        alphabar = 0.5 + 1.0 / (1.0 + sqrt(UMW * DMW2 / 600.0));
+                        Sigma_R1 = Sigma_R1_fac * sqrt(0.001 + 0.1*UMW) / (gbar * (1.0 + 1.69*sqrt(0.001 + 0.1*UMW)));
+                        f_H2_HI = pow(f_neutral * X_H * Gal[p].DiscGas[i] / Sigma_R1, alphabar);
+//                    }
+//                    else
+//                        f_H2_HI = 0.0;
+                    
+//                    if(f_H2_HI!=f_H2_HI)
+//                        printf("f_H2 = %e; full_ratio = %e; interrim = %e; f_neutral = %e; mass_H2_guess = %e; SFR_guess = %e; UMW = %e; alphabar = %e; Sigma_R1 = %e; f_H2_HI = %e\n", f_H2, full_ratio, interrim, f_neutral, mass_H2_guess, SFR_guess, UMW, alphabar, Sigma_R1, f_H2_HI);
+//                    assert(f_H2_HI==f_H2_HI);
+//                    
+//                    if(fabs((f_H2_HI-f_H2_HI_old)/f_H2_HI) <= 0.01 || iter==iter_max-1)
+//                        break;
+//                    f_H2_HI_old = f_H2_HI;
+//                }
+//                if(iter==iter_max-1) 
+//                {
+//                    printf("Reach max no iterations for H2/HI\n");
+//                    printf("f_H2_HI_old, f_H2_HI = %e, %e\n", f_H2_HI_old, f_H2_HI);
+//                    printf("Gal[p].DiscGas[i] = %e\n", Gal[p].DiscGas[i]);
+//                }
                 Gal[p].DiscH2[i] = f_H2 * f_neutral * Gal[p].DiscGas[i];
                 Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
-                
-                if(!(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]))
-                {
-                    printf("Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]  = %e, %e, %e, %e\n", Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]);
-                    printf("f_neutral, X_H, f_H2_HI = %e, %e, %e\n", f_neutral, X_H, f_H2_HI);
-                    printf("f_H2, full_ratio = %e, %e\n", f_H2, full_ratio);
-                }
-                assert(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]);
             }
             else
             {
-                Gal[p].DiscH2[i] = 0.0;
-                Gal[p].DiscHI[i] = X_H*Gal[p].DiscGas[i]; // All cold hydrogen must be in the form of HI if there's no H2.
+                // solve for f_neutral, which will lead to absolute H2 and HI masses per annulus
+                if(f_H2_HI > 0.0)
+                {
+                    
+                    f_H2 = X_H / (1.0/f_H2_HI + 1);
+                    full_ratio = galaxy_ion_term * f_H2 * sqr(area / (X_H * Gal[p].DiscGas[i])) * (3*X_H+1);
+                    
+                    interrim = full_ratio - sqrt(full_ratio*(full_ratio+4.0)); // order of operations for the computer can matter
+                    f_neutral = 0.5 * (2.0 + interrim);
+    //                if(f_neutral>1.0) f_neutral = 1.0; 
+                    Gal[p].DiscH2[i] = f_H2 * f_neutral * Gal[p].DiscGas[i];
+                    Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
+                    
+                    if(!(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]))
+                    {
+                        printf("Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]  = %e, %e, %e, %e\n", Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]);
+                        printf("f_neutral, X_H, f_H2_HI = %e, %e, %e\n", f_neutral, X_H, f_H2_HI);
+                        printf("f_H2, full_ratio = %e, %e\n", f_H2, full_ratio);
+                    }
+                    assert(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]);
+                }
+                else
+                {
+                    Gal[p].DiscH2[i] = 0.0;
+                    Gal[p].DiscHI[i] = X_H*Gal[p].DiscGas[i]; // All cold hydrogen must be in the form of HI if there's no H2.
+                }
             }
             
             

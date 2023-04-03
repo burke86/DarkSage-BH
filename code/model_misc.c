@@ -29,6 +29,7 @@ void init_galaxy(int p, int halonr)
     SpinMag = sqrt(sqr(Halo[halonr].Spin[0]) + sqr(Halo[halonr].Spin[1]) + sqr(Halo[halonr].Spin[2]));
     
     Gal[p].Type = 0;
+    Gal[p].TypeMax = 0;
     
     Gal[p].GalaxyNr = GalaxyCounter;
     GalaxyCounter++;

@@ -152,7 +152,7 @@ double cooling_recipe(int gal, double dt)
 
 double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcool, double specific_energy_change)
 {
-  double AGNrate, EDDrate, AGNaccreted, AGNcoeff, AGNheating, metallicity;
+  double AGNrate, EDDrate, AGNaccreted, AGNcoeff, AGNheating, metallicity, AGNfountain;
 
     if(Gal[p].HotGas <= 0.0)
         return 0.0;
@@ -207,6 +207,7 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
 
     // cooling mass that can be suppresed from AGN heating 
     AGNheating = AGNcoeff * AGNaccreted;
+    AGNfountain = AGNheating; // mass to move to fountain
 
     // limit heating to cooling rate 
     // making a conscious decision to no longer update the AGN accretion rate in proportion here.  In effect, if this if-statement is triggered, the energy coupling for the radio mode temporarily decreases.
@@ -241,6 +242,28 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
       
       
     Gal[p].Heating += AGNheating * specific_energy_change; // energy from the AGN pumped into keeping the hot gas hot
+    
+    if(AGNfountain > 0.0)
+    {
+        if(AGNfountain >= Gal[p].HotGas) 
+        {
+            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + Gal[p].HotGas * 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum))) / (Gal[p].FountainGas + Gal[p].HotGas);
+            Gal[p].FountainGas += Gal[p].HotGas;
+            Gal[p].MetalsFountainGas += Gal[p].MetalsHotGas;
+            Gal[p].HotGas = 0.0;
+            Gal[p].MetalsHotGas = 0.0;
+        }
+        else
+        {
+            Gal[p].FountainTime = (Gal[p].FountainGas * Gal[p].FountainTime + AGNfountain * 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum))) / (Gal[p].FountainGas + AGNfountain);
+            Gal[p].FountainGas += AGNfountain;
+            Gal[p].MetalsFountainGas += (metallicity * AGNfountain);
+            Gal[p].HotGas -= AGNfountain;
+            Gal[p].MetalsHotGas -= (metallicity * AGNfountain);
+            if(Gal[p].MetalsHotGas < 0.0) Gal[p].MetalsHotGas = 0.0;
+        }
+    }
+
 
     return coolingGas - AGNheating;
 

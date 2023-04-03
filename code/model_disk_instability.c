@@ -35,7 +35,7 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
     DiscStarSum = get_disc_stars(p);
     DiscGasSum = get_disc_gas(p);
     check_channel_stars(p);
-    update_HI_H2(p);
+    update_HI_H2(p, time, k_now);
     
     if(DiscStarSum==0.0 && DiscGasSum==0.0)
         return;

@@ -172,6 +172,58 @@ int main(int argc, char **argv)
     for(i=0; i<9; i++)
         DiscScalePercentValues[i] = 0.1 * (i+1);
     
+    // calculate the UV background at each snapshot
+    // using the FG09 background in the Lyman--Werner band
+    double z_arr[31], UVLW_arr[31];
+    for(i=0; i<31; i++) z_arr[i] = 0.2*i;
+    UVLW_arr[0] = 1.38e-3;
+    UVLW_arr[1] = 2.38e-3;
+    UVLW_arr[2] = 3.81e-3;
+    UVLW_arr[3] = 5.81e-3;
+    UVLW_arr[4] = 8.41e-3;
+    UVLW_arr[5] = 1.15e-2;
+    UVLW_arr[6] = 1.52e-2;
+    UVLW_arr[7] = 1.95e-2;
+    UVLW_arr[8] = 2.42e-2;
+    UVLW_arr[9] = 2.95e-2;
+    UVLW_arr[10] = 3.51e-2;
+    UVLW_arr[11] = 4.17e-2;
+    UVLW_arr[12] = 4.88e-2;
+    UVLW_arr[13] = 5.63e-2;
+    UVLW_arr[14] = 6.34e-2;
+    UVLW_arr[15] = 7.19e-2;
+    UVLW_arr[16] = 8.04e-2;
+    UVLW_arr[17] = 8.89e-2;
+    UVLW_arr[18] = 9.96e-2;
+    UVLW_arr[19] = 1.08e-1;
+    UVLW_arr[20] = 1.17e-1;
+    UVLW_arr[21] = 1.26e-1;
+    UVLW_arr[22] = 1.35e-1;
+    UVLW_arr[23] = 1.43e-1;
+    UVLW_arr[24] = 1.51e-1;
+    UVLW_arr[25] = 1.58e-1;
+    UVLW_arr[26] = 1.63e-1;
+    UVLW_arr[27] = 1.69e-1;
+    UVLW_arr[28] = 1.75e-1;
+    UVLW_arr[29] = 1.79e-1;
+    UVLW_arr[30] = 1.84e-1;
+    
+    int snap, i_arr;
+    for(snap=0; snap<MAXSNAPS; snap++)
+    {
+        for(i_arr=0; i_arr<31; i_arr++)
+            if(z_arr[i_arr] >= ZZ[snap]) break;
+        
+        if(i_arr<30)
+            UVB_z[snap] = UVLW_arr[i_arr] + (UVLW_arr[i_arr+1] - UVLW_arr[i_arr]) * (ZZ[snap]-z_arr[i_arr]) / (z_arr[i_arr+1]-z_arr[i_arr]);
+        else
+            UVB_z[snap] = UVLW_arr[30];
+    }
+    
+    // UV flux per SFR at distance squared in internal units
+    // Value of 96.21 kpc^2/(Msun/yr) comes from Diemer, Stevens et al. (2018).
+    UVMW_perSFRdensity = 96.21 * sqr(Hubble_h * 1e-3 * CM_PER_MPC / UnitLength_in_cm) / (SOLAR_MASS / UnitMass_in_g) * (SEC_PER_YEAR / UnitTime_in_s);
+    Sigma_R1_fac = 50.0 * (Hubble_h * SOLAR_MASS / UnitMass_in_g) / sqr(Hubble_h * 1e-6 * CM_PER_MPC / UnitLength_in_cm);
     
     
 #ifdef MPI

@@ -250,6 +250,7 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
         
   o->SnapNum = g->SnapNum;
   o->Type = g->Type;
+    o->TypeMax = g->TypeMax;
     
   assert( g->GalaxyNr < TREE_MUL_FAC ); // breaking tree size assumption
   assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
@@ -435,7 +436,8 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     
   o->SnapNum = g->SnapNum;
   o->Type = g->Type;
-    
+    o->TypeMax = g->TypeMax;
+
   assert( g->GalaxyNr < TREE_MUL_FAC ); // breaking tree size assumption
   assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
   o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
