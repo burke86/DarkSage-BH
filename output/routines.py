@@ -17,6 +17,7 @@ def galdtype_darksage(Nannuli=30,Nage=1):
 
     Galdesc_full = [
                     ('Type'                         , np.int32),
+                    ('TypeMax'                      , np.int32),
                     ('GalaxyIndex'                  , np.int64),
                     ('HaloIndex'                    , np.int32),
                     ('SimulationHaloIndex'          , np.int32),

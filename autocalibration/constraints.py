@@ -58,7 +58,7 @@ Nmin = 5 # minimum number of galaxies expected in a mass bin for the simulation 
 
 # Manually set information for the simulation
 sim = 2
-files = range(8)
+files = range(44)
 if sim==0: # TNG300
     h0 = 0.6774
     Omega0 = 0.3089
@@ -72,7 +72,7 @@ elif sim==1: # Genesis small calibration box
 else:
     h0 = 0.6774
     Omega0 = 0.3089
-    vol = (62.5/h0)**3 * (1.0*len(files)/8.)
+    vol = (62.5/h0)**3 # 43 files
     age_alist_file = '/Users/adam/MTNG_trees/MTNG_alist.txt'
 
 # These are two easily create variables of these different shapes without
@@ -113,7 +113,7 @@ class Constraint(object):
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
         # hard coding stuff here that should be generalised
         # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
-        fields = ['StellarMass', 'DiscHI', 'LenMax', 'DiscStars', 'MergerBulgeMass', 'InstabilityBulgeMass', 'IntraClusterStars', 'LocalIGS']
+        fields = ['StellarMass', 'DiscHI', 'LenMax', 'StellarFormationMass']
         Nage = 30
         G = r.darksage_snap(modeldir+'model_z0.000', files, Nannuli=30, Nage=Nage, fields=fields)
         
@@ -144,14 +144,14 @@ class Constraint(object):
         hist_HImf, _ = np.histogram(logHIM, bins=mbins)
         hist_HImf = hist_HImf / (dm * vol)
         
-        # sum mass from age bins of all components
-        StarsByAge = np.zeros(Nage)
-        for k in range(Nage):
-            StarsByAge[k] += np.sum(G['DiscStars'][:,:,k])
-            StarsByAge[k] += np.sum(G['MergerBulgeMass'][:,k])
-            StarsByAge[k] += np.sum(G['InstabilityBulgeMass'][:,k])
-            StarsByAge[k] += np.sum(G['IntraClusterStars'][:,k])
-            StarsByAge[k] += np.sum(G['LocalIGS'][:,k])
+#        # sum mass from age bins of all components
+#        StarsByAge = np.zeros(Nage)
+#        for k in range(Nage):
+#            StarsByAge[k] += np.sum(G['DiscStars'][:,:,k])
+#            StarsByAge[k] += np.sum(G['MergerBulgeMass'][:,k])
+#            StarsByAge[k] += np.sum(G['InstabilityBulgeMass'][:,k])
+#            StarsByAge[k] += np.sum(G['IntraClusterStars'][:,k])
+#            StarsByAge[k] += np.sum(G['LocalIGS'][:,k])
             
         # get the edges of the age bins
         alist = np.loadtxt(age_alist_file)
@@ -166,9 +166,9 @@ class Constraint(object):
         TimeBinEdge = np.array([r.z2tL(redshift, h0, Omega0, 1.0-Omega0) for redshift in RedshiftBinEdge]) # look-back time [Gyr]
         dT = np.diff(TimeBinEdge) # time step for each bin
         TimeBinCentre = TimeBinEdge[:-1] + 0.5*dT
-        m, lifetime, returned_mass_fraction_integrated, ncum_SN = r.return_fraction_and_SN_ChabrierIMF()
-        eff_recycle = np.interp(TimeBinCentre, lifetime[::-1], returned_mass_fraction_integrated[::-1])
-        SFRbyAge = StarsByAge*1e10/h0 / (dT*1e9) / (1.-eff_recycle)
+#        m, lifetime, returned_mass_fraction_integrated, ncum_SN = r.return_fraction_and_SN_ChabrierIMF()
+#        eff_recycle = np.interp(TimeBinCentre, lifetime[::-1], returned_mass_fraction_integrated[::-1])
+        SFRbyAge = G['StellarFormationMass']*1e10/h0 / (dT*1e9)
 
 
         #########################

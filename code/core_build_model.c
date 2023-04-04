@@ -78,7 +78,7 @@ void construct_galaxies(int halonr, int tree)
 int join_galaxies_of_progenitors(int halonr, int ngalstart)
 {
   int ngal, prog, i, j, first_occupied, lenmax, lenoccmax, centralgal;
-  double previousMvir, previousVvir, previousVmax, SpinMag, jHotRatio;
+    double previousMvir, previousVvir, previousVmax, SpinMag;//, jHotRatio;
   int step;
 
   lenmax = 0;
@@ -190,21 +190,20 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
             Gal[ngal].SfrBulgeColdGas[step] = Gal[ngal].SfrBulgeColdGasMetals[step] = 0.0;
           }
 
+            
+          SpinMag = sqrt(sqr(Halo[halonr].Spin[0]) + sqr(Halo[halonr].Spin[1]) + sqr(Halo[halonr].Spin[2]));
+          if(SpinMag>0)
+          {
+            for(j = 0; j < 3; j++) // Also only update the spin direction of the hot gas for centrals
+                Gal[ngal].SpinHot[j] = Halo[halonr].Spin[j] / SpinMag;
+          }
+
           if(halonr == Halo[halonr].FirstHaloInFOFgroup)
           {
             // a central galaxy
             Gal[ngal].mergeType = 0;
             Gal[ngal].mergeIntoID = -1;
             Gal[ngal].MergTime = 999.9;            
-
-              
-              
-            SpinMag = sqrt(sqr(Halo[halonr].Spin[0]) + sqr(Halo[halonr].Spin[1]) + sqr(Halo[halonr].Spin[2]));
-            if(SpinMag>0)
-            {
-                for(j = 0; j < 3; j++) // Also only update the spin direction of the hot gas for centrals
-                    Gal[ngal].SpinHot[j] = Halo[halonr].Spin[j] / SpinMag;
-            }
 
             Gal[ngal].Type = 0;
           }
@@ -223,13 +222,13 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 
             Gal[ngal].Type = 1;
               
-            if(Gal[ngal].deltaMvir<0.0)
-            { // for satellites, reduce angular momentum of hot gas when the subhalo loses mass
-                jHotRatio = cbrt(sqr(Gal[ngal].Mvir / previousMvir)); // assumes j propto M^2/3 during stripping
-                assert(jHotRatio<1.0);
-                assert(jHotRatio>0.0);
-                for(j = 0; j < 3; j++) Gal[ngal].SpinHot[j] *= jHotRatio;
-            }
+//            if(Gal[ngal].deltaMvir<0.0)
+//            { // for satellites, reduce angular momentum of hot gas when the subhalo loses mass
+//                jHotRatio = cbrt(sqr(Gal[ngal].Mvir / previousMvir)); // assumes j propto M^2/3 during stripping
+//                assert(jHotRatio<1.0);
+//                assert(jHotRatio>0.0);
+//                for(j = 0; j < 3; j++) Gal[ngal].SpinHot[j] *= jHotRatio;
+//            }
           }
         }
         else
@@ -347,6 +346,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 	  DiscGasSum = get_disc_gas(p);
 	  assert(Gal[p].HotGas == Gal[p].HotGas && Gal[p].HotGas >= 0);
 	  assert(Gal[p].MetalsColdGas <= Gal[p].ColdGas);
+      assert(Gal[p].MetalsColdGas <= DiscGasSum);
 
 	  if(step==0 || HotStripOn<3) Gal[p].MaxStrippedGas = Gal[p].HotGas / STEPS;
         
@@ -474,13 +474,14 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
             merger_centralgal = Gal[merger_centralgal].CentralGal;
 
           Gal[p].mergeIntoID = NumGals + merger_centralgal;  // position in output 
-
+            
+          time = Age[Gal[p].SnapNum] - (step + 0.5) * dt;
+          k_now = get_stellar_age_bin_index(time);
+            
           if(Gal[p].MergTime > 0.0)  // disruption has occured!
             disrupt_satellite_to_ICS(centralgal, p, k_now);
           else
           {
-            time = Age[Gal[p].SnapNum] - (step + 0.5) * dt;
-            k_now = get_stellar_age_bin_index(time);
             deal_with_galaxy_merger(p, merger_centralgal, centralgal, time, dt, step, k_now);
           }
  

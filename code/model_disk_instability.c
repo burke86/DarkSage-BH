@@ -14,9 +14,9 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
 	// New treatment of instabilities based on the Toomre Q parameter
 	double Q_star, Q_gas, Q_gas_min, Q_star_min, Q_tot, W, Q_stable;
 	double unstable_gas, unstable_stars, metallicity, stars, stars_sum, gas_sink;
-    double r_inner, r_outer, r_av, Kappa, sigma_R, c_s;
+    double r_inner, r_outer, Kappa, sigma_R, c_s;
     double NewStars[N_BINS], NewStarsMetals[N_BINS], angle, DiscGasSum, DiscStarSum, SNgas[N_BINS];
-    double old_spin[3], cos_angle; //, SNgas_copy[N_BINS], SNgas_proj[N_BINS]
+//    double old_spin[3]; //, cos_angle, SNgas_copy[N_BINS], SNgas_proj[N_BINS]
     double ann_frac, frac_down, frac_up, vel_disp_factor, vel_disp_factor_again, StarSinkRate;
 	int i, s, k;
     int first, first_gas, first_star;
@@ -67,7 +67,7 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
 	{
         r_inner = Gal[p].DiscRadii[i];
         r_outer = Gal[p].DiscRadii[i+1];
-        r_av = sqrt((sqr(r_inner)+sqr(r_outer))/2.0);
+//        r_av = sqrt((sqr(r_inner)+sqr(r_outer))/2.0);
         
         if(Gal[p].DiscGas[i]==0.0)
             continue;
@@ -202,9 +202,9 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
             NewStarsSum += NewStars[i];
         }
 
-        for(i=0; i<3; i++) old_spin[i] = Gal[p].SpinStars[i];
+//        for(i=0; i<3; i++) old_spin[i] = Gal[p].SpinStars[i];
 		combine_stellar_discs(p, NewStars, NewStarsMetals, time);
-        cos_angle = Gal[p].SpinStars[0]*old_spin[0] + Gal[p].SpinStars[1]*old_spin[1] + Gal[p].SpinStars[2]*old_spin[2];
+//        cos_angle = Gal[p].SpinStars[0]*old_spin[0] + Gal[p].SpinStars[1]*old_spin[1] + Gal[p].SpinStars[2]*old_spin[2];
         
 		Gal[p].SfrInstab[step] += stars_sum / dt;
         Gal[p].StarsInstability += NewStarsSum;
@@ -221,7 +221,7 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
 
         r_inner = Gal[p].DiscRadii[i];
         r_outer = Gal[p].DiscRadii[i+1];
-        r_av = sqrt((sqr(r_inner)+sqr(r_outer))/2.0);
+//        r_av = sqrt((sqr(r_inner)+sqr(r_outer))/2.0);
         
         if(i>0)
             Kappa = sqrt(2.0*DiscBinEdge[i]/cube(r_inner) * (DiscBinEdge[i+1]-DiscBinEdge[i])/(r_outer-r_inner));
@@ -517,9 +517,8 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
     double feedback_mass[4]; 
     
     // these 2 terms only used when SupernovaRecipeOn>=3
-    double hot_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
+    double hot_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
     
-    satellite_specific_energy = 0.0;
     j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
     hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
     hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
@@ -675,13 +674,13 @@ void precess_gas(int p, double dt)
             for(i=0; i<3; i++) Gal[p].SpinGas[i] = -StarSpin[i];
         else
         {
-            double axis[3], axis_mag;
+            double axis[3];
             axis[0] = Gal[p].SpinGas[1]*StarSpin[2] - Gal[p].SpinGas[2]*StarSpin[1];
             axis[1] = Gal[p].SpinGas[2]*StarSpin[0] - Gal[p].SpinGas[0]*StarSpin[2];
             axis[2] = Gal[p].SpinGas[0]*StarSpin[1] - Gal[p].SpinGas[1]*StarSpin[0];
             if(cos_angle_gas_stars < 0.0)
                 for(i=0; i<3; i++) axis[i] *= -1.0;
-            axis_mag = sqrt(sqr(axis[0])+sqr(axis[1])+sqr(axis[2]));
+//            axis_mag = sqrt(sqr(axis[0])+sqr(axis[1])+sqr(axis[2]));
             rotate(Gal[p].SpinGas, axis, acos(cos_angle_precess));
         }
         

@@ -215,7 +215,7 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
     
     double reheated_mass, ejected_cold_mass, fac;
     double energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, escape_velocity2, vertical_velocity, v_therm2;
-    double m_return, v_wind, v_wind2, new_ejected_specific_energy;
+    double v_wind, v_wind2, new_ejected_specific_energy=0.0;
     
     if(max_consume > Gal[p].DiscGas[i])
         max_consume = Gal[p].DiscGas[i];
@@ -226,7 +226,6 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
     if(SupernovaRecipeOn > 0 && Gal[p].DiscGas[i] > 0.0 && stars>=MIN_STARS_FOR_SN)
     {
         energy_feedback = stars * EnergySNcode * SNperMassFormed; // still controlled by a coupling efficiency for practical testing purposes
-        m_return = RecycleFraction * stars;
 
         annulus_radius = sqrt(0.5 * (sqr(Gal[p].DiscRadii[i]) + sqr(Gal[p].DiscRadii[i+1])) );
         annulus_velocity = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]) / annulus_radius;
@@ -812,7 +811,7 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
 {
     
     
-    double high_bound, ratio_last_bin;
+    double high_bound, ratio_last_bin=1.0;
     int i, j, j_old, l, k;
     
     cos_angle = fabs(cos_angle); // This function will not deal with retrograde motion so needs an angle less than pi/2
@@ -993,12 +992,12 @@ void project_disc_with_dispersion(double DiscMass[N_BINS], double DiscMetals[N_B
 
 void update_HI_H2(int p, double time, int k_now)
 {
-    double area, f_H2, f_H2_HI, Pressure, f_sigma;
+    double area, f_H2, f_H2_HI=1e-10, Pressure, f_sigma;
     int i;
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
     double galaxy_ion_term, sigma_gas, annulus_ion_term;//, full_ratio, interrim;
     double s, Zp, chi, c_f, Sigma_comp0, Tau_c;
-    double X_H, Z, f_neutral, Y_He;
+    double X_H=0.76, Z, f_neutral=1.0;
     
     sigma_gas = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s;
     
@@ -1099,9 +1098,7 @@ void update_HI_H2(int p, double time, int k_now)
                     X_H = 0.753 - 1.26*Z;
                 else
                     X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
-                
-                Y_He = 1.0 - X_H - Z;
-                
+                                
                 f_H2 = X_H / (1.0/f_H2_HI + 1);
 //                full_ratio = galaxy_ion_term * f_H2 * sqr(area / (X_H * Gal[p].DiscGas[i])) * (3*X_H+1);
 //                
@@ -1157,10 +1154,10 @@ void update_HI_H2(int p, double time, int k_now)
 void delayed_feedback(int p, int k_now, double time, double dt)
 {
     int k, i;
-    double t0, t1, metallicity, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, return_metal_mass, new_metals, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
+    double t0, t1, metallicity=BIG_BANG_METALLICITY, return_mass, energy_feedback, annulus_radius, annulus_velocity, cold_specific_energy, reheat_specific_energy, reheated_mass, hot_specific_energy, return_metal_mass, new_metals, j_hot, hot_thermal_and_kinetic, eject_specific_energy, escape_velocity2, ejected_cold_mass, norm_ratio, reheat_eject_sum;
     double v_therm2, vertical_velocity, energy_onto_hot, returned_mass_hot, returned_mass_cold, ejected_sum;
     double StellarOutput[2];
-    double v_wind, new_ejected_specific_energy;
+    double v_wind, new_ejected_specific_energy=0.0;
 
     double inv_FinalRecycleFraction = 1.0/FinalRecycleFraction;
     double tdyn = 0.1 / sqrt(Hubble_sqr_z(Halo[Gal[p].HaloNr].SnapNum));

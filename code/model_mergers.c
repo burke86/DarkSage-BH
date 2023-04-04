@@ -78,7 +78,7 @@ double estimate_merging_time(int gal, int centralgal)
 
 void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, double time, double dt, int step, int k_now)
 {
-  double mi, ma, mass_ratio, metallicity;
+    double mi, ma, mass_ratio;//, metallicity=BIG_BANG_METALLICITY;
   double disc_mass_ratio[N_BINS], PostRetroGas[N_BINS];
     int i;
     
@@ -109,20 +109,20 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 	printf("Had to correct mass_ratio < 0.0");
   }
     
-  double gas_mass_ratio = 0.0;
-  double const g_min = dmin(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
-  double const g_max = dmax(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
-  if(g_max>0) 
-    gas_mass_ratio = g_min/g_max;
+//  double gas_mass_ratio = 0.0;
+//  double const g_min = dmin(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
+//  double const g_max = dmax(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
+//  if(g_max>0) 
+//    gas_mass_ratio = g_min/g_max;
 
   add_galaxies_together(merger_centralgal, p, centralgal, k_now, mass_ratio, disc_mass_ratio, PostRetroGas);
     
-    for(i=0; i<N_BINS; i++)
-    {
-        metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-        assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-        assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
-    }
+//    for(i=0; i<N_BINS; i++)
+//    {
+//        metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
+//        assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
+//        assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
+//    }
       
     // If galaxy collision was retrograde, remove artifically added angular momentum from the disc by shrinking it
     double J_current = 0.0;
@@ -174,11 +174,11 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
     
   if(DiskInstabilityOn>0)
   {
-      for(i=0; i<N_BINS; i++)
-      {
-          metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-          assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-      }
+//      for(i=0; i<N_BINS; i++)
+//      {
+//          metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
+//          assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
+//      }
   	check_disk_instability(merger_centralgal, dt, step, time, k_now);
   }
   else
@@ -209,9 +209,13 @@ void quasar_mode_wind(int p, float BHaccrete)
 
     
     if(Gal[p].OutflowGas > 0.0)
+    {
         ejected_specific_energy = dmax(Gal[p].OutflowSpecificEnergy, Gal[p].EjectedPotential + hot_thermal_and_kinetic);
+    }
     else
+    {
         ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic; // don't want an initialised value of 0 to mess things up
+    }
 
 
 	for(k=0; k<N_BINS; k++)
@@ -391,6 +395,7 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
         }
         else
         {
+            cos_angle_sat_disc = 0.0;
             i_min = 0;
             i_max = 1;
         }

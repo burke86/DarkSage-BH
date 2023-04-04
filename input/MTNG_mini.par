@@ -3,7 +3,7 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/MTNG_mini/13k/
+OutputDir               /Users/adam/DarkSage_runs/MTNG_mini/13w/
 
 FirstFile                   0
 LastFile                    43
@@ -42,7 +42,7 @@ BoxLen          62.5
 %------------------------------------------
 
 SFprescription              0        ;0: proportional to H2; 1: as 0 but all gas for low H2 fraction a la Fu et al 2010; 2: Threshold cold mass (closest to SAGE implementation)
-H2prescription              0       ;0: mid-plane pressure; 1: metallicity-dependent (McKee & Krumholz 2010); 2: max H2 of 0 and 1
+H2prescription              0       ;0: mid-plane pressure; 1: metallicity-dependent (McKee & Krumholz 2010); 2: max H2 of 0 and 1; 3: GD14
 AGNrecipeOn                 2        ;0: switch off; 1: empirical model; 2: Bondi-Hoyle model; 3: cold cloud accretion model
 SupernovaRecipeOn           1        ;0: switch off
 ReionizationOn              1        ;0: switch off
@@ -104,8 +104,8 @@ H2FractionExponent          0.92   ;Also controls the H2/HI ratio calculation. (
 
 
 %%%= For H2prescription=1 =%%%
-ClumpFactor                 1.0     ; Controls the clump factor, which affects H2/HI. (1.0 for Fu+13)
-ClumpExponent               0.7     ; Controls the clump factor, which affects H2/HI. (0.7 for Fu+13)
+ClumpFactor                 3.0     ; Controls the clump factor, which affects H2/HI. (1.0 for Fu+13)
+ClumpExponent               0.3     ; Controls the clump factor, which affects H2/HI. (0.7 for Fu+13)
 %%%= ==================== =%%%
 
 

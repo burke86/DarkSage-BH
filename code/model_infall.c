@@ -17,12 +17,10 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
   double tot_ICS, tot_IGS, tot_IGSMetals;
   double tot_IGS_Age[N_AGE_BINS], tot_IGSMetals_Age[N_AGE_BINS];
   double tot_LocalIGM, tot_LocalIGMMetals, FOF_baryons, tot_LocalIGBHmass;
-  double infallingMass, reionization_modifier, DiscGasSum, Rsat, ExpFac;
+  double infallingMass, reionization_modifier, DiscGasSum, Rsat;
   int tot_LocalIGBHnum;
     
   int k_now = get_stellar_age_bin_index(Age[Gal[centralgal].SnapNum]);
-
-  ExpFac = AA[Halo[Gal[centralgal].HaloNr].SnapNum]; // Expansion factor
     
   // take care of any potential numerical issues regarding hot and cold gas
   DiscGasSum = get_disc_gas(centralgal);
@@ -193,7 +191,7 @@ double infall_recipe(int centralgal, int ngal, double Zcurr)
 double strip_from_satellite(int halonr, int centralgal, int gal, double max_strippedGas, int k_now)
 {
   double reionization_modifier, strippedGas, strippedGasMetals, metallicity;
-  double tidal_strippedGas, tidal_strippedGasMetals;
+  double tidal_strippedGas = 0.0, tidal_strippedGasMetals = 0.0;
   double strippedBaryons, strippedICS, strippedICSmetals, strippedICS_age, stripped_ICSmetals_age;
     double r_gal, a_ICS, a_new;//, eject_sum;
   int k;

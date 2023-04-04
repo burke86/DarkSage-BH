@@ -244,7 +244,10 @@ double get_disk_radius(int halonr, int p)
         radius = SpinMagnitude / (2.0 * Gal[p].Vvir);
     }
     else
+    {
+        SpinMagnitude = 0.0; // place holder
         radius = Gal[p].DiskScaleRadius * pow(Gal[p].Mvir/(Gal[p].Mvir-Gal[p].deltaMvir), 0.666667);
+    }
     
     if(!(radius>0.0))
     {
@@ -651,7 +654,7 @@ void update_disc_radii(int p)
 {
     // Calculate the radius corresponding to an annulus edge for a given galaxy.  Calculation is iterative given a generic rotation curve format.
     int i, k;
-    double M_D, M_int, M_DM, M_CB, M_SB, M_ICS, M_hot;
+    double M_int, M_DM, M_CB, M_SB, M_ICS, M_hot;
     double z, a, b, c_DM, c, r_2, X, M_DM_tot, rho_const;
     double a_CB, M_CB_inf, a_SB, M_SB_inf, a_ICS, M_ICS_inf;
     double f_support, BTT, v_max;
@@ -698,9 +701,7 @@ void update_disc_radii(int p)
     a_ICS = get_a_ICS(p, Gal[p].Rvir, Gal[p].R_ICS_av);
     M_ICS_inf = Gal[p].ICS * sqr((Gal[p].Rvir+a_ICS)*inv_Rvir);
     // ===========================================================
-    
-    M_D = 0.0;
-    
+        
     BTT = (Gal[p].ClassicalBulgeMass+Gal[p].SecularBulgeMass)/(Gal[p].StellarMass+Gal[p].ColdGas);
 
     if(Gal[p].Vmax > Gal[p].Vvir)
@@ -748,7 +749,7 @@ void update_disc_radii(int p)
         const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
         double vrot, rrat, RonRvir, AvHotPotential;
         double j2_mbulge = sqr(Gal[p].SpinClassicalBulge[0]) + sqr(Gal[p].SpinClassicalBulge[1]) + sqr(Gal[p].SpinClassicalBulge[2]);
-        double a_av, a_new, a_av_prev;
+        double a_av=0.0, a_new, a_av_prev;
         M_DM = 1.0; // random initialisation to trigger if statement
         
         for(i=NUM_R_BINS-1; i>0; i--)

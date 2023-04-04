@@ -69,79 +69,79 @@ double cooling_recipe(int gal, double dt)
       
     if(coolingGas > Gal[gal].HotGas)
       coolingGas = Gal[gal].HotGas;
-    else if(coolingGas < 0.0)
+    if(coolingGas < 0.0)
       coolingGas = 0.0;
 
-      // calculate average specific energy difference between hot and cold gas
-      double cold_specific_energy, hot_specific_energy, v_av, pot_av, rfrac1, rfrac2, jfrac1, jfrac2, j_hot, specific_energy_change, massfrac;
-      cold_specific_energy = 0.0;
-      double massfrac_sum = 0.0;
-      int i;
-      for(i=0; i<N_BINS; i++)
-      {
-          if(i>0)
-              v_av = 0.5*(DiscBinEdge[i]/Gal[gal].DiscRadii[i] + DiscBinEdge[i+1]/Gal[gal].DiscRadii[i+1]);
-          else
-              v_av = 0.5*DiscBinEdge[1]/Gal[gal].DiscRadii[1];
+    // calculate average specific energy difference between hot and cold gas
+    double cold_specific_energy, hot_specific_energy, v_av, pot_av, rfrac1, rfrac2, jfrac1, jfrac2, j_hot, specific_energy_change, massfrac;
+    cold_specific_energy = 0.0;
+    double massfrac_sum = 0.0;
+    int i;
+    for(i=0; i<N_BINS; i++)
+    {
+        if(i>0)
+          v_av = 0.5*(DiscBinEdge[i]/Gal[gal].DiscRadii[i] + DiscBinEdge[i+1]/Gal[gal].DiscRadii[i+1]);
+        else
+          v_av = 0.5*DiscBinEdge[1]/Gal[gal].DiscRadii[1];
 
-          pot_av = 0.5*(Gal[gal].Potential[i] + Gal[gal].Potential[i+1]);
-          
-          if(CoolingExponentialRadiusOn)
-          {
-              rfrac1 = Gal[gal].DiscRadii[i] / Gal[gal].CoolScaleRadius;
-              rfrac2 = Gal[gal].DiscRadii[i+1] / Gal[gal].CoolScaleRadius;
-              massfrac = (rfrac1+1.0)*exp(-rfrac1) - (rfrac2+1.0)*exp(-rfrac2);
-          }
-          else
-          {
-              jfrac1 = DiscBinEdge[i] / (Gal[gal].Vvir * Gal[gal].CoolScaleRadius);
-              jfrac2 = DiscBinEdge[i+1] / (Gal[gal].Vvir * Gal[gal].CoolScaleRadius);
-              massfrac = (jfrac1+1.0)*exp(-jfrac1) - (jfrac2+1.0)*exp(-jfrac2);
-              massfrac_sum += massfrac;
-              assert(massfrac>=0);
-          }
-          
-//          printf("i, massfrac, pot_av, v_av = %i, %e, %e, %e\n", i, massfrac, pot_av, v_av);
-          cold_specific_energy += (massfrac * (pot_av + 0.5*sqr(v_av)));
-      }
-      j_hot = 2 * Gal[gal].Vvir * Gal[gal].CoolScaleRadius;
-      hot_specific_energy = Gal[gal].HotGasPotential + 0.5 * (sqr(Gal[gal].Vvir) + sqr(j_hot)/Gal[gal].R2_hot_av);
+        pot_av = 0.5*(Gal[gal].Potential[i] + Gal[gal].Potential[i+1]);
 
-      specific_energy_change = hot_specific_energy - cold_specific_energy;
-      if(specific_energy_change<0.0) // this means the hot gas is actually more stable...
-      {
-          coolingGas = 0.0;
-          specific_energy_change = 0.0;
-      }
-      assert(Gal[gal].MetalsHotGas>=0);
-      assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
+        if(CoolingExponentialRadiusOn)
+        {
+          rfrac1 = Gal[gal].DiscRadii[i] / Gal[gal].CoolScaleRadius;
+          rfrac2 = Gal[gal].DiscRadii[i+1] / Gal[gal].CoolScaleRadius;
+          massfrac = (rfrac1+1.0)*exp(-rfrac1) - (rfrac2+1.0)*exp(-rfrac2);
+        }
+        else
+        {
+          jfrac1 = DiscBinEdge[i] / (Gal[gal].Vvir * Gal[gal].CoolScaleRadius);
+          jfrac2 = DiscBinEdge[i+1] / (Gal[gal].Vvir * Gal[gal].CoolScaleRadius);
+          massfrac = (jfrac1+1.0)*exp(-jfrac1) - (jfrac2+1.0)*exp(-jfrac2);
+          massfrac_sum += massfrac;
+          assert(massfrac>=0);
+        }
+
+        //          printf("i, massfrac, pot_av, v_av = %i, %e, %e, %e\n", i, massfrac, pot_av, v_av);
+        cold_specific_energy += (massfrac * (pot_av + 0.5*sqr(v_av)));
+    }
+    j_hot = 2 * Gal[gal].Vvir * Gal[gal].CoolScaleRadius;
+    hot_specific_energy = Gal[gal].HotGasPotential + 0.5 * (sqr(Gal[gal].Vvir) + sqr(j_hot)/Gal[gal].R2_hot_av);
+
+    specific_energy_change = hot_specific_energy - cold_specific_energy;
+    if(specific_energy_change<0.0) // this means the hot gas is actually more stable...
+    {
+        coolingGas = 0.0;
+        specific_energy_change = 0.0;
+    }
+    assert(Gal[gal].MetalsHotGas>=0);
+    assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
 
     if(AGNrecipeOn > 0 && coolingGas > 0.0 && specific_energy_change>0.0)
-		coolingGas = do_AGN_heating(coolingGas, gal, dt, x, rcool, specific_energy_change);
-      assert(Gal[gal].MetalsHotGas>=0);
-      assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
+        coolingGas = do_AGN_heating(coolingGas, gal, dt, x, rcool, specific_energy_change);
+    assert(Gal[gal].MetalsHotGas>=0);
+    assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
 
-      // this is no longer an accurate representation of the actual energy change in the gas as it cools...
-    if (coolingGas > 0.0)
+    // this is no longer an accurate representation of the actual energy change in the gas as it cools...
+    if(coolingGas > 0.0)
       Gal[gal].Cooling += coolingGas * specific_energy_change;
   }
   else
     coolingGas = 0.0;
     
-    if(!(coolingGas >= 0.0))
-    {
-        printf("\ncoolingGas = %e\n", coolingGas);
-        printf("HotGas = %e\n", Gal[gal].HotGas);
-        printf("Rvir = %e\n", Gal[gal].Rvir);
-        printf("rcool = %e\n", rcool);
-        printf("tcool = %e\n", tcool);
-        printf("c_beta = %e\n", Gal[gal].c_beta);
-        printf("cb_term = %e\n", cb_term);
-        printf("rho_rcool = %e\n", rho_rcool);
-        printf("rho0/rho_rcool = %e\n", rho0/rho_rcool);
-    }
-    assert(Gal[gal].MetalsHotGas>=0);
-    assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
+  if(!(coolingGas >= 0.0))
+  {
+    printf("\ncoolingGas = %e\n", coolingGas);
+    printf("HotGas = %e\n", Gal[gal].HotGas);
+    printf("Rvir = %e\n", Gal[gal].Rvir);
+    printf("rcool = %e\n", rcool);
+    printf("tcool = %e\n", tcool);
+    printf("c_beta = %e\n", Gal[gal].c_beta);
+    printf("cb_term = %e\n", cb_term);
+    printf("rho_rcool = %e\n", rho_rcool);
+    printf("rho0/rho_rcool = %e\n", rho0/rho_rcool);
+  }
+  assert(Gal[gal].MetalsHotGas>=0);
+  assert(Gal[gal].MetalsHotGas<=Gal[gal].HotGas);
 
   assert(coolingGas >= 0.0);
   return coolingGas;
@@ -284,7 +284,8 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
   // Check that Cold Gas has been treated properly prior to this function
   DiscGasSum = get_disc_gas(p);
   assert(Gal[p].HotGas == Gal[p].HotGas && Gal[p].HotGas >= 0);
-    assert(Gal[p].MetalsHotGas >= 0);
+  assert(Gal[p].MetalsHotGas >= 0);
+  assert(Gal[p].MetalsColdGas <= DiscGasSum);
     
   disc_spin_mag = sqrt(sqr(Gal[p].SpinGas[0]) + sqr(Gal[p].SpinGas[1]) + sqr(Gal[p].SpinGas[2]));
   assert(disc_spin_mag==disc_spin_mag);
