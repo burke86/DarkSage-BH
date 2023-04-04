@@ -995,21 +995,23 @@ void update_HI_H2(int p, double time, int k_now)
     double area, f_H2, f_H2_HI=1e-10, Pressure, f_sigma;
     int i;
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
-    double galaxy_ion_term, sigma_gas, annulus_ion_term;//, full_ratio, interrim;
-    double s, Zp, chi, c_f, Sigma_comp0, Tau_c;
+    double sigma_gas, A_term_global, xi_term_global, A_term_annulus, xi_term_annulus, xi_on_2A;//, full_ratio, interrim;
+    double s, Zp, chi, c_f, Sigma_comp0, Tau_c, Sigma_cold;
     double X_H=0.76, Z, f_neutral=1.0;
     
     sigma_gas = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum])/UnitVelocity_in_cm_per_s;
+    double sigma_gas_sqr = sqr(sigma_gas);
     
     if(Gal[p].Vvir>0.0 && Gal[p].ColdGas>0.0)
     {
-        galaxy_ion_term = uni_ion_term * sqr(sigma_gas); // could add factor of 1/(1-f_esc) here
-        assert(galaxy_ion_term>=0.0);
+        A_term_global = uni_ion_A / sqr(sigma_gas_sqr);
+        xi_term_global = uni_ion_xi / sigma_gas_sqr;
         
         for(i=0; i<N_BINS; i++)
         {
             area = M_PI * (sqr(Gal[p].DiscRadii[i+1]) - sqr(Gal[p].DiscRadii[i]));
             Z = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
+            Sigma_cold = Gal[p].DiscGas[i] / area;
             
             if(Gal[p].DiscGas[i]<=MIN_STARFORMATION) // imposing a reasonable minimum to avoid silly ratios triggering the code to crash 
             {
@@ -1106,8 +1108,13 @@ void update_HI_H2(int p, double time, int k_now)
 //                f_neutral = 0.5 * (2.0 + interrim);
 //                if(f_neutral>1.0) f_neutral = 1.0; 
                 
-                annulus_ion_term = galaxy_ion_term * f_H2;
-                f_neutral = 1.0 + 0.5*annulus_ion_term - 0.5*sqrt(sqr(annulus_ion_term) + 2.0*annulus_ion_term);
+//                annulus_ion_term = galaxy_ion_term * f_H2;
+//                f_neutral = 1.0 + 0.5*annulus_ion_term - 0.5*sqrt(sqr(annulus_ion_term) + 2.0*annulus_ion_term);
+                
+                A_term_annulus = A_term_global * sqr(X_H) * sqr(sqr(Sigma_cold)) / (3.0*X_H + 1.0);
+                xi_term_annulus = xi_term_global * f_H2 * sqr(Sigma_cold);
+                xi_on_2A = xi_term_annulus / (2.0 * A_term_annulus);
+                f_neutral = 1.0 + xi_on_2A - sqrt(xi_on_2A + sqr(xi_on_2A));
                 
                 if(f_H2 > 1e-10) // some sensible minimum
                 {
