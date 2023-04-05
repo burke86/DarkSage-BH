@@ -1,6 +1,10 @@
 # Make plots for z=0 galaxies that are typically used to constrain Dark Sage.
 
-from pylab import *
+import matplotlib
+matplotlib.use('Agg')
+
+import numpy as np
+import matplotlib.pyplot as plt
 import os
 import routines as r
 import random
@@ -14,13 +18,15 @@ warnings.filterwarnings("ignore")
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
 #indir = '/Users/adam/DarkSage/output/results/millennium/'
-indir = '/Users/adam/DarkSage_runs/MTNG_mini/13g/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/MTNG_mini/13x/' # directory where the Dark Sage data are
 #indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/56/'
 sim = 8 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2, 6 = TNG300-1, 7 = TNG100-2, 8 = MTNG_mini
 
 fpre = 'model_z0.000' # what is the prefix name of the z=0 files
 files = range(44) # list of file numbers you want to read
+
+GAMA_dir = '/Users/adam/Documents/DarkSagePaper4/'
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
 Nage = 30 # number of age bins used for stars -- should only be used for calibrating when delayed feedback is on
@@ -128,7 +134,7 @@ try:
 #    ax[0].plot(logM_bd, SMF_bd, 'r-', lw=8, alpha=0.2, label=r'Moffett et al.~(2016) bulge-dominated', zorder=0)
     
     # new GAMA SMF, not yet public
-    data_D21 = np.loadtxt('/Users/adam/Documents/DarkSagePaper4/GAMA_SMF.txt', usecols=(0,1,2), skiprows=1, delimiter=' ', dtype=np.float64)
+    data_D21 = np.loadtxt(GAMA_dir+'GAMA_SMF.txt', usecols=(0,1,2), skiprows=1, delimiter=' ', dtype=np.float64)
     x_D21, y_D21, yerr_D21 = data_D21[:,0], data_D21[:,1], data_D21[:,2]
     y_D21 += 0.0769 # adjust for average under-density of GAMA
     y_D21 -= 3*np.log10(r.comoving_distance(0.1,100*h,0,Omega,OmegaLambda) / r.comoving_distance(0.1,70.0,0,0.3,0.7))
@@ -136,7 +142,7 @@ try:
     ax[0].errorbar(x_D21, 10**y_D21, yerr=[10**(y_D21+yerr_D21)-10**y_D21, 10**y_D21-10**(y_D21-yerr_D21)], label=r'Driver et al.~(2021)', elinewidth=2, marker='o', color='purple', linestyle='none')
     
     # new GAMA SMF by morphology, not yet public
-    data_morph = np.loadtxt('/Users/adam/Documents/DarkSagePaper4/GAMA_SMF_morph.txt', usecols=(0,1,2,7,8), skiprows=3, delimiter=' ', dtype=np.float64)
+    data_morph = np.loadtxt(GAMA_dir+'GAMA_SMF_morph.txt', usecols=(0,1,2,7,8), skiprows=3, delimiter=' ', dtype=np.float64)
     x_morph, y_Ell, yerr_Ell, y_Disc, yerr_Disc = data_morph[:,0], data_morph[:,1], data_morph[:,2], data_morph[:,3], data_morph[:,4]
     SMF_adjust = 0.0866 - 3*np.log10(r.comoving_distance(0.08,100*h,0,Omega,OmegaLambda) / r.comoving_distance(0.08,70.0,0,0.3,0.7)) # adjust for average under-density of GAMA and differnces in assumed cosmology
     y_Ell += SMF_adjust 

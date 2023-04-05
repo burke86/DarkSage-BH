@@ -39,13 +39,13 @@ GyrToYr = 1e9
 # Binning configuration
 mlow = 7
 mupp = 13
-dm = 0.2
+dm = 0.15
 mbins = np.arange(mlow, mupp, dm)
 xmf = mbins + dm/2.0
 
-mlow2 = 5
-mupp2 = 14
-dm2 = 0.3
+mlow2 = 8
+mupp2 = 12
+dm2 = 0.2
 mbins2 = np.arange(mlow2,mupp2,dm2)
 xmf2 = mbins2 + dm2/2.0
 
@@ -73,7 +73,8 @@ else:
     h0 = 0.6774
     Omega0 = 0.3089
     vol = (62.5/h0)**3 # 43 files
-    age_alist_file = '/Users/adam/MTNG_trees/MTNG_alist.txt'
+    #age_alist_file = '/Users/adam/MTNG_trees/MTNG_alist.txt'
+    age_alist_file = '/fred/oz245/MTNG/DM-Arepo/MTNG-L500-4320-A/MTNG_alist.txt'
 
 # These are two easily create variables of these different shapes without
 # actually storing a reference ourselves; we don't need it
@@ -82,6 +83,7 @@ zeros2 = lambda: np.zeros(shape=(1, 3, len(xmf2)))
 zeros3 = lambda: np.zeros(shape=(1, len(mbins)))
 zeros4 = lambda: np.empty(shape=(1), dtype=np.bool_)
 zeros5 = lambda: np.zeros(shape=(1, len(ssfrbins)))
+zeros6 = lambda: np.zeros(shape=(1, len(mbins2)))
 
 class Constraint(object):
     """Base classes for constraint objects"""
@@ -98,7 +100,7 @@ class Constraint(object):
 
         # Histograms we are interested in
         hist_smf = zeros3()
-        hist_HImf = zeros3()
+        hist_HImf = zeros6()
 
 #        fields = {
 #            'galaxies': (
@@ -141,8 +143,8 @@ class Constraint(object):
 
         logHIM = np.log10(np.sum(G['DiscHI'], axis=1)*1e10/h0)
         logHIM[~np.isfinite(logHIM)] = -20
-        hist_HImf, _ = np.histogram(logHIM, bins=mbins)
-        hist_HImf = hist_HImf / (dm * vol)
+        hist_HImf, _ = np.histogram(logHIM, bins=mbins2)
+        hist_HImf = hist_HImf / (dm2 * vol)
         
 #        # sum mass from age bins of all components
 #        StarsByAge = np.zeros(Nage)
@@ -168,7 +170,7 @@ class Constraint(object):
         TimeBinCentre = TimeBinEdge[:-1] + 0.5*dT
 #        m, lifetime, returned_mass_fraction_integrated, ncum_SN = r.return_fraction_and_SN_ChabrierIMF()
 #        eff_recycle = np.interp(TimeBinCentre, lifetime[::-1], returned_mass_fraction_integrated[::-1])
-        SFRbyAge = G['StellarFormationMass']*1e10/h0 / (dT*1e9)
+        SFRbyAge = np.sum(G['StellarFormationMass'], axis=0)*1e10/h0 / (dT*1e9)
 
 
         #########################
@@ -274,7 +276,7 @@ class SMF_z0(SMF):
 
     def get_obs_x_y_err(self):
         # Load data from Driver et al. (2022)
-        logm, logphi, dlogphi = self.load_observation('GAMA_SMF.dat', cols=[0,1,2])
+        logm, logphi, dlogphi = self.load_observation('GAMA_SMF_highres.csv', cols=[0,1,2])
         cosmology_correction_median = np.log10( r.comoving_distance(0.079, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.079, 70.0, 0, 0.3, 0.7) )
         cosmology_correction_maximum = np.log10( r.comoving_distance(0.1, 100*h0, 0, Omega0, 1.0-Omega0) / r.comoving_distance(0.1, 70.0, 0, 0.3, 0.7) )
         x_obs = logm + 2.0 * cosmology_correction_median 
