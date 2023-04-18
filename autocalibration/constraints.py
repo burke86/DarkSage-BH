@@ -257,7 +257,7 @@ class HIMF(Constraint):
     def get_model_x_y(self, _, hist_HImf, _2, _3):
         y = hist_HImf[0]
         ind = np.where(y < 0.)
-        return xmf[ind], y[ind]
+        return xmf2[ind], y[ind]
 
 class SMF(Constraint):
     """Common logic for SMF constraints"""

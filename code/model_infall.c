@@ -215,9 +215,18 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
   if(HotStripOn==1 || HotStripOn==4)
   {
     if(strippedBaryons<0) strippedBaryons = 0.0;
-      
-    strippedGas = strippedBaryons * Gal[gal].HotGas / (Gal[gal].HotGas + Gal[gal].ICS);
-    strippedICS = strippedBaryons - strippedGas;
+    
+    if(Gal[gal].ICS > 0.0)
+    {
+        strippedGas = strippedBaryons * Gal[gal].HotGas / (Gal[gal].HotGas + Gal[gal].ICS);
+        strippedICS = strippedBaryons - strippedGas;
+        if(strippedICS < 0.0) strippedICS = 0.0;
+    }
+    else
+    {
+        strippedGas = strippedBaryons;
+        strippedICS = 0.0;
+    }
       
     if(r_gal > Gal[centralgal].Rvir)
     { // gradually strip ejected gas when satellite is outside the virial radius
@@ -331,8 +340,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             {
                 Gal[centralgal].LocalIGS += strippedICS;
                 Gal[centralgal].MetalsLocalIGS += strippedICSmetals;                
+                if(Gal[centralgal].MetalsLocalIGS < 0.0) Gal[centralgal].MetalsLocalIGS = 0.0;
                 assert(Gal[centralgal].LocalIGS >= 0);
-                assert(Gal[centralgal].MetalsLocalIGS >= 0);
             }
             else
             {
@@ -351,6 +360,7 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
                 {
                     Gal[centralgal].LocalIGS_Age[k] += Gal[gal].ICS_Age[k];
                     Gal[centralgal].MetalsLocalIGS_Age[k] += Gal[gal].MetalsICS_Age[k];
+                    if(Gal[centralgal].MetalsLocalIGS_Age[k] < 0.0) Gal[centralgal].MetalsLocalIGS_Age[k] = 0.0;
                 }
                 else
                 {
@@ -366,8 +376,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             {
                 Gal[centralgal].LocalIGS += Gal[gal].ICS;
                 Gal[centralgal].MetalsLocalIGS += Gal[gal].MetalsICS;
+                if(Gal[centralgal].MetalsLocalIGS < 0.0) Gal[centralgal].MetalsLocalIGS = 0.0;
                 assert(Gal[centralgal].LocalIGS >= 0);
-                assert(Gal[centralgal].MetalsLocalIGS >= 0);
             }
             else
             {

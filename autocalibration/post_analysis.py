@@ -1,7 +1,10 @@
 # Adam Stevens, 2022
 # Post-analysis of output of PSO with Dark Sage to check fidelity etc
 
-from pylab import *
+import matplotlib
+matplotlib.use('Agg')
+import numpy as np
+import matplotlib.pyplot as plt
 import os
 import sys
 sys.path.insert(0, '/Users/adam/Dirty-AstroPy')
@@ -15,9 +18,13 @@ warnings.filterwarnings("ignore")
 fsize = 20
 matplotlib.rcParams.update({'font.size': fsize, 'xtick.major.size': 10, 'ytick.major.size': 10, 'xtick.major.width': 1, 'ytick.major.width': 1, 'ytick.minor.size': 5, 'xtick.minor.size': 5, 'xtick.direction': 'in', 'ytick.direction': 'in', 'axes.linewidth': 1, 'text.usetex': True, 'font.family': 'serif', 'font.serif': 'Times New Roman', 'legend.numpoints': 1, 'legend.columnspacing': 1, 'legend.fontsize': fsize-4, 'lines.markeredgewidth': 1.0, 'errorbar.capsize': 4.0, 'xtick.top': True, 'ytick.right': True})
 
-base_dir = '/Users/adam/DarkSage/autocalibration/aux_out/TNG300_try2/'
+base_dir = '/Users/adam/DarkSage/autocalibration/aux_out/MTNG_mini/OzSTAR_03/'
 track_dir = base_dir + 'tracks/'
-dump_file = base_dir + 'full_dump.txt'
+dump_file = base_dir + 'DS_calibrate_dump.txt'
+
+SMF_obs_file = 'GAMA_SMF_highres.csv'
+HIMF_obs_file = 'Jones2018_HIMF.dat'
+SFRD_obs_file = 'Driver_SFRD.dat'
 
 # lists that will contain the x and y data for the observations and Dark Sage runs that were used to compute the goodness of fit
 SMF_x_obs, SMF_y_obs, SMF_y_mod = [], [], []
@@ -35,11 +42,11 @@ for l, line in enumerate(lines):
 #    print('doing line', l, on_a_data_line, last_line, obs, line_start)
 
     # a line that specifies a data file tells us which constraint the next data belong to
-    if 'GAMA_SMF.dat' in line:
+    if SMF_obs_file in line:
         obs = 'SMF'
-    elif 'Jones2018_HIMF.dat' in line:
+    elif HIMF_obs_file in line:
         obs = 'HIMF'
-    elif 'Driver_SFRD.dat' in line:
+    elif SFRD_obs_file in line:
         obs = 'CSFH'
     
     # catches an instance where an array of data we want starts
@@ -97,10 +104,23 @@ ax1.plot(SMF_x_obs[0], SMF_y_obs[0], 'ko')
 ax2.plot(HIMF_x_obs[0], HIMF_y_obs[0], 'ko')
 ax3.plot(CSFH_x_obs[0], CSFH_y_obs[0], 'ko')
 
-for i in range(np.min([len(SMF_x_obs), len(HIMF_x_obs), len(CSFH_x_obs)])):
-    ax1.plot(SMF_x_obs[i], SMF_y_mod[i], '-')
-    ax2.plot(HIMF_x_obs[i], HIMF_y_mod[i], '-')
-    ax3.plot(CSFH_x_obs[i], CSFH_y_mod[i], '-')
+Nloop = np.min([len(SMF_x_obs), len(HIMF_x_obs), len(CSFH_x_obs)])
+chi2 = np.zeros(Nloop)
+
+for i in range(Nloop):
+    chi2_SMF = np.sum((SMF_y_mod[i] - SMF_y_obs[i])**2) / (len(SMF_y_mod[i]) - 3.0)
+    chi2_HIMF = np.sum((HIMF_y_mod[i] - HIMF_y_obs[i])**2) / (len(HIMF_y_mod[i]) - 3.0)
+    chi2_CSFH = np.sum((CSFH_y_mod[i] - CSFH_y_obs[i])**2) / (len(CSFH_y_mod[i]) - 3.0)
+    chi2[i] = np.log10(chi2_SMF * chi2_HIMF * chi2_CSFH)
+
+print(np.sort(chi2))
+cmap = plt.cm.viridis_r
+c = cmap((chi2-np.min(chi2)) / (np.max(chi2) - np.min(chi2)))
+
+for i in range(Nloop):
+    ax1.plot(SMF_x_obs[i], SMF_y_mod[i], '-', color=c[i])
+    ax2.plot(HIMF_x_obs[i], HIMF_y_mod[i], '-', color=c[i])
+    ax3.plot(CSFH_x_obs[i], CSFH_y_mod[i], '-', color=c[i])
 
 ax1.axis([8,12.1,-5,-1.0])
 ax2.axis([8,11.1,-5,-1.0])

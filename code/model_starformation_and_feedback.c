@@ -1061,7 +1061,7 @@ void update_HI_H2(int p, double time, int k_now)
                 UMW = dmax(UVB_z[Gal[p].SnapNum], UVMW_perSFRdensity * sqr(av_dist) / SFR_guess);
                 alphabar = 0.5 + 1.0 / (1.0 + sqrt(UMW * DMW2 / 600.0));
                 Sigma_R1 = Sigma_R1_fac * sqrt(0.001 + 0.1*UMW) / (gbar * (1.0 + 1.69*sqrt(0.001 + 0.1*UMW)));
-                f_H2_HI = pow(f_neutral * X_H * Gal[p].DiscGas[i] / Sigma_R1, alphabar);
+                f_H2_HI = pow(f_neutral * X_H * Gal[p].DiscGas[i] / (Sigma_R1 * area), alphabar);
                 
                 if(f_H2_HI < 1e-10)
                 {
@@ -1072,6 +1072,7 @@ void update_HI_H2(int p, double time, int k_now)
                     printf("Sigma_R1 = %e\n", Sigma_R1);
                     printf("av_dist = %e\n", av_dist);
                     printf("Sbar5 = %e\n", Sbar5);
+                    printf("Gal[p].DiscGas[i], area = %e, %e\n", Gal[p].DiscGas[i], area);
                     printf("k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time = %i, %e, %e, %e\n", k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time);
                     f_H2_HI = 0.0;
                 }
