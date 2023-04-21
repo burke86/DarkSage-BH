@@ -408,6 +408,7 @@ double get_disc_gas(int p)
             Gal[p].DiscGasMetals[l] = 0.0;
         
         DiscGasSum += Gal[p].DiscGas[l];
+        if(Gal[p].DiscGasMetals[l] > Gal[p].DiscGas[l]) Gal[p].DiscGasMetals[l] = Gal[p].DiscGas[l];
         DiscMetalsSum += Gal[p].DiscGasMetals[l];
     }
     
@@ -433,15 +434,15 @@ double get_disc_gas(int p)
         Gal[p].MetalsColdGas = 0.0;
     }
     
-    if(DiscGasSum>1.001*Gal[p].ColdGas || DiscGasSum<Gal[p].ColdGas*0.999)
-    {
+//    if(DiscGasSum>1.001*Gal[p].ColdGas || DiscGasSum<Gal[p].ColdGas*0.999)
+//    {
 //        printf("get_disc_gas report ... DiscSum, ColdGas =  %e, %e\n", DiscGasSum, Gal[p].ColdGas);
 //        printf("get_disc_gas report ... MetalsSum, ColdMetals =  %e, %e\n", DiscMetalsSum, Gal[p].MetalsColdGas);
         
         Gal[p].ColdGas = DiscGasSum; // Prevent small errors from blowing up
         Gal[p].MetalsColdGas = DiscMetalsSum;
         
-    }
+//    }
     return DiscGasSum;
 }
 

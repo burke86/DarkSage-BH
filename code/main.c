@@ -174,7 +174,7 @@ int main(int argc, char **argv)
     
     // calculate the UV background at each snapshot
     // using the FG09 background in the Lyman--Werner band
-    double z_arr[31], UVLW_arr[31];
+    double z_arr[45], UVLW_arr[31], GammaHI_arr[45];
     for(i=0; i<31; i++) z_arr[i] = 0.2*i;
     UVLW_arr[0] = 1.38e-3;
     UVLW_arr[1] = 2.38e-3;
@@ -207,6 +207,39 @@ int main(int argc, char **argv)
     UVLW_arr[28] = 1.75e-1;
     UVLW_arr[29] = 1.79e-1;
     UVLW_arr[30] = 1.84e-1;
+    
+    // same again but for ionizing background, not the molecule-dissociating background
+    double z_qHI[29], qHI[29];
+    for(i=0; i<29; i++) z_qHI[i] = 0.25*i;
+    z_qHI[0] = 0.158;
+    z_qHI[1] = 0.311;
+    z_qHI[2] = 0.569;
+    z_qHI[3] = 0.929;
+    z_qHI[4] = 1.371;
+    z_qHI[5] = 1.841;
+    z_qHI[6] = 2.260;
+    z_qHI[7] = 2.574;
+    z_qHI[8] = 2.768;
+    z_qHI[9] = 2.852;
+    z_qHI[10] = 2.839;
+    z_qHI[11] = 2.762;
+    z_qHI[12] = 2.642;
+    z_qHI[13] = 2.511;
+    z_qHI[14] = 2.384;
+    z_qHI[15] = 2.272;
+    z_qHI[16] = 2.171;
+    z_qHI[17] = 2.083;
+    z_qHI[18] = 2.002;
+    z_qHI[19] = 1.921;
+    z_qHI[20] = 1.833;
+    z_qHI[21] = 1.745;
+    z_qHI[22] = 1.661;
+    z_qHI[23] = 1.573;
+    z_qHI[24] = 1.487;
+    z_qHI[25] = 1.399;
+    z_qHI[26] = 1.305;
+    z_qHI[27] = 1.216;
+    z_qHI[28] = 1.127;
     
     int snap, i_arr;
     for(snap=0; snap<MAXSNAPS; snap++)

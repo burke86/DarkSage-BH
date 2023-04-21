@@ -285,6 +285,10 @@ void cool_gas_onto_galaxy(int p, double coolingGas)
   DiscGasSum = get_disc_gas(p);
   assert(Gal[p].HotGas == Gal[p].HotGas && Gal[p].HotGas >= 0);
   assert(Gal[p].MetalsHotGas >= 0);
+    if(!(Gal[p].MetalsColdGas <= DiscGasSum))
+    {
+        printf("Gal[p].MetalsColdGas, DiscGasSum, Gal[p].ColdGas = %e, %e, %e\n", Gal[p].MetalsColdGas, DiscGasSum, Gal[p].ColdGas);
+    }
   assert(Gal[p].MetalsColdGas <= DiscGasSum);
     
   disc_spin_mag = sqrt(sqr(Gal[p].SpinGas[0]) + sqr(Gal[p].SpinGas[1]) + sqr(Gal[p].SpinGas[2]));

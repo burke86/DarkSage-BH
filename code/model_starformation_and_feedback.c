@@ -1047,36 +1047,6 @@ void update_HI_H2(int p, double time, int k_now)
                     f_H2_HI = 0.0;
                 
             }
-            else if(H2prescription == 3 && Gal[p].DiscStarsAge[i][k_now]>0.0)
-            {
-                double av_dist = sqrt(area);//0.25*(Gal[p].DiscRadii[i+1] - Gal[p].DiscRadii[i]);
-                double Sbar = av_dist * 1e4/Hubble_h;
-                double Sbar5 = Sbar*Sbar*Sbar*Sbar*Sbar;
-                double Dstar = 0.17 * (2.0 + Sbar5) / (1.0 + Sbar5);
-                double DMW2 = sqr(Z/0.0127);
-                double gbar = sqrt(sqr(Dstar) + DMW2);
-                double UMW, alphabar, Sigma_R1, SFR_guess;
-
-                SFR_guess = Gal[p].DiscStarsAge[i][k_now] / ((1.0 - RecycleFraction) * (AgeBinEdge[k_now+1] - time));
-                UMW = dmax(UVB_z[Gal[p].SnapNum], UVMW_perSFRdensity * sqr(av_dist) / SFR_guess);
-                alphabar = 0.5 + 1.0 / (1.0 + sqrt(UMW * DMW2 / 600.0));
-                Sigma_R1 = Sigma_R1_fac * sqrt(0.001 + 0.1*UMW) / (gbar * (1.0 + 1.69*sqrt(0.001 + 0.1*UMW)));
-                f_H2_HI = pow(f_neutral * X_H * Gal[p].DiscGas[i] / (Sigma_R1 * area), alphabar);
-                
-                if(f_H2_HI < 1e-10)
-                {
-                    printf("\nf_H2_HI = %e\n", f_H2_HI);
-                    printf("SFR_guess = %e\n", SFR_guess);
-                    printf("UMW = %e\n", UMW);
-                    printf("alphabar = %e\n", alphabar);
-                    printf("Sigma_R1 = %e\n", Sigma_R1);
-                    printf("av_dist = %e\n", av_dist);
-                    printf("Sbar5 = %e\n", Sbar5);
-                    printf("Gal[p].DiscGas[i], area = %e, %e\n", Gal[p].DiscGas[i], area);
-                    printf("k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time = %i, %e, %e, %e\n", k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time);
-                    f_H2_HI = 0.0;
-                }
-            }
             else
             {
                 if(angle <= ThetaThresh)
@@ -1103,14 +1073,6 @@ void update_HI_H2(int p, double time, int k_now)
                     X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
                                 
                 f_H2 = X_H / (1.0/f_H2_HI + 1);
-//                full_ratio = galaxy_ion_term * f_H2 * sqr(area / (X_H * Gal[p].DiscGas[i])) * (3*X_H+1);
-//                
-//                interrim = full_ratio - sqrt(full_ratio*(full_ratio+4.0)); // order of operations for the computer can matter
-//                f_neutral = 0.5 * (2.0 + interrim);
-//                if(f_neutral>1.0) f_neutral = 1.0; 
-                
-//                annulus_ion_term = galaxy_ion_term * f_H2;
-//                f_neutral = 1.0 + 0.5*annulus_ion_term - 0.5*sqrt(sqr(annulus_ion_term) + 2.0*annulus_ion_term);
                 
                 A_term_annulus = A_term_global * sqr(X_H) * sqr(sqr(Sigma_cold)) / (3.0*X_H + 1.0);
                 xi_term_annulus = xi_term_global * f_H2 * sqr(Sigma_cold);
@@ -1141,6 +1103,81 @@ void update_HI_H2(int p, double time, int k_now)
                 Gal[p].DiscH2[i] = 0.0;
                 Gal[p].DiscHI[i] = X_H*Gal[p].DiscGas[i]; // All cold hydrogen must be in the form of HI if there's no H2.
             }
+            
+            
+            // If the GD14 prescription is called, use that instead!
+            // Still handy to have the above already calculated in case the below cannot be done
+            // The UV flux below is calculated from recent histroical SFR, rather than having it approximately relate to the instantaneous value.
+            // The GD14 prescription requires the neutral fraction to be calculated first
+            if(H2prescription == 3)
+            {
+                double SFR_guess = 0.0;
+                
+                if(Gal[p].DiscStarsAge[i][k_now] > 0.0)
+                    SFR_guess = Gal[p].DiscStarsAge[i][k_now] / ((1.0 - RecycleFraction) * (AgeBinEdge[k_now+1] - time));
+                else if(k_now < N_AGE_BINS-1)
+                {
+                    if(Gal[p].DiscStarsAge[i][k_now+1] > 0.0)
+                    {
+                        // need to recalculate the relevant returned-mass fraction here
+                        double StellarOutput[2];
+                        get_RecycleFraction_and_NumSNperMass(time, 0.5*(AgeBinEdge[k_now+2]+AgeBinEdge[k_now+1]), StellarOutput);
+                        double ReturnFraction = StellarOutput[0];
+                        SFR_guess = Gal[p].DiscStarsAge[i][k_now+1] / ((1.0 - ReturnFraction) * (AgeBinEdge[k_now+2] - AgeBinEdge[k_now+1]));
+                    }
+                        
+                }
+                
+                
+                if(SFR_guess > 0.0) // if this isn't possible, keep the values as they were before
+                {
+                    // recompute neutral fraction
+                    // can undo the SFR assumption in earlier formula, then reapply as an idea
+                    f_neutral = 1 - sqrt(uni_ion_hist * (3*X_H+1) * sqr(sigma_gas * area / X_H) * SFR_guess / Gal[p].DiscGas[i]);
+                    
+                    double av_dist = sqrt(area);//0.25*(Gal[p].DiscRadii[i+1] - Gal[p].DiscRadii[i]);
+                    double Sbar = av_dist * 1e4/Hubble_h;
+                    double Sbar5 = Sbar*Sbar*Sbar*Sbar*Sbar;
+                    double Dstar = 0.17 * (2.0 + Sbar5) / (1.0 + Sbar5);
+                    double DMW2 = sqr(Z/0.0127);
+                    double gbar = sqrt(sqr(Dstar) + DMW2);
+                    double UMW, alphabar, Sigma_R1;
+
+                    UMW = dmax(UVB_z[Gal[p].SnapNum], 0.9 * UVMW_perSFRdensity * sqr(av_dist) / SFR_guess); // assumes 10% escape fraction
+                    alphabar = 0.5 + 1.0 / (1.0 + sqrt(UMW * DMW2 / 600.0));
+                    Sigma_R1 = Sigma_R1_fac * sqrt(0.001 + 0.1*UMW) / (gbar * (1.0 + 1.69*sqrt(0.001 + 0.1*UMW)));
+                    f_H2_HI = pow(f_neutral * X_H * Gal[p].DiscGas[i] / (Sigma_R1 * area), alphabar);
+                    
+                    if(f_H2_HI < 1e-10)
+                    {
+                        printf("\nf_H2_HI = %e\n", f_H2_HI);
+                        printf("SFR_guess = %e\n", SFR_guess);
+                        printf("UMW = %e\n", UMW);
+                        printf("alphabar = %e\n", alphabar);
+                        printf("Sigma_R1 = %e\n", Sigma_R1);
+                        printf("av_dist = %e\n", av_dist);
+                        printf("Sbar5 = %e\n", Sbar5);
+                        printf("Gal[p].DiscGas[i], area = %e, %e\n", Gal[p].DiscGas[i], area);
+                        printf("k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time = %i, %e, %e, %e\n", k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time);
+                        f_H2_HI = 0.0;
+                    }
+                    
+                    // reset HI and H2 values based on GD14 prescription
+                    if(f_H2_HI > 0.0)
+                    {
+                        f_H2 = X_H / (1.0/f_H2_HI + 1);
+                        Gal[p].DiscH2[i] = f_H2 * f_neutral * Gal[p].DiscGas[i];
+                        Gal[p].DiscHI[i] = X_H * f_neutral * Gal[p].DiscGas[i] - Gal[p].DiscH2[i];
+                        if(Gal[p].DiscHI[i] < 0.0) Gal[p].DiscHI[i] = 0.0;
+                    }
+                    else
+                    {
+                        Gal[p].DiscH2[i] = 0.0;
+                        Gal[p].DiscHI[i] = X_H * f_neutral * Gal[p].DiscGas[i];
+                    }
+                }
+            }
+
             
             
         }

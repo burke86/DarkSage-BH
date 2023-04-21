@@ -67,6 +67,7 @@ void set_units(void)
 //    uni_ion_term = 0.4995  / UnitMass_in_g * cube(UnitLength_in_cm / sqrt(UnitTime_in_s)) / sqrt(Hubble_h);
     uni_ion_A = 2.827e20 * sqr(sqr(UnitMass_in_g)) / cube(cube(UnitLength_in_cm)) * pow(UnitTime_in_s, 5.0);
     uni_ion_xi = 951.1 * sqr(UnitMass_in_g) / cube(UnitLength_in_cm) * cube(UnitTime_in_s) / sqr(Hubble_h);
+    uni_ion_hist = 0.24949 * sqr(cube(UnitLength_in_cm)) / (sqr(UnitMass_in_g) * cube(UnitTime_in_s)) / Hubble_h;
 }
 
 
