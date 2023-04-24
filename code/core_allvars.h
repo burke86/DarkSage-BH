@@ -602,6 +602,7 @@ double HalfBoxLen;
 double DiscScalePercentConversion[9];
 double DiscScalePercentValues[9];
 double UVB_z[ABSOLUTEMAXSNAPS];
+double GammaHI_z[ABSOLUTEMAXSNAPS];
 double UVMW_perSFRdensity;
 double Sigma_R1_fac;
 

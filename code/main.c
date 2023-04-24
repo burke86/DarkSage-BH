@@ -208,38 +208,52 @@ int main(int argc, char **argv)
     UVLW_arr[29] = 1.79e-1;
     UVLW_arr[30] = 1.84e-1;
     
-    // same again but for ionizing background, not the molecule-dissociating background
-    double z_qHI[29], qHI[29];
-    for(i=0; i<29; i++) z_qHI[i] = 0.25*i;
-    z_qHI[0] = 0.158;
-    z_qHI[1] = 0.311;
-    z_qHI[2] = 0.569;
-    z_qHI[3] = 0.929;
-    z_qHI[4] = 1.371;
-    z_qHI[5] = 1.841;
-    z_qHI[6] = 2.260;
-    z_qHI[7] = 2.574;
-    z_qHI[8] = 2.768;
-    z_qHI[9] = 2.852;
-    z_qHI[10] = 2.839;
-    z_qHI[11] = 2.762;
-    z_qHI[12] = 2.642;
-    z_qHI[13] = 2.511;
-    z_qHI[14] = 2.384;
-    z_qHI[15] = 2.272;
-    z_qHI[16] = 2.171;
-    z_qHI[17] = 2.083;
-    z_qHI[18] = 2.002;
-    z_qHI[19] = 1.921;
-    z_qHI[20] = 1.833;
-    z_qHI[21] = 1.745;
-    z_qHI[22] = 1.661;
-    z_qHI[23] = 1.573;
-    z_qHI[24] = 1.487;
-    z_qHI[25] = 1.399;
-    z_qHI[26] = 1.305;
-    z_qHI[27] = 1.216;
-    z_qHI[28] = 1.127;
+    // same again but for ionizing background, not the molecule-dissociating background, this time updated in FG20
+    GammaHI_arr[0] = 3.62e-2;
+    GammaHI_arr[1] = 8.72e-2;
+    GammaHI_arr[2] = 0.177;
+    GammaHI_arr[3] = 0.312;
+    GammaHI_arr[4] = 0.488;
+    GammaHI_arr[5] = 0.682;
+    GammaHI_arr[6] = 0.862;
+    GammaHI_arr[7] = 1.003;
+    GammaHI_arr[8] = 1.091;
+    GammaHI_arr[9] = 1.136;
+    GammaHI_arr[10] = 1.136;
+    GammaHI_arr[11] = 1.109;
+    GammaHI_arr[12] = 1.069;
+    GammaHI_arr[13] = 1.021;
+    GammaHI_arr[14] = 0.968;
+    GammaHI_arr[15] = 0.915;
+    GammaHI_arr[16] = 0.857;
+    GammaHI_arr[17] = 0.805;
+    GammaHI_arr[18] = 0.757;
+    GammaHI_arr[19] = 0.711;
+    GammaHI_arr[20] = 0.670;
+    GammaHI_arr[21] = 0.631;
+    GammaHI_arr[22] = 0.592;
+    GammaHI_arr[23] = 0.558;
+    GammaHI_arr[24] = 0.525;
+    GammaHI_arr[25] = 0.493;
+    GammaHI_arr[26] = 0.463;
+    GammaHI_arr[27] = 0.436;
+    GammaHI_arr[28] = 0.409;
+    GammaHI_arr[29] = 0.384;
+    GammaHI_arr[30] = 0.356;
+    GammaHI_arr[31] = 0.329;
+    GammaHI_arr[32] = 0.304;
+    GammaHI_arr[33] = 0.279;
+    GammaHI_arr[34] = 0.257;
+    GammaHI_arr[35] = 0.237;
+    GammaHI_arr[36] = 0.167;
+    GammaHI_arr[37] = 1.25e-2;
+    GammaHI_arr[38] = 1.44e-4;
+    GammaHI_arr[39] = 2.80e-5;
+    GammaHI_arr[40] = 4.26e-6;
+    GammaHI_arr[41] = 2.81e-7;
+    GammaHI_arr[42] = 1.24e-9;
+    GammaHI_arr[43] = 1e-28;
+    GammaHI_arr[44] = 1e-28;
     
     int snap, i_arr;
     for(snap=0; snap<MAXSNAPS; snap++)
@@ -251,6 +265,19 @@ int main(int argc, char **argv)
             UVB_z[snap] = UVLW_arr[i_arr] + (UVLW_arr[i_arr+1] - UVLW_arr[i_arr]) * (ZZ[snap]-z_arr[i_arr]) / (z_arr[i_arr+1]-z_arr[i_arr]);
         else
             UVB_z[snap] = UVLW_arr[30];
+        
+        // again for ionizing background
+        for(i_arr=0; i_arr<45; i_arr++)
+            if(z_arr[i_arr] >= ZZ[snap]) break;
+        
+        // converts into internal units of inverse time
+        if(i_arr<44)
+            GammaHI_z[snap] = (GammaHI_arr[i_arr] + (GammaHI_arr[i_arr+1] - GammaHI_arr[i_arr]) * (ZZ[snap]-z_arr[i_arr]) / (z_arr[i_arr+1]-z_arr[i_arr])) * 1e-12 * UnitTime_in_s / Hubble_h;
+        else
+            GammaHI_z[snap] = GammaHI_arr[44] * 1e-12 * UnitTime_in_s / Hubble_h;
+
+        
+        
     }
     
     // UV flux per SFR at distance squared in internal units
