@@ -1129,18 +1129,19 @@ void update_HI_H2(int p, double time, int k_now)
                         
                 }
                 
-                // use the ionization background to set an "effective SFR" minimum
-                // 3.17245e24
-                double SFR_eff_min = GammaHI_z[Gal[p].SnapNum] / (3.17245e27 * UnitMass_in_g / Hubble_h) * 3.0 * sqr(sigma_gas) / (G * Gal[p].DiscGas[i]) * sqr(area);
-//                if(SFR_guess < SFR_eff_min && SFR_guess > 0.0) 
-                    printf("SFR_guess, SFR_eff_min = %e, %e\n", SFR_guess, SFR_eff_min);
-                if(SFR_guess < SFR_eff_min) SFR_guess = SFR_eff_min;
                 
-//                if(SFR_guess > 0.0) // if this isn't possible, keep the values as they were before
-//                {
-                // recompute neutral fraction
+                // neutral fraction
                 // can undo the SFR assumption in earlier formula, then reapply as an idea
-                f_neutral = 1 - sqrt(uni_ion_hist * (3*X_H+1) * sqr(sigma_gas * area / X_H) * SFR_guess / Gal[p].DiscGas[i]);
+                f_neutral = 1.0 - sqrt(uni_ion_hist * (3*X_H+1) * sqr(sigma_gas * area / X_H) * SFR_guess / Gal[p].DiscGas[i]);
+                
+                // calculate maximum neutral fraction based on the cosmic ionizing background radiation
+                double gamma_term = uni_fneut_bg * (3*X_H+1) * GammaHI_z[Gal[p].SnapNum] / X_H * sqr(sigma_gas * area / Gal[p].DiscGas[i]);
+                double f_neutral_max = dmax(1.0 + gamma_term - sqrt(sqr(gamma_term) + 2*gamma_term), 0.0);
+                if(f_neutral > f_neutral_max)
+                {
+//                    printf("f_neutral, f_neutral_max = %e, %e\n", f_neutral, f_neutral_max);
+                    f_neutral = f_neutral_max;
+                }
                 
                 double av_dist = sqrt(area);//0.25*(Gal[p].DiscRadii[i+1] - Gal[p].DiscRadii[i]);
                 double Sbar = av_dist * 1e4/Hubble_h;
