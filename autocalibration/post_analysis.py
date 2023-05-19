@@ -31,12 +31,20 @@ SMF_x_obs, SMF_y_obs, SMF_y_mod = [], [], []
 HIMF_x_obs, HIMF_y_obs, HIMF_y_mod = [], [], []
 CSFH_x_obs, CSFH_y_obs, CSFH_y_mod = [], [], []
 
+# lists of parameter values and goodness of fit
+params = []
+
+
 f = open(dump_file, 'r')
 lines = f.readlines()
 on_a_data_line = False # tracks if the current line in the dump is data of interest
 last_line = False
 obs = ''
 line_start = ''
+
+#SMF_obs_data = np.loadtxt(SMF_obs_file, skiprows=3, delimiter=' ')
+#HIMF_obs_data = np.loadtxt(HIMF_obs_file, skiprows=17, delimiter=' ', usecols=(0,1,2))
+#SFRD_obs_data = np.loadtxt(SFRD_obs_file, skiprows=3, delimiter=' ')
 
 for l, line in enumerate(lines):
 #    print('doing line', l, on_a_data_line, last_line, obs, line_start)
@@ -93,13 +101,23 @@ for l, line in enumerate(lines):
             on_a_data_line = False
     else:
         last_line = False
+        
+    if 'Particle array' in line:
+        param_array = np.array([line[67:81], line[83:97], line[99:113], line[129:]], dtype=np.float64)
+        params += [param_array]
 
 
 print(len(SMF_x_obs), len(SMF_y_obs), len(SMF_y_mod))
 print(len(HIMF_x_obs), len(HIMF_y_obs), len(HIMF_y_mod))
 print(len(CSFH_x_obs), len(CSFH_y_obs), len(CSFH_y_mod))
+print(len(params))
 
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3, sharex=False, sharey=False)
+fig, axs = plt.subplots(2, 3, sharex=False, sharey=False)
+
+ax1 = axs[0,0]
+ax2 = axs[0,1]
+ax3 = axs[0,2]
+
 ax1.plot(SMF_x_obs[0], SMF_y_obs[0], 'ko')
 ax2.plot(HIMF_x_obs[0], HIMF_y_obs[0], 'ko')
 ax3.plot(CSFH_x_obs[0], CSFH_y_obs[0], 'ko')
@@ -113,14 +131,19 @@ for i in range(Nloop):
     chi2_CSFH = np.sum((CSFH_y_mod[i] - CSFH_y_obs[i])**2) / (len(CSFH_y_mod[i]) - 3.0)
     chi2[i] = np.log10(chi2_SMF * chi2_HIMF * chi2_CSFH)
 
+params = np.array(params)
+print('argsort chi2', np.argsort(chi2))
+print('argsort eval', np.argsort(params[:,3]))
+
 print(np.sort(chi2))
 cmap = plt.cm.viridis_r
 c = cmap((chi2-np.min(chi2)) / (np.max(chi2) - np.min(chi2)))
+c = cmap((np.log10(params[:,3])-np.min(np.log10(params[:,3]))) / (np.max(np.log10(params[:,3])) - np.min(np.log10(params[:,3]))))
 
 for i in range(Nloop):
-    ax1.plot(SMF_x_obs[i], SMF_y_mod[i], '-', color=c[i])
-    ax2.plot(HIMF_x_obs[i], HIMF_y_mod[i], '-', color=c[i])
-    ax3.plot(CSFH_x_obs[i], CSFH_y_mod[i], '-', color=c[i])
+    ax1.plot(SMF_x_obs[i], SMF_y_mod[i], '-', color=c[i], zorder=-params[i,3])
+    ax2.plot(HIMF_x_obs[i], HIMF_y_mod[i], '-', color=c[i], zorder=-params[i,3])
+    ax3.plot(CSFH_x_obs[i], CSFH_y_mod[i], '-', color=c[i], zorder=-params[i,3])
 
 ax1.axis([8,12.1,-5,-1.0])
 ax2.axis([8,11.1,-5,-1.0])
@@ -135,4 +158,20 @@ ax2.set_ylabel(r'$\log_{10}(\Phi_{\rm HI}~[{\rm cMpc}^{-3}\,{\rm dex}^{-1}])$')
 ax3.set_xlabel(r'Look-back time [Gyr]')
 ax3.set_ylabel(r'$\log_{10}(\bar{\rho}_{\rm SFR}~[{\rm M}_\odot\,{\rm yr}^{-1}\,{\rm cMpc}^{-3}])$')
 
-gp.savepng(base_dir+'reconstructed_constraints', xpixplot=2000, ypixplot=500)
+ax4 = axs[1,0]
+ax5 = axs[1,1]
+ax6 = axs[1,2]
+
+ax4.scatter(params[:,0], params[:,1], c=c)#, zorder=-params[:,3])
+ax4.set_xlabel(r'$\epsilon$')
+ax4.set_ylabel(r'$f_{\rm move}^{\rm gas}$')
+
+ax5.scatter(params[:,0], params[:,2]*1e-51, c=c)#, zorder=-params[:,3])
+ax5.set_xlabel(r'$\epsilon$')
+ax5.set_ylabel(r'$\mathcal{E}_{\rm SN}~[10^{44}\,{\rm J}]$')
+
+ax6.scatter(params[:,1], params[:,2]*1e-51, c=c)#, zorder=-params[:,3])
+ax6.set_xlabel(r'$f_{\rm move}^{\rm gas}$')
+ax6.set_ylabel(r'$\mathcal{E}_{\rm SN}~[10^{44}\,{\rm J}]$')
+
+gp.savepng(base_dir+'reconstructed_constraints', xpixplot=2000, ypixplot=1000)

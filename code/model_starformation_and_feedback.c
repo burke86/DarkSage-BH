@@ -1047,7 +1047,8 @@ void update_HI_H2(int p, double time, int k_now)
                     f_H2_HI = 0.0;
                 
             }
-            else if(H2prescription==0)
+            
+            if(H2prescription==0 || H2prescription==2)
             {
                 if(angle <= ThetaThresh)
                 {
@@ -1065,84 +1066,88 @@ void update_HI_H2(int p, double time, int k_now)
             }
 
             // solve for f_neutral, which will lead to absolute H2 and HI masses per annulus
-            if(H2prescription<3)
-            {
-                if(f_H2_HI > 0.0)
-                {
-                    if(Z >= 0.025)
-                        X_H = 0.753 - 1.26*Z;
-                    else
-                        X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
-                                    
-                    f_H2 = X_H / (1.0/f_H2_HI + 1);
-                    
-                    A_term_annulus = A_term_global * sqr(X_H) * sqr(sqr(Sigma_cold)) / (3.0*X_H + 1.0);
-                    xi_term_annulus = xi_term_global * f_H2 * sqr(Sigma_cold);
-                    xi_on_2A = xi_term_annulus / (2.0 * A_term_annulus);
-                    f_neutral = 1.0 + xi_on_2A - sqrt(xi_on_2A + sqr(xi_on_2A));
-                    
-                    if(f_H2 > 1e-10) // some sensible minimum
-                    {
-                        Gal[p].DiscH2[i] = f_H2 * f_neutral * Gal[p].DiscGas[i];
-                        Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
-                    }
-                    else
-                    {
-                        Gal[p].DiscH2[i] = 0.0;
-                        Gal[p].DiscHI[i] = X_H * f_neutral * Gal[p].DiscGas[i];
-                    }
-                    
-                    if(!(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]))
-                    {
-                        printf("Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]  = %e, %e, %e, %e\n", Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]);
-                        printf("f_neutral, X_H, f_H2_HI = %e, %e, %e\n", f_neutral, X_H, f_H2_HI);
-                        printf("f_H2 = %e\n", f_H2);
-                    }
-                    assert(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]);
-                }
-                else
-                {
-                    Gal[p].DiscH2[i] = 0.0;
-                    Gal[p].DiscHI[i] = X_H*Gal[p].DiscGas[i]; // All cold hydrogen must be in the form of HI if there's no H2.
-                }
-            }
+//            if(H2prescription<3)
+//            {
+//                if(f_H2_HI > 0.0)
+//                {
+//                    if(Z >= 0.025)
+//                        X_H = 0.753 - 1.26*Z;
+//                    else
+//                        X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
+//                                    
+//                    f_H2 = X_H / (1.0/f_H2_HI + 1);
+//                    
+//                    A_term_annulus = A_term_global * sqr(X_H) * sqr(sqr(Sigma_cold)) / (3.0*X_H + 1.0);
+//                    xi_term_annulus = xi_term_global * f_H2 * sqr(Sigma_cold);
+//                    xi_on_2A = xi_term_annulus / (2.0 * A_term_annulus);
+//                    f_neutral = 1.0 + xi_on_2A - sqrt(xi_on_2A + sqr(xi_on_2A));
+//                    
+//                    if(f_H2 > 1e-10) // some sensible minimum
+//                    {
+//                        Gal[p].DiscH2[i] = f_H2 * f_neutral * Gal[p].DiscGas[i];
+//                        Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
+//                    }
+//                    else
+//                    {
+//                        Gal[p].DiscH2[i] = 0.0;
+//                        Gal[p].DiscHI[i] = X_H * f_neutral * Gal[p].DiscGas[i];
+//                    }
+//                    
+//                    if(!(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]))
+//                    {
+//                        printf("Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]  = %e, %e, %e, %e\n", Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]);
+//                        printf("f_neutral, X_H, f_H2_HI = %e, %e, %e\n", f_neutral, X_H, f_H2_HI);
+//                        printf("f_H2 = %e\n", f_H2);
+//                    }
+//                    assert(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]);
+//                }
+//                else
+//                {
+//                    Gal[p].DiscH2[i] = 0.0;
+//                    Gal[p].DiscHI[i] = X_H*Gal[p].DiscGas[i]; // All cold hydrogen must be in the form of HI if there's no H2.
+//                }
+//            }
+            
             // If the GD14 prescription is called, use that instead!
             // Still handy to have the above already calculated in case the below cannot be done
             // The UV flux below is calculated from recent histroical SFR, rather than having it approximately relate to the instantaneous value.
             // The GD14 prescription requires the neutral fraction to be calculated first
-            else
+            
+//            else
+//            {
+            double SFR_guess = 0.0;
+            
+            if(Gal[p].DiscStarsAge[i][k_now] > 0.0)
+                SFR_guess = Gal[p].DiscStarsAge[i][k_now] / ((1.0 - RecycleFraction) * (AgeBinEdge[k_now+1] - time));
+            else if(k_now < N_AGE_BINS-1)
             {
-                double SFR_guess = 0.0;
-                
-                if(Gal[p].DiscStarsAge[i][k_now] > 0.0)
-                    SFR_guess = Gal[p].DiscStarsAge[i][k_now] / ((1.0 - RecycleFraction) * (AgeBinEdge[k_now+1] - time));
-                else if(k_now < N_AGE_BINS-1)
+                if(Gal[p].DiscStarsAge[i][k_now+1] > 0.0)
                 {
-                    if(Gal[p].DiscStarsAge[i][k_now+1] > 0.0)
-                    {
-                        // need to recalculate the relevant returned-mass fraction here
-                        double StellarOutput[2];
-                        get_RecycleFraction_and_NumSNperMass(time, 0.5*(AgeBinEdge[k_now+2]+AgeBinEdge[k_now+1]), StellarOutput);
-                        double ReturnFraction = StellarOutput[0];
-                        SFR_guess = Gal[p].DiscStarsAge[i][k_now+1] / ((1.0 - ReturnFraction) * (AgeBinEdge[k_now+2] - AgeBinEdge[k_now+1]));
-                    }
-                        
+                    // need to recalculate the relevant returned-mass fraction here
+                    double StellarOutput[2];
+                    get_RecycleFraction_and_NumSNperMass(time, 0.5*(AgeBinEdge[k_now+2]+AgeBinEdge[k_now+1]), StellarOutput);
+                    double ReturnFraction = StellarOutput[0];
+                    SFR_guess = Gal[p].DiscStarsAge[i][k_now+1] / ((1.0 - ReturnFraction) * (AgeBinEdge[k_now+2] - AgeBinEdge[k_now+1]));
                 }
-                
-                
-                // neutral fraction
-                // can undo the SFR assumption in earlier formula, then reapply as an idea
-                f_neutral = 1.0 - sqrt(uni_ion_hist * (3*X_H+1) * sqr(sigma_gas * area / X_H) * SFR_guess / Gal[p].DiscGas[i]);
-                
-                // calculate maximum neutral fraction based on the cosmic ionizing background radiation
-                double gamma_term = uni_fneut_bg * (3*X_H+1) * GammaHI_z[Gal[p].SnapNum] / X_H * sqr(sigma_gas * area / Gal[p].DiscGas[i]);
-                double f_neutral_max = dmax(1.0 + gamma_term - sqrt(sqr(gamma_term) + 2*gamma_term), 0.0);
-                if(f_neutral > f_neutral_max)
-                {
+                    
+            }
+            
+            
+            // neutral fraction
+            // can undo the SFR assumption in earlier formula, then reapply as an idea
+            f_neutral = 1.0 - sqrt(uni_ion_hist * (3*X_H+1) * sqr(sigma_gas * area / X_H) * SFR_guess / Gal[p].DiscGas[i]);
+            
+            // calculate maximum neutral fraction based on the cosmic ionizing background radiation
+            double gamma_term = uni_fneut_bg * (3*X_H+1) * GammaHI_z[Gal[p].SnapNum] / X_H * sqr(sigma_gas * area / Gal[p].DiscGas[i]);
+            double f_neutral_max = dmax(1.0 + gamma_term - sqrt(sqr(gamma_term) + 2*gamma_term), 0.0);
+            if(f_neutral > f_neutral_max)
+            {
 //                    printf("f_neutral, f_neutral_max = %e, %e\n", f_neutral, f_neutral_max);
-                    f_neutral = f_neutral_max;
-                }
+                f_neutral = f_neutral_max;
+            }
                 
+            if(H2prescription==3)
+            {
                 double av_dist = sqrt(area);//0.25*(Gal[p].DiscRadii[i+1] - Gal[p].DiscRadii[i]);
                 double Sbar = av_dist * 1e4/Hubble_h;
                 double Sbar5 = Sbar*Sbar*Sbar*Sbar*Sbar;
@@ -1169,6 +1174,7 @@ void update_HI_H2(int p, double time, int k_now)
 //                    printf("k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time = %i, %e, %e, %e\n", k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time);
 //                    f_H2_HI = 0.0;
 //                }
+            }
 //                
                 // reset HI and H2 values based on GD14 prescription
                 if(f_H2_HI > 0.0)
@@ -1184,7 +1190,7 @@ void update_HI_H2(int p, double time, int k_now)
                     Gal[p].DiscHI[i] = X_H * f_neutral * Gal[p].DiscGas[i];
                 }
 //                }
-            }
+//            }
 
             
             

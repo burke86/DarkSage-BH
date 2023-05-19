@@ -39,7 +39,7 @@ GyrToYr = 1e9
 # Binning configuration
 mlow = 7
 mupp = 13
-dm = 0.15
+dm = 0.125
 mbins = np.arange(mlow, mupp, dm)
 xmf = mbins + dm/2.0
 
