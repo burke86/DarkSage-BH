@@ -381,9 +381,11 @@ void update_from_feedback(int p, double reheated_mass, double metallicity, int i
     assert(reheated_mass>=0);
     assert(ejected_cold_mass>=0);
     assert(Gal[p].OutflowGas >= 0.0);
+    
   
     double reheat_eject_sum = reheated_mass + ejected_cold_mass;
 //    if(Gal[p].SnapNum > 50) printf("SnapNum, Mvir, ejected fraction = %i, %e, %e\n", Gal[p].SnapNum, Gal[p].Mvir, ejected_cold_mass/reheat_eject_sum);
+    
 
   if(SupernovaRecipeOn>0 && reheat_eject_sum>MIN_STARFORMATION) // Imposing a minimum. Chosen as MIN_STARFORMATION for convenience.  Makes sense to be same order of magnitude though.
   {
@@ -411,14 +413,30 @@ void update_from_feedback(int p, double reheated_mass, double metallicity, int i
 
 	if(Gal[p].DiscGas[i]>0.0)
 	{
-	  Gal[p].MetalsColdGas -= metallicity * reheat_eject_sum;
-      Gal[p].DiscGasMetals[i] -= metallicity * reheat_eject_sum;
-
-      Gal[p].MetalsFountainGas += metallicity * reheated_mass;
-      Gal[p].MetalsOutflowGas += metallicity * ejected_cold_mass;
-
         
-	  assert(Gal[p].DiscGasMetals[i]<=Gal[p].DiscGas[i]);
+      metallicity = dmax(0.1*metallicity, (Gal[p].DiscGasMetals[i] - Gal[p].DiscGas[i])/reheat_eject_sum ); // assume only 10% of metals entrained in an outflow, but ensure metals never exceed total mass of gas left behind. 
+        
+      // Factors of 1.0001 and 0.9999 is to avoid numerical issues with metals reading greater than total gas.
+	  Gal[p].MetalsColdGas -= 1.0001 * metallicity * reheat_eject_sum;
+      Gal[p].DiscGasMetals[i] -= 1.0001 *metallicity * reheat_eject_sum;
+
+      Gal[p].MetalsFountainGas += 0.9999 * metallicity * reheated_mass;
+      Gal[p].MetalsOutflowGas += 0.9999 * metallicity * ejected_cold_mass;
+
+        if(!(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]))
+        {
+            printf("Gal[p].DiscGasMetals[i], Gal[p].DiscGas[i], metallicity, reheat_eject_sum = %e, %e, %e, %e\n", Gal[p].DiscGasMetals[i], Gal[p].DiscGas[i], metallicity, reheat_eject_sum);
+        }
+
+        assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
+      assert(Gal[p].MetalsFountainGas <= Gal[p].FountainGas);
+        
+        if(!(Gal[p].MetalsOutflowGas <= Gal[p].OutflowGas))
+        {
+            printf("Gal[p].MetalsOutflowGas, Gal[p].OutflowGas, metallicity, ejected_cold_mass = %e, %e, %e, %e\n", Gal[p].MetalsOutflowGas, Gal[p].OutflowGas, metallicity, ejected_cold_mass);
+        }
+        
+      assert(Gal[p].MetalsOutflowGas <= Gal[p].OutflowGas);
 
 	}
 	else
@@ -995,7 +1013,7 @@ void update_HI_H2(int p, double time, int k_now)
     double area, f_H2, f_H2_HI=1e-10, Pressure, f_sigma;
     int i;
     double angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
-    double sigma_gas, A_term_global, xi_term_global, A_term_annulus, xi_term_annulus, xi_on_2A;//, full_ratio, interrim;
+    double sigma_gas, A_term_global, xi_term_global;//, A_term_annulus, xi_term_annulus, xi_on_2A, full_ratio, interrim;
     double s, Zp, chi, c_f, Sigma_comp0, Tau_c, Sigma_cold;
     double X_H=0.76, Z, f_neutral=1.0;
     
