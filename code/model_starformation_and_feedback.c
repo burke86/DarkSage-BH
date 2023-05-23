@@ -428,8 +428,18 @@ void update_from_feedback(int p, double reheated_mass, double metallicity, int i
             printf("Gal[p].DiscGasMetals[i], Gal[p].DiscGas[i], metallicity, reheat_eject_sum = %e, %e, %e, %e\n", Gal[p].DiscGasMetals[i], Gal[p].DiscGas[i], metallicity, reheat_eject_sum);
         }
 
-        assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
-      assert(Gal[p].MetalsFountainGas <= Gal[p].FountainGas);
+        
+        if(Gal[p].OutflowGas <= 0.0)
+        {
+            Gal[p].OutflowGas = 0.0;
+            Gal[p].MetalsOutflowGas = 0.0;
+        }
+        
+        if(Gal[p].FountainGas <= 0.0)
+        {
+            Gal[p].FountainGas = 0.0;
+            Gal[p].MetalsFountainGas = 0.0;
+        }
         
         if(!(Gal[p].MetalsOutflowGas <= Gal[p].OutflowGas))
         {
@@ -437,6 +447,10 @@ void update_from_feedback(int p, double reheated_mass, double metallicity, int i
         }
         
       assert(Gal[p].MetalsOutflowGas <= Gal[p].OutflowGas);
+        
+        assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
+      assert(Gal[p].MetalsFountainGas <= Gal[p].FountainGas);
+
 
 	}
 	else
