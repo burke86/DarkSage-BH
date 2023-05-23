@@ -1167,7 +1167,7 @@ void update_HI_H2(int p, double time, int k_now)
             
             // neutral fraction
             // can undo the SFR assumption in earlier formula, then reapply as an idea
-            f_neutral = 1.0 - sqrt(uni_ion_hist * (3*X_H+1) * sqr(sigma_gas * area / X_H) * SFR_guess / Gal[p].DiscGas[i]);
+            f_neutral = 1.0 - sqrt(uni_ion_hist * (3*X_H+1) * sqr(sigma_gas * area / X_H) * SFR_guess / cube(Gal[p].DiscGas[i]));
             
             // calculate maximum neutral fraction based on the cosmic ionizing background radiation
             double gamma_term = uni_fneut_bg * (3*X_H+1) * GammaHI_z[Gal[p].SnapNum] / X_H * sqr(sigma_gas * area / Gal[p].DiscGas[i]);
