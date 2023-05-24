@@ -841,7 +841,7 @@ void update_disc_radii(int p)
             AvHotPotential = 0.0;
             for(k=0; k<NUM_R_BINS_REDUCED-1; k++)
             {
-                AvHotPotential += 0.5*(analytic_potential_reduced[k] + analytic_potential_reduced[k+1]) * cb_term * ((analytic_r_reduced[k+1]*inv_Rvir - c_beta*atan(analytic_r_reduced[k+1]*inv_Rvir/c_beta)) - (analytic_r_reduced[k]*inv_Rvir - c_beta*atan(analytic_r_reduced[k]*inv_Rvir/c_beta)));
+                AvHotPotential += dmin(0.0, 0.5*(analytic_potential_reduced[k] + analytic_potential_reduced[k+1]) * cb_term * ((analytic_r_reduced[k+1]*inv_Rvir - c_beta*atan(analytic_r_reduced[k+1]*inv_Rvir/c_beta)) - (analytic_r_reduced[k]*inv_Rvir - c_beta*atan(analytic_r_reduced[k]*inv_Rvir/c_beta))));
                 assert(AvHotPotential<=0);
                                 
                 if(analytic_r_reduced[k+1] > Gal[p].Rvir) break;
@@ -905,7 +905,15 @@ void update_disc_radii(int p)
             AvHotPotential = 0.0;
             for(k=0; k<NUM_R_BINS-1; k++)
             {
-                AvHotPotential += 0.5*(analytic_potential[k] + analytic_potential[k+1]) * cb_term * ((analytic_r[k+1]*inv_Rvir - c_beta*atan(analytic_r[k+1]*inv_Rvir/c_beta)) - (analytic_r[k]*inv_Rvir - c_beta*atan(analytic_r[k]*inv_Rvir/c_beta)));
+                // dmin call is to avoid numerical issues where this artificially creeps into a positive number
+                AvHotPotential += dmin(0.0, 0.5*(analytic_potential[k] + analytic_potential[k+1]) * cb_term * ((analytic_r[k+1]*inv_Rvir - c_beta*atan(analytic_r[k+1]*inv_Rvir/c_beta)) - (analytic_r[k]*inv_Rvir - c_beta*atan(analytic_r[k]*inv_Rvir/c_beta))) );
+                
+                if(!(AvHotPotential<=0))
+                {
+                    printf("AvHotPotential = %e\n", AvHotPotential);
+                    printf("analytic_potential[k], analytic_potential[k+1] = %e, %e\n", analytic_potential[k], analytic_potential[k+1]);
+                    printf("analytic_r[k], analytic_r[k+1] = %e, %e\n", analytic_r[k], analytic_r[k+1]);
+                }
                 assert(AvHotPotential<=0);
                                 
                 if(analytic_r[k+1] > Gal[p].Rvir) break;
