@@ -52,7 +52,7 @@ void update_from_star_formation(int p, double stars, double metallicity, int i);
 void update_from_feedback(int p, double reheated_mass, double metallicity, int i, double ejected_cold_mass);
 void update_from_ejection(int p, double ejected_mass);
 void stars_to_bulge(int t, int k_now);
-void check_disk_instability(int p, double dt, int step, double time, int k_now);
+int check_disk_instability(int p, double dt, int step, double time, int k_now);
 
 // Adam's functions (most of the others above have been heavily modified too)
 void retrograde_gas_collision(int p, double cos_angle_halo_new, double cos_angle_disc_new, double J_disc, double J_cool);

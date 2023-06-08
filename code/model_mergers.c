@@ -179,7 +179,8 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 //          metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
 //          assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
 //      }
-  	check_disk_instability(merger_centralgal, dt, step, time, k_now);
+      int gas_instab = check_disk_instability(merger_centralgal, dt, step, time, k_now);
+      assert(gas_instab==0 || gas_instab==1);
   }
   else
     update_stellardisc_scaleradius(p); // will already be done within check_disk_instability otherwise

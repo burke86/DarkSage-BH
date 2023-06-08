@@ -305,6 +305,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
 {
   int p, i, step, centralgal, merger_centralgal, currenthalo, offset, k_now;
   double infallingGas, coolingGas, deltaT, time, galaxyBaryons, currentMvir, DiscGasSum, dt, InstantTimeFrame, StellarOutput[2];
+  int gas_instab = 0;
 
   centralgal = Gal[0].CentralGal;
   if(Gal[centralgal].Type != 0 || Gal[centralgal].HaloNr != halonr)
@@ -418,11 +419,6 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         delayed_feedback(p, k_now, time, dt);
           assert(Gal[p].OutflowGas >= 0.0);
       }
-        
-	  // stars form and then explode!
-      if(SfrEfficiency>0.0) // passive H2 channel, can be switched off if one sets this to zero
-        starformation_and_feedback(p, centralgal, dt, step, time, k_now);
-    assert(Gal[p].OutflowGas >= 0.0);
 
 
       // precess gas disc
@@ -433,7 +429,13 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         
       // Check for disk instability
       if(DiskInstabilityOn>0)
-        check_disk_instability(p, dt, step, time, k_now);
+        gas_instab = check_disk_instability(p, dt, step, time, k_now);
+        
+      // stars form and then explode!
+      if(gas_instab==0 && SfrEfficiency>0.0) // passive H2 channel, can be switched off if one sets this to zero
+        starformation_and_feedback(p, centralgal, dt, step, time, k_now);
+    assert(Gal[p].OutflowGas >= 0.0);
+
     }
 
     // check for satellite disruption and merger events 

@@ -9,27 +9,30 @@
 #include "core_proto.h"
 
 
-void check_disk_instability(int p, double dt, int step, double time, int k_now)
+int check_disk_instability(int p, double dt, int step, double time, int k_now)
 {
 	// New treatment of instabilities based on the Toomre Q parameter
 	double Q_star, Q_gas, Q_gas_min, Q_star_min, Q_tot, W, Q_stable;
 	double unstable_gas, unstable_stars, metallicity, stars, stars_sum, gas_sink;
     double r_inner, r_outer, Kappa, sigma_R, c_s;
-    double NewStars[N_BINS], NewStarsMetals[N_BINS], angle, DiscGasSum, DiscStarSum, SNgas[N_BINS];
+    double NewStars[N_BINS], NewStarsMetals[N_BINS], angle, DiscGasSum, DiscStarSum;//, SNgas[N_BINS];
 //    double old_spin[3]; //, cos_angle, SNgas_copy[N_BINS], SNgas_proj[N_BINS]
     double ann_frac, frac_down, frac_up, vel_disp_factor, vel_disp_factor_again, StarSinkRate;
 	int i, s, k;
     int first, first_gas, first_star;
+    int gas_instab_triggered = 0;
 	
     double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
     
+    angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
+
     for(i=0; i<N_BINS; i++)
     {
-        metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
+//        metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
         assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
         NewStars[i] = 0.0;
         NewStarsMetals[i] = 0.0;
-        SNgas[i] = 0.0;
+//        SNgas[i] = 0.0;
     }
     
     DiscStarSum = get_disc_stars(p);
@@ -38,20 +41,10 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
     update_HI_H2(p, time, k_now);
     
     if(DiscStarSum==0.0 && DiscGasSum==0.0)
-        return;
+        return gas_instab_triggered;
     
     c_s = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum]) / UnitVelocity_in_cm_per_s; // Speed of sound assumed for cold gas, now set to be the same as vel disp of gas (11 km/s @ z=0)
     
-    angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
-    
-	for(i=0; i<N_BINS; i++)
-    {
-		metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
-		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
-        NewStars[i] = 0.0;
-        NewStarsMetals[i] = 0.0;
-        SNgas[i] = 0.0;
-    }
 	
 	// Deal with gaseous instabilities
 	stars_sum = 0.0;
@@ -113,6 +106,8 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
         
 		if(Q_gas<Q_gas_min)
 		{
+            gas_instab_triggered = 1;
+            
             if(first==1)
                 Gal[p].TotInstabEvents += 1;
             
@@ -144,10 +139,10 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
                 
                 stars = deal_with_unstable_gas(unstable_gas, p, i, metallicity);
                 assert(stars >= 0);
-                if(stars>=MIN_STARS_FOR_SN)
-                    SNgas[i] = RecycleFraction * stars;
-                else
-                    SNgas[i] = 0.0;
+//                if(stars>=MIN_STARS_FOR_SN)
+//                    SNgas[i] = RecycleFraction * stars;
+//                else
+//                    SNgas[i] = 0.0;
                 
                 stars_sum += stars;
                 Gal[p].DiscSFR[i] += stars / dt;
@@ -171,20 +166,20 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
             }
 		}
         
-        if(SNgas[i]  >= Gal[p].DiscGas[i])
-        {
-            SNgas[i] = 1.0*Gal[p].DiscGas[i];
-            Q_gas = 1e5; // arbitrarily large
-        }
-        else
-        {
-            Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / (G * (Gal[p].DiscGas[i] - SNgas[i])); // can't guarantee that Q_gas will always be right if I only have DiscGas on the denominator here
-            if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, stars = %e, Q_gas = %e\n", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], NewStars[i] , Q_gas);
-            assert(Q_gas>0);
-            if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min, Gal[p].DiscGas[i], stars = %e, %e, %e, %e\n", Q_gas, Q_gas_min, Gal[p].DiscGas[i], NewStars[i] );
-            assert(Q_gas >= 0.99*Q_gas_min);
-            assert(Q_gas >= 0.99*QTotMin);
-        }
+//        if(SNgas[i]  >= Gal[p].DiscGas[i])
+//        {
+//            SNgas[i] = 1.0*Gal[p].DiscGas[i];
+//            Q_gas = 1e5; // arbitrarily large
+//        }
+//        else
+//        {
+//            Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / (G * (Gal[p].DiscGas[i] - SNgas[i])); // can't guarantee that Q_gas will always be right if I only have DiscGas on the denominator here
+//            if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, stars = %e, Q_gas = %e\n", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], NewStars[i] , Q_gas);
+//            assert(Q_gas>0);
+//            if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min, Gal[p].DiscGas[i], stars = %e, %e, %e, %e\n", Q_gas, Q_gas_min, Gal[p].DiscGas[i], NewStars[i] );
+//            assert(Q_gas >= 0.99*Q_gas_min);
+//            assert(Q_gas >= 0.99*QTotMin);
+//        }
 	}
 	
 	gas_sink += Gal[p].BlackHoleMass; // Because this was set as -BHMass at the start, this is actually the increase in BH mass from the instab.
@@ -501,6 +496,8 @@ void check_disk_instability(int p, double dt, int step, double time, int k_now)
 	}
     
     update_stellardisc_scaleradius(p);
+    
+    return gas_instab_triggered;
     
 }
 
