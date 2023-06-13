@@ -15,7 +15,7 @@ from galprops import galplot as gp
 import warnings
 warnings.filterwarnings("ignore")
 
-fsize = 22
+fsize = 26
 c_edge, c_face = 'k', 'w'
 transparent = False
 matplotlib.rcParams.update({'font.size': fsize, 'xtick.major.size': 10, 'ytick.major.size': 10, 'xtick.major.width': 1, 'ytick.major.width': 1, 'ytick.minor.size': 5, 'xtick.minor.size': 5, 'xtick.direction': 'in', 'ytick.direction': 'in', 'axes.linewidth': 1, 'text.usetex': True, 'font.family': 'serif', 'font.serif': 'Times New Roman', 'legend.numpoints': 1, 'legend.columnspacing': 1, 'legend.fontsize': fsize-4, 'lines.markeredgewidth': 1.0, 'errorbar.capsize': 4.0, 'xtick.top': True, 'ytick.right': True, "text.latex.preamble": [r'\usepackage{amsmath}',], 'axes.edgecolor': c_edge, 'xtick.color': c_edge, 'ytick.color': c_edge, 'figure.facecolor': c_face, 'text.color': c_edge, 'axes.labelcolor': c_edge})
@@ -260,18 +260,22 @@ ax4.axis([0.0378,0.4226,0,1])
 ax5.axis([0.0378,0.4226,0,3])
 ax6.axis([0,1,0,3])
 
-ax1.legend(loc='lower left', frameon=False)
-ax2.legend(loc='lower left', frameon=False)
-ax3.legend(loc='lower right', frameon=False)
+ax1.legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.02,-0.02))
+ax2.legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.02,-0.02))
+ax3.legend(loc='lower right', frameon=False, bbox_to_anchor=(1.02,-0.02))
 
 ax3.set_xticks(np.arange(0,14,2))
 ax6.set_xticks(np.arange(0.2,1.1,0.2))
 
 for ax in axs.ravel():
-    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
     ax.yaxis.set_minor_locator(MultipleLocator(0.1))
+for ax in [ax1, ax2, ax6]:
+    ax.xaxis.set_minor_locator(MultipleLocator(0.1))
+ax3.xaxis.set_minor_locator(MultipleLocator(0.5))
+ax4.xaxis.set_minor_locator(MultipleLocator(0.02))
+ax5.xaxis.set_minor_locator(MultipleLocator(0.02))
 
-fig.subplots_adjust(hspace=0.14, wspace=0.25, left=0, bottom=0, right=0.98, top=1.0)
+fig.subplots_adjust(hspace=0.17, wspace=0.25, left=0, bottom=0, right=0.98, top=1.0)
 
 cbar_ax = fig.add_axes([0.99, 0.05, 0.015, 0.8])
 cbar = fig.colorbar(ims, cax=cbar_ax, label=r'Goodness of joint fit, $-\sum \log \chi_{\rm reduced}^2$', ticks=[0,1])#, orientation='vertical'
@@ -333,9 +337,9 @@ for s in range(Nsteps):
     ax5.axis([0.0378,0.4226,0,3])
     ax6.axis([0,1,0,3])
     
-    ax1.legend(loc='lower left', frameon=False)
-    ax2.legend(loc='lower left', frameon=False)
-    ax3.legend(loc='lower right', frameon=False)
+    ax1.legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.02,-0.02))
+    ax2.legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.02,-0.02))
+    ax3.legend(loc='lower right', frameon=False, bbox_to_anchor=(1.02,-0.02))
     
     ax3.set_xticks(np.arange(0,14,2))
     ax6.set_xticks(np.arange(0.2,1.1,0.2))

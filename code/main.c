@@ -282,7 +282,8 @@ int main(int argc, char **argv)
     
     // UV flux per SFR at distance squared in internal units
     // Value of 96.21 kpc^2/(Msun/yr) comes from Diemer, Stevens et al. (2018).
-    UVMW_perSFRdensity = 96.21 * sqr(Hubble_h * 1e-3 * CM_PER_MPC / UnitLength_in_cm) / (SOLAR_MASS / UnitMass_in_g) * (SEC_PER_YEAR / UnitTime_in_s);
+//    UVMW_perSFRdensity = 96.21 * sqr(Hubble_h * 1e-3 * CM_PER_MPC / UnitLength_in_cm) / (SOLAR_MASS / UnitMass_in_g) * (SEC_PER_YEAR / UnitTime_in_s);
+    UVMW_perSFRdensity = UVLW_arr[0] * 500.0;
     Sigma_R1_fac = 50.0 * (Hubble_h * SOLAR_MASS / UnitMass_in_g) / sqr(Hubble_h * 1e-6 * CM_PER_MPC / UnitLength_in_cm);
     
     

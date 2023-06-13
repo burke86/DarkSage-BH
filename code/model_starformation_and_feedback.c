@@ -1180,6 +1180,7 @@ void update_HI_H2(int p, double time, int k_now)
                 
             if(H2prescription==3)
             {
+                // THIS IS NOT THE AVERAGE DISTANCE FROM A DISTRIBUTED SOURCE. AN INTEGRAL IS REQUIRED.  Could approximate as a 1D integral around the centre of the annulus?
                 double av_dist = sqrt(area);//0.25*(Gal[p].DiscRadii[i+1] - Gal[p].DiscRadii[i]);
                 double Sbar = av_dist * 1e4/Hubble_h;
                 double Sbar5 = Sbar*Sbar*Sbar*Sbar*Sbar;
@@ -1188,7 +1189,9 @@ void update_HI_H2(int p, double time, int k_now)
                 double gbar = sqrt(sqr(Dstar) + DMW2);
                 double UMW, alphabar, Sigma_R1;
 
-                UMW = dmax(UVB_z[Gal[p].SnapNum], 0.9 * UVMW_perSFRdensity * sqr(av_dist) / SFR_guess); // assumes 10% escape fraction
+//                if(UVB_z[Gal[p].SnapNum] > 0.9 * UVMW_perSFRdensity * SFR_guess / sqr(av_dist) && SFR_guess>0.0)
+//                    printf("Background, local UV field, SFR, av_dist = %e, %e, %e, %e\n", UVB_z[Gal[p].SnapNum], 0.9 * UVMW_perSFRdensity * SFR_guess / sqr(av_dist), SFR_guess, av_dist); // assumes 10% escape fraction
+                UMW = dmax(UVB_z[Gal[p].SnapNum], UVMW_perSFRdensity * SFR_guess / area); 
                 alphabar = 0.5 + 1.0 / (1.0 + sqrt(UMW * DMW2 / 600.0));
                 Sigma_R1 = Sigma_R1_fac * sqrt(0.001 + 0.1*UMW) / (gbar * (1.0 + 1.69*sqrt(0.001 + 0.1*UMW)));
                 f_H2_HI = pow(f_neutral * X_H * Gal[p].DiscGas[i] / (Sigma_R1 * area), alphabar);

@@ -665,6 +665,9 @@ void update_disc_radii(int p)
     const double sigma2_ibulge = 3.0*sqr(Gal[p].VelDispBulge);
     const double sigma2_mbulge = 3.0*sqr(Gal[p].VelDispMergerBulge);
     
+    const double DiscStars = get_disc_stars(p);
+    const double DiscGas = get_disc_gas(p);
+    
     update_stellardisc_scaleradius(p); // need this at the start, as disc scale radii are part of this calculation
     update_gasdisc_scaleradius(p);
     update_rotation_support_scale_radius(p);
@@ -746,8 +749,8 @@ void update_disc_radii(int p)
         const double inv_ExponentBin = 1.0/ExponentBin;
         const double c_sdisc = Gal[p].Rvir / Gal[p].StellarDiscScaleRadius;
         const double c_gdisc = Gal[p].Rvir / Gal[p].GasDiscScaleRadius;
-        const double GM_sdisc_r = G * (Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass) * inv_Rvir;
-        const double GM_gdisc_r = G * Gal[p].ColdGas * inv_Rvir;
+        const double GM_sdisc_r = G * DiscStars * inv_Rvir;
+        const double GM_gdisc_r = G * DiscGas * inv_Rvir;
         double vrot, rrat, RonRvir, AvHotPotential;
         double j2_mbulge = sqr(Gal[p].SpinClassicalBulge[0]) + sqr(Gal[p].SpinClassicalBulge[1]) + sqr(Gal[p].SpinClassicalBulge[2]);
         double a_av=0.0, a_new, a_av_prev;
@@ -793,7 +796,14 @@ void update_disc_radii(int p)
             analytic_j[i] = vrot * r;
             if(i<NUM_R_BINS-1)
             {
-                if(!(analytic_j[i]<analytic_j[i+1])) printf("a_SB, a_SB saved, M_SB = %e, %e, %e\n", a_SB, Gal[p].a_InstabBulge, M_SB);
+                if(!(analytic_j[i]<analytic_j[i+1])) 
+                {
+                    printf("a_SB, a_SB saved, M_SB = %e, %e, %e\n", a_SB, Gal[p].a_InstabBulge, M_SB);
+                    printf("i, analytic_j[i], analytic_j[i+1] = %i, %e, %e\n", i, analytic_j[i], analytic_j[i+1]);
+                    printf("vrot, analytic_r[i], analytic_r[i+1] = %e, %e, %e\n", vrot, analytic_r[i], analytic_r[i+1]);
+                    printf("f_support, v2_spherical, v2_sdisc, v2_gdisc = %e, %e, %e, %e\n", f_support, v2_spherical, v2_sdisc, v2_gdisc);
+                    printf("Gal[p].StellarDiscScaleRadius, Stellar Disc Mass = %e, %e\n", Gal[p].StellarDiscScaleRadius, Gal[p].StellarMass - Gal[p].ClassicalBulgeMass - Gal[p].SecularBulgeMass);
+                }
                     
                 assert(analytic_j[i]<analytic_j[i+1]);
                 analytic_potential[i] = analytic_potential[i+1] - (analytic_r[i+1]-analytic_r[i]) * 0.5 * (sqr(analytic_j[i+1])/(analytic_fsupport[i+1]*cube(analytic_r[i+1])) + sqr(vrot)/(f_support*r)); // numerically integrating from "infinity" (the largest analytic_r) down to zero, step by step
@@ -1370,11 +1380,12 @@ double get_Mhost_internal(int p, int centralgal, double dr)
         const double a_CB = Gal[centralgal].a_MergerBulge;
         const double M_mBulge = Gal[centralgal].ClassicalBulgeMass * sqr((Rvir_host+a_CB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_CB));
         
-        double a_ICS = 0.0;
-        if(Gal[p].ClassicalBulgeMass>0.0)
-            a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
-        else if(a_SB>0.0)
-            a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)      
+//        double a_ICS = 0.0;
+//        if(Gal[p].ClassicalBulgeMass>0.0)
+//            a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
+//        else if(a_SB>0.0)
+//            a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)
+        double a_ICS = get_a_ICS(centralgal, Gal[centralgal].Rvir, Gal[centralgal].R_ICS_av);
         const double M_ICS = Gal[centralgal].ICS * sqr((Rvir_host+a_ICS)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_ICS));
         
         // Add mass from the disc

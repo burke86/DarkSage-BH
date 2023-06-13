@@ -432,7 +432,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         gas_instab = check_disk_instability(p, dt, step, time, k_now);
         
       // stars form and then explode!
-      if(gas_instab==0 && SfrEfficiency>0.0) // passive H2 channel, can be switched off if one sets this to zero
+//      if(gas_instab==0 && SfrEfficiency>0.0) // passive H2 channel, can be switched off if one sets this to zero
         starformation_and_feedback(p, centralgal, dt, step, time, k_now);
     assert(Gal[p].OutflowGas >= 0.0);
 
