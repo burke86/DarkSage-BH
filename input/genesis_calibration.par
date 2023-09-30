@@ -3,38 +3,41 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir              ./output/results/millennium/
+OutputDir               /Users/adam/DarkSage_runs/Genesis/L75n324/29o/
 
 FirstFile                   0
-LastFile					7
+LastFile                    7
 
 
 %------------------------------------------
 %----- Snapshot output list ---------------
 %------------------------------------------
 
-NumOutputs        1   ; sets the desired number of galaxy outputs; use -1 for all outputs
+%NumOutputs        12   ; sets the desired number of galaxy outputs; use -1 for all outputs
 
 % List your output snapshots after the arrow, highest to lowest (ignored when NumOutputs=-1).
--> 63 62 61 60 48 40 32 27 23 21 19 17
+%-> 37 42 47 54 62 72 84 101 109 119 125 131
 
+
+NumOutputs        2
+-> 128 131
 
 %------------------------------------------
 %----- Simulation information  ------------
 %------------------------------------------
 
-TreeName					    trees_063		; assumes the trees are named TreeName.n where n is the snapshot number
-SimulationDir               /Users/adam/millennium_mini/treedata
-FileWithSnapList			/Users/adam/millennium_mini/millennium.a_list
-LastSnapShotNr				63
+TreeName                        L75_N324_converted        ; assumes the trees are named TreeName.n where n is the snapshot number
+SimulationDir               /Users/adam/Genesis_calibration_trees/L75n324/
+FileWithSnapList            /Users/adam/Genesis_calibration_trees/L75n324/alist.txt
+LastSnapShotNr                131
 
-Omega				0.25
-OmegaLambda			0.75
-BaryonFrac			0.17
-Hubble_h			0.73
+Omega                0.3121
+OmegaLambda            0.6879
+BaryonFrac            0.1573
+Hubble_h            0.6751
 
-PartMass			0.0860657
-BoxLen          62.5
+PartMass        0.107
+BoxLen          75.0
 
 
 %------------------------------------------
@@ -84,7 +87,7 @@ ExponentBin                 1.4     ; The factor in spec ang mom between bins
 
 %%%= TRUE FREE PARAMETERS =%%%
 RadiativeEfficiency         0.1     ; fraction of inertia lost by material accreted onto black holes. ~0.0572 for non-spinning BHs, ~0.321 for maximally spinning BHs
-GasSinkRate                 0.9    ; fraction of unstable gas that radially migrates rather than forming stars
+GasSinkRate                 0.7    ; fraction of unstable gas that radially migrates rather than forming stars
 %%%= ==================== =%%%
 
 

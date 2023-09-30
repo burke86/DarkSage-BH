@@ -130,6 +130,9 @@ void load_tree(int nr)
     HaloAux[i].DoneFlag = 0;
     HaloAux[i].HaloFlag = 0;
     HaloAux[i].NGalaxies = 0;
+    HaloAux[i].RootFound = 0;
+    HaloAux[i].RootIndex = -1;
+    HaloAux[i].FirstGalaxy = -1;
   }
 
 }

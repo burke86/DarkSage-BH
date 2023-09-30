@@ -34,11 +34,12 @@ def galdtype():
         ('HaloIndex'                    , np.int32),
         ('SimulationHaloIndex'          , np.int32),
         ('TreeIndex'                    , np.int32),
+        ('RootGalaxyIndex'              , np.int64),
         ('SnapNum'                      , np.int32),
         ('CentralGalaxyIndex'           , np.int64),
         ('CentralMvir'                  , floattype),
         ('mergeType'                    , np.int32),
-        ('mergeIntoID'                  , np.int32),
+        ('mergeIntoID'                  , np.int64),
         ('mergeIntoSnapNum'             , np.int32),
         ('dT'                           , floattype),
         ('Pos'                          , (floattype, 3)),
@@ -54,30 +55,47 @@ def galdtype():
         ('DiscRadii'                    , (floattype, Nannuli+1)),
         ('ColdGas'                      , floattype),
         ('StellarMass'                  , floattype),
+        ('StellarFormationMass'         , floattype),
         ('MergerBulgeMass'              , floattype),
         ('InstabilityBulgeMass'         , floattype),
+        ('StarsExSitu'                  , floattype),
         ('HotGas'                       , floattype),
         ('EjectedMass'                  , floattype),
+        ('LocalIGM'                     , floattype),
         ('BlackHoleMass'                , floattype),
         ('IntraClusterStars'            , floattype),
+        ('LocalIGS'                     , floattype),
         ('DiscGas'                      , (floattype, Nannuli)),
         ('DiscStars'                    , (floattype, Nannuli)),
+        ('VelDispStars'                 , (floattype, Nannuli)),
         ('SpinStars'                    , (floattype, 3)),
         ('SpinGas'                      , (floattype, 3)),
         ('SpinMergerBulge'              , (floattype, 3)),
-        ('StarsInSitu'                  , floattype),
+        ('StarsFromH2'                  , floattype),
         ('StarsInstability'             , floattype),
         ('StarsMergeBurst'              , floattype),
         ('DiscHI'                       , (floattype, Nannuli)),
         ('DiscH2'                       , (floattype, Nannuli)),
         ('DiscSFR'                      , (floattype, Nannuli)),
+        ('ICBHmass'                     , floattype),
+        ('ICBHnum'                      , np.int32),
+        ('LocalIGBHmass'                , floattype),
+        ('LocalIGBHnum'                 , np.int32),
+        ('VelDispInstabilityBulge'      , floattype),
+        ('VelDispMergerBulge'           , floattype),
+        ('HalfMassRadiusInstabilityBulge', floattype),
+        ('HalfMassRadiusMergerBulge',     floattype),
+        ('HalfMassRadiusIntraClusterStars', floattype),
         ('MetalsColdGas'                , floattype),
         ('MetalsStellarMass'            , floattype),
         ('MetalsMergerBulgeMass'        , floattype),
         ('MetalsInstabilityBulgeMass'   , floattype),
+        ('MetalsStarsExSitu'            , floattype),
         ('MetalsHotGas'                 , floattype),
         ('MetalsEjectedMass'            , floattype),
+        ('MetalsLocalIGM'               , floattype),
         ('MetalsIntraClusterStars'      , floattype),
+        ('MetalsLocalIGS'               , floattype),
         ('DiscGasMetals'                , (floattype, Nannuli)),
         ('DiscStarsMetals'              , (floattype, Nannuli)),
         ('SfrFromH2'                    , floattype),
@@ -88,11 +106,16 @@ def galdtype():
         ('MMWScaleRadius'               , floattype),
         ('CoolingScaleRadius'           , floattype),
         ('StellarDiscScaleRadius'       , floattype),
+        ('GasDiscScaleRadius'           , floattype),
+        ('RotSupportScaleRadius'        , floattype),
         ('Cooling'                      , floattype),
         ('Heating'                      , floattype),
         ('LastMajorMerger'              , floattype),
         ('LastMinorMerger'              , floattype),
-        ('OutflowRate'                  , floattype),
+        ('NumMajorMergers'              , np.int32),
+        ('NumMinorMergers'              , np.int32),
+        ('SNreheatRate'                 , floattype),
+        ('SNejectRate'                  , floattype),
         ('infallMvir'                   , floattype),
         ('infallVvir'                   , floattype),
         ('infallVmax'                   , floattype)
@@ -182,11 +205,10 @@ for field in halo_fields:
     if not success:
         print('\nUh oh! The Dark Sage output did not match what was expected!')
         print('The properties that don\'t match should not be affected by your compiler.')
-        print('This error was sprung by the property {0}, but is likely not limited to it.'.format(field))
+        print('This error was sprung by the property `{0}`, but is likely not limited to it.'.format(field))
         print('Please report this issue if you cannot find a fast solution.')
-        sys.exit(1)
+        break
 
-#== Travis test should pass if this point is reached ==#
 
 # Build a histogram of stellar masses as a sanity check
 fig = plt.figure()
@@ -205,6 +227,9 @@ plt.axis([mmin, mmax, 1, 1e3])
 plt.legend(loc='best', frameon=False)
 plt.savefig(SMfigname, bbox_inches='tight')
 
+if not success: sys.exit(1)
+#== Travis test should pass if this point is reached ==#
+
 # Compare galaxy properties from installed Dark Sage to fetched data
 great_success = True
 fields_to_check = np.array(G_out.dtype.names) # returns all fields
@@ -212,6 +237,7 @@ for field in halo_fields+['mergeType', 'mergeIntoID', 'mergeIntoSnapNum']: # red
     fields_to_check = np.delete(fields_to_check, np.where(fields_to_check==field)[0])
 for field in fields_to_check:
     cut = np.isfinite(G_test[field]) * (G_test[field]>0)
+    if len(cut[cut])==0: continue
     field_test, field_out = G_test[field][cut], G_out[field][cut]
     diff_abs = abs(field_out - field_test)
     diff_rel = diff_abs / field_test

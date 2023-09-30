@@ -47,6 +47,7 @@ double Omega;
 double OmegaLambda;
 double Hubble_h;
 double PartMass;
+double BoxLen;
 double EnergySNcode, EnergySN;
 double EtaSNcode, EtaSN;
 
@@ -64,6 +65,11 @@ int HotStripOn;
 int HeatedToCentral;
 int ReincorpotationModel;
 int CoolingExponentialRadiusOn;
+int MvirDefinition;
+int AgeStructOut;
+int DelayedFeedbackOn;
+int HotGasProfileType;
+int MergeTimeScaleForm;
 
 // binning information
 double FirstBin;
@@ -83,14 +89,16 @@ double FeedbackReheatingEpsilon;
 double FeedbackGasSigma;
 double FeedbackExponent;
 double FeedbackEjectionEfficiency;
+double FeedbackReheatCoupling;
+double FeedbackEjectCoupling;
 double RadioModeEfficiency;
 double QuasarModeEfficiency;
 double BlackHoleGrowthRate;
+double RadiativeEfficiency;
 double H2FractionFactor;
 double H2FractionExponent;
 double ClumpFactor;
 double ClumpExponent;
-double RadiusWeight;
 double QTotMin;
 double GasSinkRate;
 double ThetaThresh;
@@ -100,6 +108,8 @@ double Reionization_zr;
 double ThresholdSatDisruption;
 double AlphaBurst;
 double BetaBurst;
+double Ratio_Ia_II;
+double HalfBoxLen;
 
 // more misc 
 double UnitLength_in_cm,
@@ -108,7 +118,7 @@ double UnitLength_in_cm,
   UnitMass_in_g,
   RhoCrit,
   UnitPressure_in_cgs,
-  UnitDensity_in_cgs, UnitCoolingRate_in_cgs, UnitEnergy_in_cgs, UnitTime_in_Megayears, G, Hubble, a0, ar;
+  UnitDensity_in_cgs, UnitCoolingRate_in_cgs, UnitEnergy_in_cgs, UnitTime_in_Megayears, G, Hubble, a0, ar, P_0, uni_ion_term;
 
 int ListOutputSnaps[ABSOLUTEMAXSNAPS];
 

@@ -67,7 +67,8 @@ void bye()
 
 int main(int argc, char **argv)
 {
-    int filenr, tree, halonr, i;
+    int filenr, tree, halonr, i, k;
+    double k_float;
     struct sigaction current_XCPU;
     
     struct stat filestatus;
@@ -115,8 +116,62 @@ int main(int argc, char **argv)
     {
         DiscBinEdge[i] = FirstBin*(CM_PER_MPC/UnitLength_in_cm/1e3)/(UnitVelocity_in_cm_per_s/1e5) *pow(ExponentBin, i-1);
     }
+    
+    // Define age bins (in terms of look-back time) for stellar content
+    // Default bin edges match the simulation alist. Otherwise the alist will be interpolated
+    int LastSnap = ListOutputSnaps[NOUT-1];
+    if(N_AGE_BINS==LastSnap)
+    {
+        for(i=0; i<N_AGE_BINS+1; i++)
+            AgeBinEdge[i] = time_to_present(ZZ[LastSnap-i]);
+    }
+    else
+    {
+        double age_snap_ratio = (double)(LastSnap)/(double)N_AGE_BINS;
+        AgeBinEdge[0] = time_to_present(ZZ[LastSnap]);
+        for(i=1; i<N_AGE_BINS; i++)
+        {
+            k_float = (double)LastSnap - (double)i*age_snap_ratio;
+            k = (int)k_float;
+            AgeBinEdge[i] = time_to_present(ZZ[k]);
+        }
+        AgeBinEdge[N_AGE_BINS] = time_to_present(ZZ[0]);
+    }
+            
+    // Set counts for prograde and retrograde satellite collisions
     RetroCount = 0;
     ProCount = 0;
+    
+    // Determine the total returned mass fraction from a population of stars
+    double StellarOutput[2];
+    get_RecycleFraction_and_NumSNperMass(0, 1e20, StellarOutput); // arbitrarily large number for upper bound on time
+//    printf("FinalRecycleFraction, SNperMassFormed = %e, %e\n", StellarOutput[0], StellarOutput[1]);
+    if(DelayedFeedbackOn>0)
+        FinalRecycleFraction = 1.0*StellarOutput[0];
+    else
+        FinalRecycleFraction = 1.0 * RecycleFraction;
+    
+    // Used for SupernovaRecipeOn>3.  If DelayedFeedbackOn==1, this will be updated in core_build_model.c.  The value below assumes the instantaneous recycling (and therefore instantaneous feedback) approximation
+    SNperMassFormed = 1.0*StellarOutput[1];
+    
+    HalfBoxLen = 0.5 * BoxLen; // useful to have a field of half the box length for calculating galaxy--galaxy distances
+    
+    // conversion factors for percentage mass radii to exponential scale radii
+    DiscScalePercentConversion[0] = 1.0 / 0.531812;
+    DiscScalePercentConversion[1] = 1.0 / 0.824388;
+    DiscScalePercentConversion[2] = 1.0 / 1.09735;
+    DiscScalePercentConversion[3] = 1.0 / 1.37642;
+    DiscScalePercentConversion[4] = 1.0 / 1.67835;
+    DiscScalePercentConversion[5] = 1.0 / 2.02231;
+    DiscScalePercentConversion[6] = 1.0 / 2.43922;
+    DiscScalePercentConversion[7] = 1.0 / 2.99431;
+    DiscScalePercentConversion[8] = 1.0 / 3.88927;
+    
+    for(i=0; i<9; i++)
+        DiscScalePercentValues[i] = 0.1 * (i+1);
+    
+    
+    
 #ifdef MPI
     // A small delay so that processors don't use the same file
     //    printf("Small delay for processors\n");
@@ -181,8 +236,13 @@ int main(int argc, char **argv)
             NumGals = 0;
             GalaxyCounter = 0;
             for(halonr = 0; halonr < TreeNHalos[tree]; halonr++)
-            if(HaloAux[halonr].DoneFlag == 0)
-            construct_galaxies(halonr, tree);
+            {
+                if(HaloAux[halonr].DoneFlag == 0)
+                    construct_galaxies(halonr, tree);
+//                if(Halo[halonr].SnapNum == Snaplistlen-1)
+//                    assign_root_index(halonr);
+            }
+            
             
             save_galaxies(filenr, tree);
             free_galaxies_and_tree();

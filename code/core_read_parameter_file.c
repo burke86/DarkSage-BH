@@ -104,6 +104,10 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "Hubble_h");
   addr[nt] = &Hubble_h;
   id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "BoxLen");
+    addr[nt] = &BoxLen;
+    id[nt++] = DOUBLE;
 
   strcpy(tag[nt], "ReionizationOn");
   addr[nt] = &ReionizationOn;
@@ -145,13 +149,33 @@ void read_parameter_file(char *fname)
   addr[nt] = &HeatedToCentral;
   id[nt++] = INT;
     
-    strcpy(tag[nt], "ReincorpotationModel");
-    addr[nt] = &ReincorpotationModel;
-    id[nt++] = INT;
+  strcpy(tag[nt], "ReincorpotationModel");
+  addr[nt] = &ReincorpotationModel;
+  id[nt++] = INT;
 
-    strcpy(tag[nt], "CoolingExponentialRadiusOn");
-    addr[nt] = &CoolingExponentialRadiusOn;
-    id[nt++] = INT;
+  strcpy(tag[nt], "CoolingExponentialRadiusOn");
+  addr[nt] = &CoolingExponentialRadiusOn;
+  id[nt++] = INT;
+    
+  strcpy(tag[nt], "MvirDefinition");
+  addr[nt] = &MvirDefinition;
+  id[nt++] = INT;
+
+  strcpy(tag[nt], "AgeStructOut");
+  addr[nt] = &AgeStructOut;
+  id[nt++] = INT;
+
+  strcpy(tag[nt], "DelayedFeedbackOn");
+  addr[nt] = &DelayedFeedbackOn;
+  id[nt++] = INT;
+
+  strcpy(tag[nt], "HotGasProfileType");
+  addr[nt] = &HotGasProfileType;
+  id[nt++] = INT;
+
+  strcpy(tag[nt], "MergeTimeScaleForm");
+  addr[nt] = &MergeTimeScaleForm;
+  id[nt++] = INT;
     
   strcpy(tag[nt], "BaryonFrac");
   addr[nt] = &BaryonFrac;
@@ -205,10 +229,18 @@ void read_parameter_file(char *fname)
   addr[nt] = &FeedbackEjectionEfficiency;
   id[nt++] = DOUBLE;
 
-  strcpy(tag[nt], "BlackHoleGrowthRate");
-  addr[nt] = &BlackHoleGrowthRate;
-  id[nt++] = DOUBLE;
+    strcpy(tag[nt], "FeedbackReheatCoupling");
+    addr[nt] = &FeedbackReheatCoupling;
+    id[nt++] = DOUBLE;
 
+    strcpy(tag[nt], "FeedbackEjectCoupling");
+    addr[nt] = &FeedbackEjectCoupling;
+    id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "Ratio_Ia_II");
+    addr[nt] = &Ratio_Ia_II;
+    id[nt++] = DOUBLE;
+    
   strcpy(tag[nt], "RadioModeEfficiency");
   addr[nt] = &RadioModeEfficiency;
   id[nt++] = DOUBLE;
@@ -216,6 +248,14 @@ void read_parameter_file(char *fname)
   strcpy(tag[nt], "QuasarModeEfficiency");
   addr[nt] = &QuasarModeEfficiency;
   id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "BlackHoleGrowthRate");
+    addr[nt] = &BlackHoleGrowthRate;
+    id[nt++] = DOUBLE;
+    
+    strcpy(tag[nt], "RadiativeEfficiency");
+    addr[nt] = &RadiativeEfficiency;
+    id[nt++] = DOUBLE;
     
     strcpy(tag[nt], "H2FractionFactor");
     addr[nt] = &H2FractionFactor;
@@ -233,10 +273,6 @@ void read_parameter_file(char *fname)
     addr[nt] = &ClumpExponent;
     id[nt++] = DOUBLE;
     
-    strcpy(tag[nt], "RadiusWeight");
-    addr[nt] = &RadiusWeight;
-    id[nt++] = DOUBLE;
-    
     strcpy(tag[nt], "QTotMin");
     addr[nt] = &QTotMin;
     id[nt++] = DOUBLE;
@@ -244,7 +280,7 @@ void read_parameter_file(char *fname)
     strcpy(tag[nt], "GasSinkRate");
     addr[nt] = &GasSinkRate;
     id[nt++] = DOUBLE;
-
+    
     strcpy(tag[nt], "ThetaThresh");
     addr[nt] = &ThetaThresh;
     id[nt++] = DOUBLE;
