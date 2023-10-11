@@ -92,7 +92,7 @@ double DegPerTdyn;
 double Reionization_z0;
 double Reionization_zr;
 double ThresholdSatDisruption;
-double Ratio_Ia_II;
+//double Ratio_Ia_II;
 double HalfBoxLen;
 
 // more misc 

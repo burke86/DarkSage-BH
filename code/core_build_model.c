@@ -20,6 +20,14 @@ void construct_galaxies(int halonr, int tree)
 {
   static int halosdone = 0;
   int prog, fofhalo, ngal;
+    
+//    // soft fix in bug converting MTNG trees
+//    int j;
+//    for(j = 0; j < 3; j++)
+//    {
+//      Halo[halonr].Spin[j] *= (Hubble_h * 1e3);
+//    }
+
 
   HaloAux[halonr].DoneFlag = 1;
   halosdone++;

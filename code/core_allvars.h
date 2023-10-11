@@ -560,7 +560,7 @@ extern double DegPerTdyn;
 extern double Reionization_z0;
 extern double Reionization_zr;
 extern double ThresholdSatDisruption;
-extern double Ratio_Ia_II;
+double Ratio_Ia_II;
 
 extern double UnitLength_in_cm,
   UnitTime_in_s,
