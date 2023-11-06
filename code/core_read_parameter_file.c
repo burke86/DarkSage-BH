@@ -189,9 +189,9 @@ void read_parameter_file(char *fname)
   addr[nt] = &SfrEfficiency;
   id[nt++] = DOUBLE;
     
-    strcpy(tag[nt], "Ratio_Ia_II");
-    addr[nt] = &Ratio_Ia_II;
-    id[nt++] = DOUBLE;
+//    strcpy(tag[nt], "Ratio_Ia_II");
+//    addr[nt] = &Ratio_Ia_II;
+//    id[nt++] = DOUBLE;
     
   strcpy(tag[nt], "RadioModeEfficiency");
   addr[nt] = &RadioModeEfficiency;

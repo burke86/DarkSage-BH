@@ -119,7 +119,7 @@ int main(int argc, char **argv)
     
     // Define age bins (in terms of look-back time) for stellar content
     // Default bin edges match the simulation alist. Otherwise the alist will be interpolated
-    int LastSnap = ListOutputSnaps[NOUT-1];
+    int LastSnap = ListOutputSnaps[0];
     if(N_AGE_BINS==LastSnap)
     {
         for(i=0; i<N_AGE_BINS+1; i++)
@@ -285,6 +285,8 @@ int main(int argc, char **argv)
 //    UVMW_perSFRdensity = 96.21 * sqr(Hubble_h * 1e-3 * CM_PER_MPC / UnitLength_in_cm) / (SOLAR_MASS / UnitMass_in_g) * (SEC_PER_YEAR / UnitTime_in_s);
     UVMW_perSFRdensity = UVLW_arr[0] * 500.0;
     Sigma_R1_fac = 50.0 * (Hubble_h * SOLAR_MASS / UnitMass_in_g) / sqr(Hubble_h * 1e-6 * CM_PER_MPC / UnitLength_in_cm);
+    Ratio_Ia_II = 0.15;//-(EnergySN*1e-51 - 1.22)/ 0.53;
+//    int skip_tree = 0;
     
     
 #ifdef MPI
@@ -331,7 +333,25 @@ int main(int argc, char **argv)
         
         for(tree = 0; tree < Ntrees; tree++)
         {
-            
+   
+//            // check that the trees contain haloes worthy of science
+//            // skip those that aren't
+//            skip_tree = TRUE;
+//            for(halonr = 0; halonr < TreeNHalos[tree]; halonr++)
+//            {
+//                if(Halo[halonr].Len > 100)
+//                {
+//                    skip_tree = 0;
+//                    break;
+//                }
+//            }
+//            
+//            if(skip_tree)
+//            {
+//                printf("skipping tree, %i\n", tree);
+//                continue;
+//            }
+
             assert(!gotXCPU);
             
             if(tree % 10000 == 0)
