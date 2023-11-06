@@ -1,24 +1,24 @@
 #include "core_allvars.h"
 
 
-// galaxy data 
-struct GALAXY			
+// galaxy data
+struct GALAXY
   *Gal, *HaloGal;
 
 struct halo_data *Halo;
 
-// auxiliary halo data 
-struct halo_aux_data		
+// auxiliary halo data
+struct halo_aux_data
   *HaloAux;
 
 
-// misc 
+// misc
 int FirstFile;
 int LastFile;
 int MaxGals;
 int FoF_MaxGals;
-int Ntrees;			   // number of trees in current file 
-int NumGals;			 // Total number of galaxies stored for current tree 
+int Ntrees;			   // number of trees in current file
+int NumGals;			 // Total number of galaxies stored for current tree
 
 int GalaxyCounter; // unique galaxy ID for main progenitor line in tree
 
@@ -51,7 +51,7 @@ double BoxLen;
 double EnergySNcode, EnergySN;
 
 
-// recipe flags 
+// recipe flags
 int ReionizationOn;
 int SupernovaRecipeOn;
 int DiskInstabilityOn;
@@ -72,7 +72,7 @@ int MergeTimeScaleForm;
 double FirstBin;
 double ExponentBin;
 
-// recipe parameters 
+// recipe parameters
 double Yield;
 double CoolingScaleSlope;
 double CoolingScaleConst;
@@ -95,7 +95,7 @@ double ThresholdSatDisruption;
 //double Ratio_Ia_II;
 double HalfBoxLen;
 
-// more misc 
+// more misc
 double UnitLength_in_cm,
   UnitTime_in_s,
   UnitVelocity_in_cm_per_s,
@@ -125,3 +125,18 @@ size_t offset_auxdata, offset_treedata, offset_dbids;
 size_t offset_galaxydata, maxstorage_galaxydata, filled_galaxydata;
 size_t offset_galsnapdata[ABSOLUTEMAXSNAPS], maxstorage_galsnapdata[ABSOLUTEMAXSNAPS], filled_galsnapdata[ABSOLUTEMAXSNAPS];
 #endif
+
+double DiscBinEdge[N_BINS+1];
+double AgeBinEdge[N_AGE_BINS+1];
+int RetroCount, ProCount;
+double RecycleFraction;
+double FinalRecycleFraction;
+double SNperMassFormed;
+double HalfBoxLen;
+double DiscScalePercentConversion[9];
+double DiscScalePercentValues[9];
+double UVB_z[ABSOLUTEMAXSNAPS];
+double GammaHI_z[ABSOLUTEMAXSNAPS];
+double UVMW_perSFRdensity;
+double Sigma_R1_fac;
+double Ratio_Ia_II;
