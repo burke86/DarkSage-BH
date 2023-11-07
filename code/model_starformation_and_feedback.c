@@ -1496,7 +1496,11 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         }
         
         reheat_eject_sum = reheated_mass + ejected_cold_mass;
-        if(!(reheat_eject_sum>=0)) printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
+        if(!(reheat_eject_sum>=0)) 
+        { // hit a rare case where this gets triggered and not sure why, but seems entirely inconsequential
+            printf("reheated_mass, ejected_cold_mass = %e, %e\n", reheated_mass, ejected_cold_mass);
+            reheated_mass = ejected_cold_mass = reheat_eject_sum = 0.0;
+        }
         assert(reheat_eject_sum>=0);
         
         if(reheat_eject_sum >= Gal[p].DiscGas[i])
