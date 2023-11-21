@@ -18,13 +18,13 @@ warnings.filterwarnings("ignore")
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
 #indir = '/Users/adam/DarkSage/output/results/millennium/'
-indir = '/Users/adam/DarkSage_runs/MTNG_mini/13x/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/MTNG_mini/OzSTAR/31/' # directory where the Dark Sage data are
 #indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/56/'
 sim = 8 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2, 6 = TNG300-1, 7 = TNG100-2, 8 = MTNG_mini
 
 fpre = 'model_z0.000' # what is the prefix name of the z=0 files
-files = range(44) # list of file numbers you want to read
+files = range(5) # list of file numbers you want to read
 
 GAMA_dir = '/Users/adam/Documents/DarkSagePaper4/'
 
@@ -121,11 +121,11 @@ try:
     if SM_med < 8.5: ymax *= 10**(0.5*(8.5-SM_med))
 
     r.massfunction(SM, Lbox, range=[SM_med-0.1, 12.1], ls='--', ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p}\!\geq\!20$')
-    r.massfunction(SM[G['LenMax']>=100], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!100$')
-    r.massfunction((SM+ICS)[G['LenMax']>=100], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage} + ICS', c='grey', zo=0)
-    r.massfunction(SM[(BTT<=0.1)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ax=ax[0])
+    r.massfunction(SM[G['LenMax']>=200], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage}, $N_{\rm p,max}\!\geq\!200$')
+    r.massfunction((SM+ICS)[G['LenMax']>=200], Lbox, range=[SM_med-0.1, 12.1], ax=ax[0], label=r'{\sc Dark Sage} + ICS', c='grey', zo=0)
+    r.massfunction(SM[(BTT<=0.1)*(G['LenMax']>=200)], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ax=ax[0])
     r.massfunction(SM[BTT<=0.1], Lbox, range=[SM_med-0.1, 12.1], c='b', lw=1, ls='--', ax=ax[0])
-    r.massfunction(SM[(BTT>0.9)*(G['LenMax']>=100)], Lbox, range=[SM_med-0.1, 12.1], c='r', lw=1, ax=ax[0])
+    r.massfunction(SM[(BTT>0.9)*(G['LenMax']>=200)], Lbox, range=[SM_med-0.1, 12.1], c='r', lw=1, ax=ax[0])
     r.massfunction(SM[BTT>0.9], Lbox, range=[SM_med-0.1, 12], c='r', lw=1, ls='--', ax=ax[0])
 #    r.stellar_massfunction_obsdata(h, ax[0])
 #    SMF_bd, logM_bd = r.schechter(3.67e-3*(h/0.7)**3, 10**(10.74)/(h/0.7)**2, -0.525, logM=np.arange(SM_med-0.1, 12.1,0.1))
@@ -170,7 +170,7 @@ try:
     ax[1].plot(logM_J18, HIMF_J18, '-', color='chocolate', lw=6, alpha=0.4, label=r'Jones et al.~(2018)')
     ax[1].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.01, -0.01))
     r.massfunction(HIM, Lbox, range=[HIM_med-0.1, 11.5], ls='--', ax=ax[1])
-    r.massfunction(HIM[G['LenMax']>=100], Lbox, range=[HIM_med-0.1, 11.5], ax=ax[1])
+    r.massfunction(HIM[G['LenMax']>=200], Lbox, range=[HIM_med-0.1, 11.5], ax=ax[1])
     ax[1].set_xlabel(r'$\log_{10}(m_{\rm H\,{\LARGE {\textsc i}}}~[{\rm M}_{\odot}])$')
     ax[1].set_ylabel('')
 #    ax[1].set_xticks(np.arange(HIM_med-HIM_med%0.3+0.3,10.99,0.3))
@@ -186,7 +186,7 @@ try:
     r.HIH2_massfunction_obsdata(h=h, HI=False, H2=True, K=True, OR=False, B=True, ax=ax[2])
     ax[2].legend(loc='lower left', frameon=False, bbox_to_anchor=(-0.01, -0.01))
     r.massfunction(H2M, Lbox, range=[H2M_med-0.1, 11.5], ls='--', ax=ax[2])
-    r.massfunction(H2M[G['LenMax']>=100], Lbox, range=[H2M_med-0.1, 11.5], ax=ax[2])
+    r.massfunction(H2M[G['LenMax']>=200], Lbox, range=[H2M_med-0.1, 11.5], ax=ax[2])
     ax[2].set_xlabel(r'$\log_{10}(m_{\rm H_2}~[{\rm M}_{\odot}])$')
     ax[2].set_xlim(H2M_med, 10.8)
     ax[2].set_ylim(1e-6,ymax)
@@ -208,12 +208,12 @@ try:
     # HI fraction
     fig, ax = plt.subplots(2, 1, sharex=True)
     logM_B15, logHIfrac_B15, err = r.Brown_HI_fractions(h)
-    f = (SM>=10**8.93) * (G['LenMax']>=100)
+    f = (SM>=10**8.93) * (G['LenMax']>=200)
     bins, mean_SM, mean_HIfrac = r.meanbins(SM[f], (HIM/SM)[f], 10**logM_B15)
-    bins=10**np.arange(SM_med-0.1,12.1,0.1)
+    bins = 10**np.arange(SM_med-0.1,12.1,0.1)
     x_av, y_high, y_med, y_low, y_mean = r.percentiles(SM, HIM/SM, bins=bins, addMean=True, Nmin=Nmin)
     ax[0].plot(np.log10(x_av), np.log10(y_mean), 'k--', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p} \! \geq \! 20$')
-    x_av, y_high, y_med, y_low, y_mean = r.percentiles(SM[G['LenMax']>=100], (HIM/SM)[G['LenMax']>=100], bins=bins, addMean=True, Nmin=Nmin)
+    x_av, y_high, y_med, y_low, y_mean = r.percentiles(SM[G['LenMax']>=200], (HIM/SM)[G['LenMax']>=200], bins=bins, addMean=True, Nmin=Nmin)
     ax[0].plot(np.log10(x_av), np.log10(y_mean), 'k-', lw=2, label=r'{\sc Dark Sage}, $N_{\rm p,max} \! \geq \! 100$')
     ax[0].plot(logM_B15, logHIfrac_B15, 's', color='purple', ms=10, label=r'Brown et al.~(2015)', alpha=0.5, zorder=3)
     ax[0].plot(np.log10(mean_SM), np.log10(mean_HIfrac), 'k*', ms=10, label=r'{\sc Dark Sage}, matched bins', zorder=2)
@@ -230,7 +230,7 @@ try:
     ax[1].plot(np.log10(SM_mean), lOH_mid, 'k--', lw=3)
     ax[1].plot(np.log10(SM_mean), lOH_low, 'k--', lw=1.5)
     ax[1].plot(np.log10(SM_mean), lOH_high, 'k--', lw=1.5)
-    SM_mean, lOH_high, lOH_mid, lOH_low = r.percentiles(SM[G['LenMax']>=100], lOH[G['LenMax']>=100], bins=bins, Nmin=Nmin)
+    SM_mean, lOH_high, lOH_mid, lOH_low = r.percentiles(SM[G['LenMax']>=200], lOH[G['LenMax']>=200], bins=bins, Nmin=Nmin)
     ax[1].plot(np.log10(SM_mean), lOH_mid, 'k-', lw=3, label=r'{\sc Dark Sage} median')
     ax[1].plot(np.log10(SM_mean), lOH_low, 'k-', lw=1.5)
     ax[1].plot(np.log10(SM_mean), lOH_high, 'k-', lw=1.5, label=r'16$^{\rm th}$ \& 84$^{\rm th}$ \%iles')
@@ -276,10 +276,10 @@ try:
     plt.plot(np.log10(BM_mean), np.log10(BHM_mid), 'k--', lw=3, label=r'{\sc Dark Sage} median, $N_{\rm p}\!\geq\!20$')
     plt.plot(np.log10(BM_mean), np.log10(BHM_high), 'k--', lw=1.5)
     plt.plot(np.log10(BM_mean), np.log10(BHM_low), 'k--', lw=1.5)
-    BM_mean, BHM_high, BHM_mid, BHM_low, BHM_mean = r.percentiles(BM[G['LenMax']>=100], BHM[G['LenMax']>=100], bins=bins, addMean=True, Nmin=Nmin)
+    BM_mean, BHM_high, BHM_mid, BHM_low, BHM_mean = r.percentiles(BM[G['LenMax']>=200], BHM[G['LenMax']>=200], bins=bins, addMean=True, Nmin=Nmin)
     floor = 1
     BHM_low[BHM_low<=floor] = floor
-    plt.plot(np.log10(BM_mean), np.log10(BHM_mid), 'k-', lw=3, label=r'Median, $N_{\rm p,max}\!\geq\!100$')
+    plt.plot(np.log10(BM_mean), np.log10(BHM_mid), 'k-', lw=3, label=r'Median, $N_{\rm p,max}\!\geq\!200$')
     plt.plot(np.log10(BM_mean), np.log10(BHM_high), 'k-', lw=1.5)
     plt.plot(np.log10(BM_mean), np.log10(BHM_low), 'k-', lw=1.5, label=r'16$^{\rm th}$ \& 84$^{\rm th}$ \%iles')
     plt.xlabel(r'$\log_{10}(m_{\rm bulge}~[{\rm M}_{\odot}])$')
@@ -311,9 +311,9 @@ try:
     plt.plot(np.log10(Vmax_mid), np.log10(BaryM_mean), 'k--', lw=3, label=r'{\sc Dark Sage} median, $N_{\rm p}\!\geq\!20$')
     plt.plot(np.log10(Vmax_high), np.log10(BaryM_mean), 'k--', lw=1.5)
     plt.plot(np.log10(Vmax_low), np.log10(BaryM_mean), 'k--', lw=1.5)
-    filt = filt * (G['LenMax']>=100)
+    filt = filt * (G['LenMax']>=200)
     BaryM_mean, Vmax_high, Vmax_mid, Vmax_low, Vmax_mean  = r.percentiles(BaryM[filt], Vmax[filt],  bins=10**np.arange(BaryM_med-0.1,12,0.1), addMean=True, Nmin=Nmin)
-    plt.plot(np.log10(Vmax_mid), np.log10(BaryM_mean), 'k-', lw=3, label=r'{\sc Dark Sage} median, $N_{\rm p,max}\!\geq\!100$')
+    plt.plot(np.log10(Vmax_mid), np.log10(BaryM_mean), 'k-', lw=3, label=r'{\sc Dark Sage} median, $N_{\rm p,max}\!\geq\!200$')
     plt.plot(np.log10(Vmax_high), np.log10(BaryM_mean), 'k-', lw=1.5)
     plt.plot(np.log10(Vmax_low), np.log10(BaryM_mean), 'k-', lw=1.5, label=r'{\sc Dark Sage} 16$^{\rm th}$ \& 84$^{\rm th}$ \%iles')
     #
@@ -353,13 +353,13 @@ try:
         ax[0].plot(R_av[a,:], Sigma_HI[a,:], 'k.-', lw=1, alpha=0.2)
         ax[1].plot(R_av[a,:], Sigma_H2[a,:], 'k.-', lw=1, alpha=0.2)
     ax[0].plot([0,1], [0,1], 'k.-', lw=1, alpha=0.5, label=r'{\sc Dark Sage}') # legend
-    ax[0].set_yscale('log', nonposy='clip')
+    ax[0].set_yscale('log')#, nonposy='clip')
     ax[0].errorbar([0,0], [0,1], [1,1], ecolor='darkcyan', color='darkcyan', label=r'Leroy et al. (2008)')
     ax[0].set_ylabel(r'$\Sigma_{\rm H\,{\LARGE{\textsc i}}}$ [M$_{\bigodot}$ pc$^{-2}$]')
     ax[0].legend(loc='best', frameon=False)
     r.Leroygals(HI=True, HighVvir=True, LowVvir=True, ax=ax[0], h=h, c='darkcyan', alpha=0.8)
 
-    ax[1].set_yscale('log', nonposy='clip')
+    ax[1].set_yscale('log')#, nonposy='clip')
     ax[1].set_ylabel(r'$\Sigma_{\rm H_2}$ [M$_{\bigodot}$ pc$^{-2}$]')
     ax[1].set_xlabel(r'$r$ [kpc]')
     r.Leroygals(H2=True, HighVvir=True, LowVvir=True, ax=ax[1], h=h, c='darkcyan', alpha=0.8)

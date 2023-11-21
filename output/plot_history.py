@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 ###### USER NEEDS TO SET THESE THINGS ######
 #indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
 #indir = '/Users/adam/DarkSage/output/results/millennium/'
-indir = '/Users/adam/DarkSage_runs/MTNG_mini/13g/' # directory where the Dark Sage data are
+indir = '/Users/adam/DarkSage_runs/MTNG_mini/OzSTAR/31/' # directory where the Dark Sage data are
 #indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/56/'
 sim = 8 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2

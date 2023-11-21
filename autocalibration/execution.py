@@ -175,13 +175,15 @@ def run_darksage(particle, *args):
     
     # create/clear directory for temporary Dark Sage output
     spid = str(multiprocessing.current_process().pid)
-    modeldir = '/Users/adam/DarkSage/autocalibration/DS_output_'+spid+'/'
+#    modeldir = '/Users/adam/DarkSage/autocalibration/DS_output_'+spid+'/'
+    modeldir = '/fred/oz245/DarkSage_output/MTNG/autocalibration/02/DS_output_' + spid + '/'
     if not os.path.exists(modeldir): os.makedirs(modeldir)
     if os.path.isfile(modeldir+'model_z0.000_0'): subprocess.call(['rm', modeldir+'model*'])
 
     # copy template parameter file and edit accordingly
     slash = len(opts.config) - opts.config[::-1].find('/') - 1
-    temp_filename = '/Users/adam/DarkSage/autocalibration/' + opts.config[slash+1:-4] + '_' + spid + '_temp.par'
+#    temp_filename = '/Users/adam/DarkSage/autocalibration/' + opts.config[slash+1:-4] + '_' + spid + '_temp.par'
+    temp_filename = '/fred/oz245/DarkSage_output/MTNG/autocalibration/02/' + opts.config[slash+1:-4] + '_' + spid + '_temp.par'
     #
     f = open(opts.config).readlines()
     s = open(temp_filename, 'w')

@@ -3,10 +3,10 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir               /Users/adam/DarkSage_runs/MTNG_mini/13w/
+OutputDir               /Users/adam/DarkSage_runs/MTNG_mini/14b/
 
-FirstFile                   0
-LastFile                    43
+FirstFile                   14
+LastFile                    14
 
 
 %------------------------------------------
@@ -81,9 +81,9 @@ ExponentBin                 1.4     ; The factor in spec ang mom between bins
 
 
 %%%= TRUE FREE PARAMETERS =%%%
-RadiativeEfficiency          0.2
-GasSinkRate          0.95
-EnergySN          9e+50
+RadiativeEfficiency          0.288
+GasSinkRate          0.904
+EnergySN          8.21e+50
 %%%= ==================== =%%%
 
 

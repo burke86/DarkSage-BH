@@ -37,15 +37,15 @@ GyrToYr = 1e9
 
 #######################
 # Binning configuration
-mlow = 7
 mupp = 13
 dm = 0.125
+mlow = 8.02804937 - dm*10.5
 mbins = np.arange(mlow, mupp, dm)
 xmf = mbins + dm/2.0
 
-mlow2 = 8
 mupp2 = 12
 dm2 = 0.2
+mlow2 = 8.3285057 - dm2*10.5
 mbins2 = np.arange(mlow2,mupp2,dm2)
 xmf2 = mbins2 + dm2/2.0
 
@@ -321,25 +321,33 @@ class CSFRDH(Constraint):
     domain = (0, 14) # look-back time in Gyr
     
     def get_obs_x_y_err(self):
-        zmin, zmax, logSFRD, err1, err2, err3 = self.load_observation('Driver_SFRD.dat', cols=[1,2,3,5,6,7])
-        
+#        zmin, zmax, logSFRD, err1, err2, err3 = self.load_observation('Driver_SFRD.dat', cols=[1,2,3,5,6,7])
         my_cosmo = [100*h0, 0.0, Omega0, 1.0-Omega0]
         D18_cosmo = [70.0, 0., 0.3, 0.7]
+
+        D23_0, D23_1, D23_2, D23_3, D23_4, D23_5 = self.load_observation('CSFH_DSILVA+23_Ver_Final.csv', cols=[0,1,2,3,4,5])
+        D23 = np.column_stack((D23_0, D23_1, D23_2, D23_3, D23_4, D23_5))
+        z_D23 = D23[:,3]
+        tLB_D23 = np.array([r.z2tL(z, h0, Omega0,  1.0-Omega0) for z in z_D23])
+        CSFH_D23 = D23[:,0]
+        for i in range(len(z_D23)):
+            CSFH_D23[i] += np.log10( r.z2dA(z_D23[i], *my_cosmo) / r.z2dA(z_D23[i], *D18_cosmo) )*2 # adjust for assumed-cosmology influence on SFR calculations
+            CSFH_D23[i] += np.log10( (r.comoving_distance(D23[i,3]+D23[i,4], *D18_cosmo)**3 - r.comoving_distance(D23[i,3]-D23[i,5], *D18_cosmo)**3) / (r.comoving_distance(D23[i,3]+D23[i,4], *my_cosmo)**3 - r.comoving_distance(D23[i,3]-D23[i,5], *my_cosmo)**3) )# adjust for assumed-cosmology influence on comoving volume
+#        
+#        Np = len(logSFRD)
+#        x_obs = np.zeros(Np)
+#        y_obs = np.zeros(Np)
+#        for i in range(Np):
+#            z_av = 0.5*(zmin[i]+zmax[i])
+#            x_obs[i] = r.z2tL(z_av, h0, Omega0,  1.0-Omega0)
+#            y_obs[i] = logSFRD[i] + \
+#                        np.log10( pow(r.comoving_distance(zmax[i], *D18_cosmo), 3.0) - pow(r.comoving_distance(zmin[i], *D18_cosmo), 3.0) ) - \
+#                        np.log10( pow(r.comoving_distance(zmax[i], *my_cosmo), 3.0) - pow(r.comoving_distance(zmin[i], *my_cosmo), 3.0) ) + \
+#                        np.log10( r.z2dA(z_av, *my_cosmo) / r.z2dA(z_av, *D18_cosmo) ) * 2.0 # adjust for cosmology on comoving volume and luminosity of objects
+#            
+#        err_total = err1 + err2 + err3
         
-        Np = len(logSFRD)
-        x_obs = np.zeros(Np)
-        y_obs = np.zeros(Np)
-        for i in range(Np):
-            z_av = 0.5*(zmin[i]+zmax[i])
-            x_obs[i] = r.z2tL(z_av, h0, Omega0,  1.0-Omega0)
-            y_obs[i] = logSFRD[i] + \
-                        np.log10( pow(r.comoving_distance(zmax[i], *D18_cosmo), 3.0) - pow(r.comoving_distance(zmin[i], *D18_cosmo), 3.0) ) - \
-                        np.log10( pow(r.comoving_distance(zmax[i], *my_cosmo), 3.0) - pow(r.comoving_distance(zmin[i], *my_cosmo), 3.0) ) + \
-                        np.log10( r.z2dA(z_av, *my_cosmo) / r.z2dA(z_av, *D18_cosmo) ) * 2.0 # adjust for cosmology on comoving volume and luminosity of objects
-            
-        err_total = err1 + err2 + err3
-        
-        return x_obs, y_obs, err_total, err_total
+        return tLB_D23, CSFH_D23, D23[:,2], D23[:,1]
         
     def get_model_x_y(self, _, _2, TimeBinEdge, SFRD_Age):
         return 0.5*(TimeBinEdge[1:]+TimeBinEdge[:-1]), SFRD_Age

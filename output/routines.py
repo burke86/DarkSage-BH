@@ -2,7 +2,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import sys
+import os
 
 def galdtype_darksage(Nannuli=30,Nage=1):
     floattype = np.float32
@@ -126,16 +127,56 @@ def darksage_out_single(fname, fields=[], Nannuli=30, Nage=1):
     # fields is the list of fields you want to read in.  If empty, will read all fields.
     
     Galdesc = galdtype_darksage(Nannuli, Nage)
-    if len(fields)==0: fields=list(Galdesc.names)
     
     fin = open(fname, 'rb')  # Open the file
     Ntrees = np.fromfile(fin,np.dtype(np.int32),1)  # Read number of trees in file
     NtotGals = np.fromfile(fin,np.dtype(np.int32),1)[0]  # Read number of gals in file.
     GalsPerTree = np.fromfile(fin, np.dtype((np.int32, Ntrees)),1) # Read the number of gals in each tree
+    
+    # could have been a bug in the write out
+    if NtotGals==0:
+        print('NtotGals =', NtotGals)
+        print('GalsPerTree =', GalsPerTree)
+        size_read_sofar = sys.getsizeof(Ntrees) + sys.getsizeof(NtotGals) + sys.getsizeof(GalsPerTree)
+        file_size = os.stat(fname).st_size
+        G_overhead_size = sys.getsizeof(np.empty(0,dtype=Galdesc))
+        G_single_size = sys.getsizeof(np.empty(1,dtype=Galdesc)) - G_overhead_size
+        size_left_less_overhead = file_size - size_read_sofar - G_overhead_size
+        if size_left_less_overhead>0:
+            assert(size_left_less_overhead % G_single_size)
+            NtotGals = int(size_left_less_overhead / G_single_size)
+            if NtotGals>0:
+                print('NtotGals updated to', NtotGals, 'based on file size instead')
+        
     G = np.fromfile(fin, Galdesc, NtotGals) # Read all the galaxy data
-    G = G[fields]
     fin.close()
-    return G 
+    
+    if NtotGals==0:
+        print('Still no galaxies')
+        return G
+
+    if len(fields)==0:
+        return G
+    else:
+        # create smaller galdtype that only requires the limited number of fields
+        formats = []
+        for field in fields:
+            shape = G[field].shape
+            if len(shape)==1:
+                formats += [G[field].dtype]
+            elif len(shape)==2:
+                formats += [(G[field].dtype, shape[1])]
+            else:
+                formats += [(G[field].dtype, shape[1:])]
+        Galdesc_reduced = np.dtype({'names':fields, 'formats':formats}, align=True)
+        G_reduced = np.empty(NtotGals, dtype=Galdesc_reduced)
+        G_reduced[0:NtotGals] = G[fields]
+#        for field in fields: 
+#            G_reduced[field] = G[field]
+#            print(field, G[field], G_reduced[field])
+        return G_reduced
+    
+     
 
 
 def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
@@ -144,20 +185,60 @@ def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
     # filelist contains all the file numbers you want to read in
     
     Galdesc = galdtype_darksage(Nannuli, Nage)
-    if len(fields)==0: fields=list(Galdesc.names)
     NtotGalsSum = 0
+    Gempty = np.empty(0, dtype=Galdesc)
+
+    if len(fields)>0: 
+        formats = []
+        for field in fields:
+            shape = Gempty[field].shape
+            if len(shape)==1:
+                formats += [Gempty[field].dtype]
+            elif len(shape)==2:
+                formats += [(Gempty[field].dtype, shape[1])]
+            else:
+                formats += [(Gempty[field].dtype, shape[1:])]
+        Galdesc_reduced = np.dtype({'names':fields, 'formats':formats}, align=True)
+        Gempty = np.empty(0, dtype=Galdesc_reduced)
+
+    G_overhead_size = sys.getsizeof(Gempty)
     
     # First calculate the total number of galaxies that will fill the array
-    for i in filelist:
-        fin = open(fpre+'_'+str(i), 'rb')
+    bad_files = []
+    for j, i in enumerate(filelist):
+        try:
+            fin = open(fpre+'_'+str(i), 'rb')
+        except FileNotFoundError:
+            print('Could not find file', i, 'skipping...')
+            bad_files += [j]
+            continue
         Ntrees = np.fromfile(fin,np.dtype(np.int32),1)  # Read number of trees in file
         NtotGals = np.fromfile(fin,np.dtype(np.int32),1)[0]
+        
+#        # could have been a bug in the write out
+#        if NtotGals==0:
+#            GalsPerTree = np.fromfile(fin, np.dtype((np.int32, Ntrees)),1)
+#            size_read_sofar = sys.getsizeof(Ntrees) + sys.getsizeof(NtotGals) + sys.getsizeof(GalsPerTree)
+#            file_size = os.stat(fpre+'_'+str(i)).st_size
+#            G_single_size = sys.getsizeof(np.empty(1,dtype=Galdesc)) - G_overhead_size
+#            size_left_less_overhead = file_size - size_read_sofar - G_overhead_size
+#            if size_left_less_overhead>0:
+#                assert(size_left_less_overhead % G_single_size)
+#                NtotGals = int(size_left_less_overhead / G_single_size)
+#                print('found', NtotGals, 'when file', i, ' claimed to have 0')
+#            else:
+#                print(NtotGals, 'galaxies for file', i)
+        
         NtotGalsSum += NtotGals
         fin.close()
 
     print('NtotGalsSum =', NtotGalsSum)
-    G = np.empty(NtotGalsSum, dtype=Galdesc)[fields] # Intialise the galaxy array
+#    print()
+    print('Memory needed =', round((NtotGalsSum*(sys.getsizeof(np.empty(1,dtype=Gempty.dtype)) - G_overhead_size) + G_overhead_size) * 1e-9, 2), 'GB')
+    G = np.empty(NtotGalsSum, dtype=Gempty.dtype) # Intialise the galaxy array
     NtotGalsSum = 0 # reset for next loop
+
+    filelist = np.delete(filelist, bad_files)
 
     # Loop through files to fill in galaxy array
     for i in filelist:
@@ -168,12 +249,30 @@ def darksage_snap(fpre, filelist, fields=[], Nannuli=30, Nage=1):
         GalsPerTree = np.fromfile(fin, np.dtype((np.int32, Ntrees)),1) # Read the number of gals in each tree
         G1 = np.fromfile(fin, Galdesc, NtotGals) # Read all the galaxy data
         fin.close()
-        if not NtotGals == len(G1[fields[0]]):
-            print('Oddity in NtotGals in file', i)
+#        if not NtotGals == len(G1[fields[0]]):
+#            print('Oddity in NtotGals in file', i)
 #            print('Ntrees, NtotGals, NtotGalsSum, len(G1) = ', Ntrees, NtotGals, NtotGalsSum, len(G1[fields[0]]))
 #            print('GalsPerTree', GalsPerTree, '\n')
-        NtotGals = len(G1[fields[0]])
-        G[NtotGalsSum:NtotGalsSum+NtotGals] = G1[fields]
+#        NtotGals = len(G1[fields[0]])
+        if len(fields)>0:
+            G[NtotGalsSum:NtotGalsSum+NtotGals]  = G1[fields]
+#            for field in fields:
+#                Ndim = len(G1[field].shape)
+#                if Ndim==1:
+#                    G[field][NtotGalsSum:NtotGalsSum+NtotGals] = G1[field]
+#                elif Ndim==2:
+#                    print(field)
+#                    print(len(G1[field]))
+#                    print(NtotGalsSum, NtotGals)
+#                    print(G1[field])
+#                    G[field][NtotGalsSum:NtotGalsSum+NtotGals,:] = G1[field][:,:]
+#                elif Ndim==3:
+#                    G[field][NtotGalsSum:NtotGalsSum+NtotGals,:,:] = G1[field][:,:,:]
+#                else:
+#                    print('field', field, 'unexpectedly has', Ndim, 'dimensions')
+
+        else:
+            G[NtotGalsSum:NtotGalsSum+NtotGals] = G1
         NtotGalsSum += NtotGals
 
     return G
@@ -564,8 +663,10 @@ def BH_bulge_obs(h=0.678, ax=None):
     yerr2, yerr1 = np.log10(np.divide(M_BH_obs+M_BH_hi, M_BH_obs)), -np.log10(np.divide(M_BH_obs-M_BH_lo, M_BH_obs))
     xerr2, xerr1 = np.log10(np.divide(M_sph_obs+M_sph_hi, M_sph_obs)), -np.log10(np.divide(M_sph_obs-M_sph_lo, M_sph_obs))
     if ax is None: ax = plt.gca()
-    ax.errorbar(np.log10(M_sph_obs[core==1]), np.log10(M_BH_obs[core==1]), yerr=[yerr1[core==1],yerr2[core==1]], xerr=[xerr1[core==1],xerr2[core==1]], color='c', alpha=0.5, label=r'Scott et al.~(2013) S\`{e}rsic', ls='none', lw=2, ms=0)
-    ax.errorbar(np.log10(M_sph_obs[core==0]), np.log10(M_BH_obs[core==0]), yerr=[yerr1[core==0],yerr2[core==0]], xerr=[xerr1[core==0],xerr2[core==0]], color='purple', alpha=0.3, label=r'Core-S\`{e}rsic', ls='none', lw=2, ms=0)
+    ax.errorbar(np.log10(M_sph_obs), np.log10(M_BH_obs), yerr=[yerr1,yerr2], xerr=[xerr1,xerr2], color='#446329', ecolor='#6ec495', mec='#6ec495', marker='s', alpha=0.7, label=r'Scott et al.~(2013)', ls='none', lw=2, ms=12)
+    
+#    ax.errorbar(np.log10(M_sph_obs[core==1]), np.log10(M_BH_obs[core==1]), yerr=[yerr1[core==1],yerr2[core==1]], xerr=[xerr1[core==1],xerr2[core==1]], color='c', alpha=0.5, label=r'Scott et al.~(2013) S\`{e}rsic', ls='none', lw=2, ms=0)
+#    ax.errorbar(np.log10(M_sph_obs[core==0]), np.log10(M_BH_obs[core==0]), yerr=[yerr1[core==0],yerr2[core==0]], xerr=[xerr1[core==0],xerr2[core==0]], color='purple', alpha=0.3, label=r'Core-S\`{e}rsic', ls='none', lw=2, ms=0)
 
 
 

@@ -253,11 +253,31 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
     o->TypeMax = g->TypeMax;
     
   assert( g->GalaxyNr < TREE_MUL_FAC ); // breaking tree size assumption
-  assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
-  o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-  assert( (o->GalaxyIndex - g->GalaxyNr - TREE_MUL_FAC*tree)/FILENR_MUL_FAC == filenr );
-  assert( (o->GalaxyIndex - g->GalaxyNr -FILENR_MUL_FAC*filenr) / TREE_MUL_FAC == tree );
-  assert( o->GalaxyIndex - TREE_MUL_FAC*tree - FILENR_MUL_FAC*filenr == g->GalaxyNr );
+//  assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
+  if(tree < 10000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+  }
+  else if(tree < 20000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 10000000) + FILENR_MUL_FAC * (filenr + 100);
+  }
+  else if(tree < 30000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 20000000) + FILENR_MUL_FAC * (filenr + 200);
+  }
+  else if(tree < 40000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 30000000) + FILENR_MUL_FAC * (filenr + 300);
+  }
+  else
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 40000000) + FILENR_MUL_FAC * (filenr + 400);
+  }
+    
+//  assert( (o->GalaxyIndex - g->GalaxyNr - TREE_MUL_FAC*tree)/FILENR_MUL_FAC == filenr );
+//  assert( (o->GalaxyIndex - g->GalaxyNr -FILENR_MUL_FAC*filenr) / TREE_MUL_FAC == tree );
+//  assert( o->GalaxyIndex - TREE_MUL_FAC*tree - FILENR_MUL_FAC*filenr == g->GalaxyNr );
 
   o->CentralGalaxyIndex = HaloGal[HaloAux[Halo[g->HaloNr].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
 
@@ -438,12 +458,32 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   o->Type = g->Type;
     o->TypeMax = g->TypeMax;
 
-  assert( g->GalaxyNr < TREE_MUL_FAC ); // breaking tree size assumption
-  assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
-  o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-  assert( (o->GalaxyIndex - g->GalaxyNr - TREE_MUL_FAC*tree)/FILENR_MUL_FAC == filenr );
-  assert( (o->GalaxyIndex - g->GalaxyNr -FILENR_MUL_FAC*filenr) / TREE_MUL_FAC == tree );
-  assert( o->GalaxyIndex - TREE_MUL_FAC*tree - FILENR_MUL_FAC*filenr == g->GalaxyNr );
+    assert( g->GalaxyNr < TREE_MUL_FAC ); // breaking tree size assumption
+  //  assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
+    if(tree < 10000000)
+    {
+        o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+    }
+    else if(tree < 20000000)
+    {
+        o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 10000000) + FILENR_MUL_FAC * (filenr + 100);
+    }
+    else if(tree < 30000000)
+    {
+        o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 20000000) + FILENR_MUL_FAC * (filenr + 200);
+    }
+    else if(tree < 40000000)
+    {
+        o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 30000000) + FILENR_MUL_FAC * (filenr + 300);
+    }
+    else
+    {
+        o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 40000000) + FILENR_MUL_FAC * (filenr + 400);
+    }
+      
+  //  assert( (o->GalaxyIndex - g->GalaxyNr - TREE_MUL_FAC*tree)/FILENR_MUL_FAC == filenr );
+  //  assert( (o->GalaxyIndex - g->GalaxyNr -FILENR_MUL_FAC*filenr) / TREE_MUL_FAC == tree );
+  //  assert( o->GalaxyIndex - TREE_MUL_FAC*tree - FILENR_MUL_FAC*filenr == g->GalaxyNr );
     
   o->CentralGalaxyIndex = HaloGal[HaloAux[Halo[g->HaloNr].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
     
