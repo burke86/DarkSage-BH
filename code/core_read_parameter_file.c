@@ -287,7 +287,7 @@ void read_parameter_file(char *fname)
       }
       else
       {
-        printf("Error in file %s:   Tag '%s' not allowed or multiple defined.\n", fname, buf1);
+          printf("Error in file %s:   Tag '%s' not allowed or multiple defined (entire buffer = %s).\n", fname, buf1, buf);
         errorFlag = 1;
       }
     }
