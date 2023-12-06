@@ -44,7 +44,7 @@ void init(void)
 
 void set_units(void)
 {
-
+    // convert some physical input parameters to internal units 
   UnitTime_in_s = UnitLength_in_cm / UnitVelocity_in_cm_per_s;
   UnitTime_in_Megayears = UnitTime_in_s / SEC_PER_MEGAYEAR;
   G = GRAVITY / cube(UnitLength_in_cm) * UnitMass_in_g * sqr(UnitTime_in_s);
@@ -54,8 +54,6 @@ void set_units(void)
   UnitEnergy_in_cgs = UnitMass_in_g * sqr(UnitLength_in_cm) / sqr(UnitTime_in_s);
 
   EnergySNcode = EnergySN / UnitEnergy_in_cgs * Hubble_h;
-  EtaSNcode = EtaSN * (UnitMass_in_g / SOLAR_MASS) / Hubble_h;
-  // convert some physical input parameters to internal units 
   Hubble = HUBBLE * UnitTime_in_s;
 
   // compute a few quantitites 
@@ -65,8 +63,12 @@ void set_units(void)
   P_0 = 5.93e-12 / UnitMass_in_g * UnitLength_in_cm * UnitTime_in_s * UnitTime_in_s;
     
   // Constant used in calculating ionized fraction
-  uni_ion_term = 7.271e-17 * sqr(cube(UnitLength_in_cm) / (UnitMass_in_g * UnitTime_in_s) * Hubble_h);
-
+//  uni_ion_term = 3.3642e-18 * sqr(cube(UnitLength_in_cm) / (UnitMass_in_g * UnitTime_in_s * Hubble_h));
+//    uni_ion_term = 0.4995  / UnitMass_in_g * cube(UnitLength_in_cm / sqrt(UnitTime_in_s)) / sqrt(Hubble_h);
+    uni_ion_A = 2.827e20 * sqr(sqr(UnitMass_in_g)) / cube(cube(UnitLength_in_cm)) * pow(UnitTime_in_s, 5.0);
+    uni_ion_xi = 951.1 * sqr(UnitMass_in_g) / cube(UnitLength_in_cm) * cube(UnitTime_in_s) / sqr(Hubble_h);
+    uni_ion_hist = 0.24949 * sqr(cube(UnitLength_in_cm)) / (sqr(UnitMass_in_g) * cube(UnitTime_in_s)) / Hubble_h;
+    uni_fneut_bg = 2.351e-5  * sqr(cube(UnitLength_in_cm)) / (sqr(UnitMass_in_g) * cube(UnitTime_in_s)) / Hubble_h;
 }
 
 
@@ -111,7 +113,6 @@ double time_to_present(double z)
   gsl_function F;
   gsl_integration_workspace *workspace;
   double time, result, abserr;
-    size_t neval;
 
   workspace = gsl_integration_workspace_alloc(WORKSIZE);
   F.function = &integrand_time_to_present;    

@@ -3,10 +3,10 @@
 %------------------------------------------
 
 FileNameGalaxies       model
-OutputDir              /Users/adam/DarkSage_runs/MDPL/7_pressureH2
+OutputDir              /Users/adam/DarkSage_runs/MDPL/8_cali
 
-FirstFile                   0
-LastFile					7
+FirstFile                   77
+LastFile					77
 
 
 %------------------------------------------
@@ -67,21 +67,21 @@ ExponentBin                 1.4     ; The factor in spec ang mom between bins
 %----- Parameters of physical model -------
 %------------------------------------------
 
-SfrEfficiency               0.44
+SfrEfficiency               0.939
 
-FeedbackReheatingEpsilon    6.6
-FeedbackGasSigma            8.1     ; For SupernovaRecipeOn=1, scales SN feedback based on this density scale [h Msun/pc^2]
+FeedbackReheatingEpsilon    4.315
+FeedbackGasSigma            8.235     ; For SupernovaRecipeOn=1, scales SN feedback based on this density scale [h Msun/pc^2]
 FeedbackExponent            1.0    ; Exponent for scaled SN feedback (SupernovaRecipeOn=1)
-%FeedbackEjectionEfficiency  0.528
-FeedbackEjectionRatio      0.08 ; Ties the value of FeedbackEjectionEfficiency to FeedbackReheatingEpsilon
+%FeedbackEjectionEfficiency  0.384
+FeedbackEjectionRatio      0.089 ; Ties the value of FeedbackEjectionEfficiency to FeedbackReheatingEpsilon
 
 ReIncorporationFactor        0.15    ; For ReincorpotationModel=0
 
 CoolingScaleSlope           0.23    ; cf. eq. 18 of Stevens et al. (2017)
 CoolingScaleConst           1.0
 
-RadioModeEfficiency         0.015
-QuasarModeEfficiency        0.007
+RadioModeEfficiency         0.01145
+QuasarModeEfficiency        0.00178
 BlackHoleGrowthRate         0.6
 
 H2FractionFactor            1.0    ;Controls the normalisation of the H2/HI calculation if H2prescription=0. (1/h^2 for Fu+10)

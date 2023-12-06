@@ -9,52 +9,39 @@
 #include "core_proto.h"
 
 
-void check_disk_instability(int p, int centralgal, double dt, int step, double time)
+int check_disk_instability(int p, double dt, int step, double time, int k_now)
 {
 	// New treatment of instabilities based on the Toomre Q parameter
 	double Q_star, Q_gas, Q_gas_min, Q_star_min, Q_tot, W, Q_stable;
 	double unstable_gas, unstable_stars, metallicity, stars, stars_sum, gas_sink;
-    double r_inner, r_outer, r_av, Kappa, sigma_R, c_s;
-    double NewStars[N_BINS], NewStarsMetals[N_BINS], angle, DiscGasSum, DiscStarSum, SNgas[N_BINS];
-    double old_spin[3], cos_angle; //, SNgas_copy[N_BINS], SNgas_proj[N_BINS]
+    double r_inner, r_outer, Kappa, sigma_R, c_s;
+    double NewStars[N_BINS], NewStarsMetals[N_BINS], angle, DiscGasSum, DiscStarSum;
     double ann_frac, frac_down, frac_up, vel_disp_factor, vel_disp_factor_again, StarSinkRate;
 	int i, s, k;
     int first, first_gas, first_star;
+    int gas_instab_triggered = 0;
 	
-    double star_init = Gal[p].StellarMass;
     double unstable_stars_age[N_AGE_BINS], unstable_metals_age[N_AGE_BINS];
     
+    angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
+
     for(i=0; i<N_BINS; i++)
     {
-        metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
         assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
         NewStars[i] = 0.0;
         NewStarsMetals[i] = 0.0;
-        SNgas[i] = 0.0;
     }
-
-    int k_now = get_stellar_age_bin_index(time);
     
     DiscStarSum = get_disc_stars(p);
     DiscGasSum = get_disc_gas(p);
     check_channel_stars(p);
-    update_HI_H2(p);
+    update_HI_H2(p, time, k_now);
     
     if(DiscStarSum==0.0 && DiscGasSum==0.0)
-        return;
+        return gas_instab_triggered;
     
     c_s = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum]) / UnitVelocity_in_cm_per_s; // Speed of sound assumed for cold gas, now set to be the same as vel disp of gas (11 km/s @ z=0)
     
-    angle = acos(Gal[p].SpinStars[0]*Gal[p].SpinGas[0] + Gal[p].SpinStars[1]*Gal[p].SpinGas[1] + Gal[p].SpinStars[2]*Gal[p].SpinGas[2])*180.0/M_PI;
-    
-	for(i=0; i<N_BINS; i++)
-    {
-		metallicity = get_metallicity(Gal[p].DiscGas[i], Gal[p].DiscGasMetals[i]);
-		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
-        NewStars[i] = 0.0;
-        NewStarsMetals[i] = 0.0;
-        SNgas[i] = 0.0;
-    }
 	
 	// Deal with gaseous instabilities
 	stars_sum = 0.0;
@@ -70,7 +57,6 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 	{
         r_inner = Gal[p].DiscRadii[i];
         r_outer = Gal[p].DiscRadii[i+1];
-        r_av = sqrt((sqr(r_inner)+sqr(r_outer))/2.0);
         
         if(Gal[p].DiscGas[i]==0.0)
             continue;
@@ -102,7 +88,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 Q_gas_min = Q_stable;
             else if(Q_gas<Q_stable && Q_star>=Q_stable)
                 Q_gas_min = 1.0 / (1.0/QTotMin - W/Q_star);
-            else //if(Q_gas>=Q_stable && Q_star<Q_stable)
+            else
             {
                 Q_gas_min = QTotMin; // Somehow needed this to prevent triggering assert below, despite 'continue' on the next line
                 continue; // The stars' responsibility to sort out the instability
@@ -116,6 +102,8 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
         
 		if(Q_gas<Q_gas_min)
 		{
+            gas_instab_triggered = 1;
+            
             if(first==1)
                 Gal[p].TotInstabEvents += 1;
             
@@ -145,12 +133,8 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 }
                 assert(Gal[p].DiscGasMetals[i-1] <= Gal[p].DiscGas[i-1]);
                 
-                stars = deal_with_unstable_gas(unstable_gas, p, i, metallicity, centralgal, r_inner, r_outer);
+                stars = deal_with_unstable_gas(unstable_gas, p, i, metallicity);
                 assert(stars >= 0);
-                if(stars>=MIN_STARS_FOR_SN)
-                    SNgas[i] = RecycleFraction * stars;
-                else
-                    SNgas[i] = 0.0;
                 
                 stars_sum += stars;
                 Gal[p].DiscSFR[i] += stars / dt;
@@ -173,26 +157,11 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
                 NewStarsMetals[i] = 0.0;
             }
 		}
-        
-        if(SNgas[i]  >= Gal[p].DiscGas[i])
-        {
-            SNgas[i] = 1.0*Gal[p].DiscGas[i];
-            Q_gas = 1e5; // arbitrarily large
-        }
-        else
-        {
-            Q_gas = c_s * Kappa * (r_outer*r_outer - r_inner*r_inner) / (G * (Gal[p].DiscGas[i] - SNgas[i])); // can't guarantee that Q_gas will always be right if I only have DiscGas on the denominator here
-            if(!(Q_gas>0)) printf("c_s = %e, Kappa = %e, r_outer = %e, r_inner = %e, DiscGas = %e, stars = %e, Q_gas = %e\n", c_s, Kappa, r_outer, r_inner, Gal[p].DiscGas[i], NewStars[i] , Q_gas);
-            assert(Q_gas>0);
-            if(Q_gas < 0.99*Q_gas_min) printf("Q_gas final, min, Gal[p].DiscGas[i], stars = %e, %e, %e, %e\n", Q_gas, Q_gas_min, Gal[p].DiscGas[i], NewStars[i] );
-            assert(Q_gas >= 0.99*Q_gas_min);
-            assert(Q_gas >= 0.99*QTotMin);
-        }
-	}
+    }
 	
 	gas_sink += Gal[p].BlackHoleMass; // Because this was set as -BHMass at the start, this is actually the increase in BH mass from the instab.
 	if(gas_sink>0.0 && AGNrecipeOn > 0)
-		quasar_mode_wind(p, gas_sink, centralgal);
+		quasar_mode_wind(p, gas_sink);
 	
     
 	// Merge new-star disc with previous stellar disc
@@ -205,9 +174,7 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
             NewStarsSum += NewStars[i];
         }
 
-        for(i=0; i<3; i++) old_spin[i] = Gal[p].SpinStars[i];
 		combine_stellar_discs(p, NewStars, NewStarsMetals, time);
-        cos_angle = Gal[p].SpinStars[0]*old_spin[0] + Gal[p].SpinStars[1]*old_spin[1] + Gal[p].SpinStars[2]*old_spin[2];
         
 		Gal[p].SfrInstab[step] += stars_sum / dt;
         Gal[p].StarsInstability += NewStarsSum;
@@ -224,7 +191,6 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
 
         r_inner = Gal[p].DiscRadii[i];
         r_outer = Gal[p].DiscRadii[i+1];
-        r_av = sqrt((sqr(r_inner)+sqr(r_outer))/2.0);
         
         if(i>0)
             Kappa = sqrt(2.0*DiscBinEdge[i]/cube(r_inner) * (DiscBinEdge[i+1]-DiscBinEdge[i])/(r_outer-r_inner));
@@ -505,12 +471,14 @@ void check_disk_instability(int p, int centralgal, double dt, int step, double t
     
     update_stellardisc_scaleradius(p);
     
+    return gas_instab_triggered;
+    
 }
 
-double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallicity, int centralgal, double r_inner, double r_outer)
+double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallicity)
 {
 	double gas_sink, gas_sf;
-	double stars, reheated_mass, ejected_mass, Sigma_0gas, fac, area;
+	double stars, reheated_mass;
     double metallicity_new;
 	
     if(unstable_gas > Gal[p].DiscGas[i])
@@ -520,33 +488,12 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
     double feedback_mass[4]; 
     
     // these 2 terms only used when SupernovaRecipeOn>=3
-    double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
+    double hot_specific_energy, hot_thermal_and_kinetic, j_hot, ejected_cold_mass;
     
-    if(!(Gal[p].DiscGasMetals[i-1] <= Gal[p].DiscGas[i-1]))
-    {
-        printf("unstable_gas = %e\n", unstable_gas);
-        printf("metallicity = %e\n", metallicity);
-        printf("p, i, Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1] = %i, %i, %e, %e\n", p, i, Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1]);
-    }
-    assert(Gal[p].DiscGasMetals[i-1] <= Gal[p].DiscGas[i-1]);
+    j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
+    hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
     
-    if(HeatedToCentral>0)
-    {
-        satellite_specific_energy = get_satellite_potential(p, centralgal);
-        j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
-        hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-    }
-    else
-    {
-        satellite_specific_energy = 0.0;
-        j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
-        hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
-    }
-    ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-
-  
 	// Let gas sink -- one may well want to change this formula
     gas_sink = GasSinkRate * unstable_gas;
     if(!(gas_sink<=unstable_gas && gas_sink >=0.0)) printf("gas_sink, unstable_gas = %e, %e\n", gas_sink, unstable_gas);
@@ -586,12 +533,6 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
             m_down = m_up * j_gain / j_lose;
             Gal[p].DiscGas[i-1] += m_down;
             Gal[p].DiscGasMetals[i-1] += metallicity * m_down;
-            if(!(Gal[p].DiscGasMetals[i-1] <= Gal[p].DiscGas[i-1]))
-            {
-                printf("gas_sink, m_down, m_up = %e, %e, %e\n", gas_sink, m_down, m_up);
-                printf("metallicity, metallicity*m_down = %e, %e\n", metallicity, metallicity*m_down);
-                printf("p, i, Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1] = %i, %i, %e, %e\n", p, i, Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1]);
-            }
             assert(Gal[p].DiscGasMetals[i-1] <= Gal[p].DiscGas[i-1]);
         }
         
@@ -605,10 +546,8 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
 	stars = unstable_gas - gas_sink;
 	if(Gal[p].DiscGas[i] > 0.0 && stars > 0.0) // Quasar feedback could blow out the unstable gas
 	{
-        area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-        calculate_feedback_masses(p, stars, i, centralgal, area, gas_sf, hot_specific_energy, ejected_specific_energy, feedback_mass);
+        calculate_feedback_masses(p, stars, i, gas_sf, hot_specific_energy, feedback_mass);
         reheated_mass = feedback_mass[0];
-        ejected_mass = feedback_mass[1];
         stars = feedback_mass[2];
         ejected_cold_mass = feedback_mass[3];
         
@@ -631,8 +570,9 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
 		assert(Gal[p].DiscGasMetals[i] <= Gal[p].DiscGas[i]);
 
         assert(Gal[p].MetalsHotGas>=0);
-	    update_from_feedback(p, centralgal, reheated_mass, metallicity_new, i, ejected_cold_mass);
-        update_from_ejection(p, centralgal, ejected_mass);
+        assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
+        assert(Gal[p].OutflowGas >= 0.0);
+	    update_from_feedback(p, reheated_mass, metallicity_new, i, ejected_cold_mass);
 
 	}
     
@@ -705,13 +645,12 @@ void precess_gas(int p, double dt)
             for(i=0; i<3; i++) Gal[p].SpinGas[i] = -StarSpin[i];
         else
         {
-            double axis[3], axis_mag;
+            double axis[3];
             axis[0] = Gal[p].SpinGas[1]*StarSpin[2] - Gal[p].SpinGas[2]*StarSpin[1];
             axis[1] = Gal[p].SpinGas[2]*StarSpin[0] - Gal[p].SpinGas[0]*StarSpin[2];
             axis[2] = Gal[p].SpinGas[0]*StarSpin[1] - Gal[p].SpinGas[1]*StarSpin[0];
             if(cos_angle_gas_stars < 0.0)
                 for(i=0; i<3; i++) axis[i] *= -1.0;
-            axis_mag = sqrt(sqr(axis[0])+sqr(axis[1])+sqr(axis[2]));
             rotate(Gal[p].SpinGas, axis, acos(cos_angle_precess));
         }
         

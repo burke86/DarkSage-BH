@@ -10,7 +10,7 @@
 
 
 
-double estimate_merging_time(int halonr, int gal, int centralgal)
+double estimate_merging_time(int gal, int centralgal)
 {
   double coulomb, mergtime, SatelliteMass, SatelliteRadius;
   int i;
@@ -76,14 +76,11 @@ double estimate_merging_time(int halonr, int gal, int centralgal)
 
 
 
-void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, double time, double dt, int step)
+void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, double time, double dt, int step, int k_now)
 {
-  double mi, ma, mass_ratio, stars, metallicity;
+    double mi, ma, mass_ratio;//, metallicity=BIG_BANG_METALLICITY;
   double disc_mass_ratio[N_BINS], PostRetroGas[N_BINS];
-  int i, k_now;
-  
-  // Determine which age bin new stars should be put into
-  k_now = get_stellar_age_bin_index(time);
+    int i;
     
   for(i=0; i<N_BINS; i++)
     disc_mass_ratio[i] = 0.0;
@@ -112,67 +109,34 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 	printf("Had to correct mass_ratio < 0.0");
   }
     
-  double gas_mass_ratio = 0.0;
-  double const g_min = dmin(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
-  double const g_max = dmax(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
-  if(g_max>0) 
-    gas_mass_ratio = g_min/g_max;
-
-    
-    for(i=0; i<N_BINS; i++)
-    {
-        metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-        assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-    }
-    
   add_galaxies_together(merger_centralgal, p, centralgal, k_now, mass_ratio, disc_mass_ratio, PostRetroGas);
-    
-    for(i=0; i<N_BINS; i++)
-    {
-        metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-        assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-    }
-  
-  for(i=0; i<N_BINS; i++) assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
-
-  if(BetaBurst>0.0) // deprecated for new default model
-    collisional_starburst_recipe(disc_mass_ratio, merger_centralgal, centralgal, dt, 0, step, k_now);
-
-  if(BlackHoleGrowthRate>0.0) // deprecated for new default model
+      
+  // If galaxy collision was retrograde, remove artifically added angular momentum from the disc by shrinking it
+  double J_current = 0.0;
+  double J_shouldhave = 0.0;
+  double j_av;
+  for(i=N_BINS-1; i>=0; i--)
   {
-      double BHaccrete = grow_black_hole(merger_centralgal, disc_mass_ratio);
-      if(AGNrecipeOn>0)
-        quasar_mode_wind(p, BHaccrete, centralgal);
+    j_av = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]);
+    J_current = j_av * Gal[merger_centralgal].DiscGas[i];
+    J_shouldhave = j_av * PostRetroGas[i];
   }
     
-    // If galaxy collision was retrograde, remove artifically added angular momentum from the disc by shrinking it
-    double J_current = 0.0;
-    double J_shouldhave = 0.0;
-    double j_av;
+  // safety net 1% -- don't bother reducing disc if AM difference is so small
+  if(J_shouldhave < 0.99*J_current)
+  {
+    double NewGasDisc[N_BINS];
+    double NewGasDiscMetals[N_BINS];
+    
+    project_disc(Gal[p].DiscGas, J_shouldhave/J_current, p, NewGasDisc);
+    project_disc(Gal[p].DiscGasMetals, J_shouldhave/J_current, p, NewGasDiscMetals);
+    
     for(i=N_BINS-1; i>=0; i--)
     {
-        j_av = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]);
-        J_current = j_av * Gal[merger_centralgal].DiscGas[i];
-        J_shouldhave = j_av * PostRetroGas[i];
+        Gal[p].DiscGas[i] = NewGasDisc[i];
+        Gal[p].DiscGasMetals[i] = NewGasDiscMetals[i];
     }
-    
-    // safety net 1% -- don't bother reducing disc if AM difference is so small
-    if(J_shouldhave < 0.99*J_current)
-    {
-        double NewGasDisc[N_BINS];
-        double NewGasDiscMetals[N_BINS];
-        
-        project_disc(Gal[p].DiscGas, J_shouldhave/J_current, p, NewGasDisc);
-        project_disc(Gal[p].DiscGasMetals, J_shouldhave/J_current, p, NewGasDiscMetals);
-        
-        for(i=N_BINS-1; i>=0; i--)
-        {
-            Gal[p].DiscGas[i] = NewGasDisc[i];
-            Gal[p].DiscGasMetals[i] = NewGasDiscMetals[i];
-            metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-            assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-        }
-    }
+  }
     
     
     
@@ -182,23 +146,7 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
     stars_to_bulge(merger_centralgal, k_now);
     Gal[merger_centralgal].LastMajorMerger = time;
     Gal[merger_centralgal].NumMajorMergers += 1;
-    Gal[p].mergeType = 2;  // Mark as major merger
-      
-//    if(BetaBurst<=0)
-//    {
-//      for(i=N_BINS-1; i>=0; i--)
-//      {
-//          if(!(Gal[merger_centralgal].DiscGasMetals[i-1] <= Gal[merger_centralgal].DiscGas[i-1]))
-//          {
-//              printf("unstable_gas = %e\n", gas_mass_ratio*Gal[merger_centralgal].DiscGas[i]);
-//              printf("metallicity = %e\n", get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]));
-//              printf("p, i, Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1] = %i, %i, %e, %e\n", merger_centralgal, i, Gal[merger_centralgal].DiscGasMetals[i-1], Gal[merger_centralgal].DiscGas[i-1]);
-//          }
-//          assert(Gal[p].DiscGasMetals[i-1] <= Gal[p].DiscGas[i-1]);
-//          
-//          stars = deal_with_unstable_gas(gas_mass_ratio*Gal[merger_centralgal].DiscGas[i], merger_centralgal, i, get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]), merger_centralgal, Gal[merger_centralgal].DiscRadii[i], Gal[merger_centralgal].DiscRadii[i+1]);
-//      }
-//    }
+    Gal[p].mergeType = 2;  // Mark as major merger      
   }
   else
   {
@@ -211,15 +159,10 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 
 
     
-    
   if(DiskInstabilityOn>0)
   {
-      for(i=0; i<N_BINS; i++)
-      {
-          metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-          assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-      }
-  	check_disk_instability(merger_centralgal, centralgal, dt, step, time);
+    int gas_instab = check_disk_instability(merger_centralgal, dt, step, time, k_now);
+    assert(gas_instab==0 || gas_instab==1);
   }
   else
     update_stellardisc_scaleradius(p); // will already be done within check_disk_instability otherwise
@@ -227,82 +170,37 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 
 
 
-double grow_black_hole(int merger_centralgal, double* disc_mass_ratio)
-{
-  double BHaccrete, BHaccrete_tot, metallicity;//, accrete_ratio, DiscGasSum;
-  int i;
-
-  BHaccrete_tot = 0.0;
-
-  for(i=0; i<N_BINS; i++)
-  {
-	if(Gal[merger_centralgal].DiscGas[i] > 0.0)
-	{
-		BHaccrete = BlackHoleGrowthRate * disc_mass_ratio[i] / (1.0 + sqr(280.0 / Gal[merger_centralgal].Vvir)) * Gal[merger_centralgal].DiscGas[i];
-		assert(disc_mass_ratio[i]<=1.0);
-        assert(BHaccrete>=0.0);
-		if(BHaccrete > Gal[merger_centralgal].DiscGas[i]) // This could only be possible if BlackHoleGrowthRate is set to >1.0, which shouldn't happen...
-		{
-			BHaccrete_tot += Gal[merger_centralgal].DiscGas[i];
-			Gal[merger_centralgal].ColdGas -= Gal[merger_centralgal].DiscGas[i];
-			Gal[merger_centralgal].MetalsColdGas -= Gal[merger_centralgal].DiscGasMetals[i];
-			Gal[merger_centralgal].DiscGas[i] = 0.0;
-			Gal[merger_centralgal].DiscGasMetals[i] = 0.0;
-		}
-		else
-		{
-			BHaccrete_tot += BHaccrete;
-			metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-			Gal[merger_centralgal].DiscGas[i] -= BHaccrete;
-			Gal[merger_centralgal].DiscGasMetals[i] -= BHaccrete * metallicity;
-			if(Gal[merger_centralgal].DiscGasMetals[i]<0.0) Gal[merger_centralgal].DiscGasMetals[i] = 0.0;
-			Gal[merger_centralgal].ColdGas -= BHaccrete;
-			Gal[merger_centralgal].MetalsColdGas -= BHaccrete * metallicity;
-			
-		}
-	}
-  }
-
-  Gal[merger_centralgal].BlackHoleMass += ((1.0 - RadiativeEfficiency) * BHaccrete_tot); // the intertial mass lost by that accreted is not captured by the BH
-    assert(Gal[merger_centralgal].BlackHoleMass>=0.0);
-  return BHaccrete_tot;
-}
-
-
-
-void quasar_mode_wind(int p, float BHaccrete, int centralgal)
+void quasar_mode_wind(int p, float BHaccrete)
 { // I should probably out through the centralgal ID here
-    double quasar_energy, cold_gas_energy, hot_gas_energy, DiscGasSum, cold_gas_energy_tot;
-    double annulus_radius, annulus_velocity, cold_specific_energy, ejected_specific_energy, satellite_specific_energy, j_hot, hot_thermal_and_kinetic, hot_specific_energy, ejected_mass, ejected_metals, Delta_specific_energy, vertical_velocity;
+    double quasar_energy, DiscGasSum;
+    double annulus_radius, annulus_velocity, cold_specific_energy, ejected_specific_energy, j_hot, hot_thermal_and_kinetic, hot_specific_energy, ejected_mass, ejected_metals, Delta_specific_energy, vertical_velocity;
     int k;
 
-    // checks -- are these still necessary?
-    check_ejected(p);
-    assert(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass); // Really should be centralgal I'm considering...
-    DiscGasSum = get_disc_gas(p);
-    assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
-
     // work out total energy in quasar wind (eta*m*c^2)
-    quasar_energy = QuasarModeEfficiency * RadiativeEfficiency * BHaccrete * sqr(C / UnitVelocity_in_cm_per_s);
+    quasar_energy = RadiativeEfficiency * BHaccrete * sqr(C / UnitVelocity_in_cm_per_s);
 
     // specific energy of hot and ejected reservoirs
     j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
     hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
     hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic; // only interested in the hot reservoir of the galaxy that has the feedback for this prescription.  No gas is being heated into it, only potentially ejected out of it.
 
-    if(HeatedToCentral>0)
+
+    j_hot = 2 * Gal[p].Vvir * Gal[p].CoolScaleRadius;
+    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[p].Vvir) + sqr(j_hot)/Gal[p].R2_hot_av);
+    hot_specific_energy = Gal[p].HotGasPotential + hot_thermal_and_kinetic;
+    
+
+    
+    if(Gal[p].OutflowGas > 0.0)
     {
-        satellite_specific_energy = get_satellite_potential(p, centralgal);
-        j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-        hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
-        hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-        ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
+        ejected_specific_energy = dmax(Gal[p].OutflowSpecificEnergy, Gal[p].EjectedPotential + hot_thermal_and_kinetic);
     }
     else
     {
-        ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
+        ejected_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic; // don't want an initialised value of 0 to mess things up
     }
-  
+
+
 	for(k=0; k<N_BINS; k++)
 	{
         if(Gal[p].DiscGas[k]==0.0) continue;
@@ -321,21 +219,14 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
             ejected_mass = Gal[p].DiscGas[k]; // if the ejected reservoir is a lower energy state, then there should be no problem ejecting all the gas.
         }
         
-        if(ejected_mass>=Gal[p].DiscGas[k]) 
+        if(ejected_mass >= Gal[p].DiscGas[k]) 
         {
-            if(HeatedToCentral)
-            {
-                if(ReincorpotationModel>=3) update_reincorporation_time(centralgal, Gal[p].DiscGas[k]);
-                Gal[centralgal].EjectedMass += Gal[p].DiscGas[k];
-                Gal[centralgal].MetalsEjectedMass += Gal[p].DiscGasMetals[k];
-            }
-            else
-            {
-                if(ReincorpotationModel>=3) update_reincorporation_time(p, Gal[p].DiscGas[k]);
-                Gal[p].EjectedMass += Gal[p].DiscGas[k];
-                Gal[p].MetalsEjectedMass += Gal[p].DiscGasMetals[k];
-            }
-            
+            update_outflow_time(p, Gal[p].DiscGas[k], ejected_specific_energy);
+            Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + Gal[p].DiscGas[k] * ejected_specific_energy) / (Gal[p].OutflowGas + Gal[p].DiscGas[k]);
+            Gal[p].OutflowGas += Gal[p].DiscGas[k];
+            assert(Gal[p].OutflowGas >= 0.0);
+            Gal[p].MetalsOutflowGas += Gal[p].DiscGasMetals[k];
+                        
             if(k<N_BINS-1)
             {
                 Gal[p].ColdGas -= Gal[p].DiscGas[k];
@@ -351,22 +242,15 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
             Gal[p].DiscGas[k] = 0.0;
             Gal[p].DiscGasMetals[k] = 0.0;
         }
-        else
+        else if(ejected_mass >= 0.0)
         {
-            ejected_metals = ejected_mass * Gal[p].DiscGasMetals[k] / Gal[p].DiscGas[k];
-            
-            if(HeatedToCentral)
-            {
-                if(ReincorpotationModel>=3) update_reincorporation_time(centralgal, ejected_mass);
-                Gal[centralgal].EjectedMass += ejected_mass;
-                Gal[centralgal].MetalsEjectedMass += ejected_metals;
-            }
-            else
-            {
-                if(ReincorpotationModel>=3) update_reincorporation_time(p, ejected_mass);
-                Gal[p].EjectedMass += ejected_mass;
-                Gal[p].MetalsEjectedMass += ejected_metals;
-            }
+            ejected_metals = ejected_mass * get_metallicity(Gal[p].DiscGas[k], Gal[p].DiscGasMetals[k]);
+            assert(Gal[p].OutflowGas + ejected_mass >= 0.0);
+            update_outflow_time(p, ejected_mass, ejected_specific_energy);
+            Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_mass * ejected_specific_energy) / (Gal[p].OutflowGas + ejected_mass);
+            Gal[p].OutflowGas += ejected_mass;
+            assert(Gal[p].OutflowGas >= 0.0);
+            Gal[p].MetalsOutflowGas += ejected_metals;
             
             Gal[p].ColdGas -= ejected_mass;
             Gal[p].MetalsColdGas -= ejected_metals;
@@ -376,57 +260,26 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
             break;
         }
             
-
-	DiscGasSum = get_disc_gas(p);
-	assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
-	
+        DiscGasSum = get_disc_gas(p);
+        assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
     }
 
-     
     // any remaining energy now used to eject the hot gas
     Delta_specific_energy = ejected_specific_energy - hot_specific_energy;
-    if(Delta_specific_energy>0)
-        ejected_mass = quasar_energy / Delta_specific_energy;
-
-
-    if(ejected_mass>=Gal[p].HotGas || Delta_specific_energy<=0)
-    { // eject the entire hot reservoir
-        if(HeatedToCentral)
-        {
-            if(ReincorpotationModel>=3) update_reincorporation_time(centralgal, Gal[p].HotGas);
-            Gal[centralgal].EjectedMass += Gal[p].HotGas;
-            Gal[centralgal].MetalsEjectedMass += Gal[p].MetalsHotGas;
-        }
-        else
-        {
-            if(ReincorpotationModel>=3) update_reincorporation_time(p, Gal[p].HotGas);
-            Gal[p].EjectedMass += Gal[p].HotGas;
-            Gal[p].MetalsEjectedMass += Gal[p].MetalsHotGas;
-        }
-     
-        Gal[p].HotGas = 0.0;
-        Gal[p].MetalsHotGas = 0.0;
-    }
-    else if(ejected_mass>0 && Gal[p].HotGas>0)
+    
+    if(!(Delta_specific_energy > 0))
     {
-        ejected_metals = ejected_mass * Gal[p].MetalsHotGas / Gal[p].HotGas;
-        
-        if(HeatedToCentral)
-        {
-            if(ReincorpotationModel>=3) update_reincorporation_time(centralgal, ejected_mass);
-            Gal[centralgal].EjectedMass += ejected_mass;
-            Gal[centralgal].MetalsEjectedMass += ejected_metals;
-        }
-        else
-        {
-            if(ReincorpotationModel>=3) update_reincorporation_time(p, ejected_mass);
-            Gal[p].EjectedMass += ejected_mass;
-            Gal[p].MetalsEjectedMass += ejected_metals;
-        }
-        
-        Gal[p].HotGas -= ejected_mass;
-        Gal[p].MetalsHotGas -= ejected_metals;
-
+        printf("ejected_specific_energy, hot_specific_energy = %e, %e\n", ejected_specific_energy, hot_specific_energy);
+    }
+    
+    assert(Delta_specific_energy > 0);
+    ejected_mass = dmin(quasar_energy / Delta_specific_energy, Gal[p].FountainGas + Gal[p].HotGas);
+    
+    if(Gal[p].OutflowGas + ejected_mass > 0.0)
+    {
+        Gal[p].OutflowSpecificEnergy = (Gal[p].OutflowGas * Gal[p].OutflowSpecificEnergy + ejected_mass * ejected_specific_energy) / (Gal[p].OutflowGas + ejected_mass);
+        assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
+        update_from_ejection(p, ejected_mass);
     }
 }
 
@@ -435,7 +288,7 @@ void quasar_mode_wind(int p, float BHaccrete, int centralgal)
 void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_ratio, double *disc_mass_ratio, double *PostRetroGas)
 {
   int step, i, s, k;
-  double DiscGasSum, CentralGasOrig, ExpFac, dPos[3], dVel[3], pos_mag, radial_velocity;
+  double DiscGasSum, CentralGasOrig, ExpFac, dPos[3], dVel[3], pos_mag, radial_velocity, m_sum, J_sat_disc;
     ExpFac = AA[Gal[t].SnapNum]; // Expansion factor needed for determining physical distances for calculating j
     
 	CentralGasOrig = get_disc_gas(t);
@@ -445,10 +298,13 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
 	assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
 	
 	assert(Gal[t].ColdGas >= Gal[t].MetalsColdGas);
+    if(Gal[t].StellarMass <= 0.0) Gal[t].StellarMass = Gal[t].MetalsStellarMass = 0.0;
+    if(!(Gal[t].StellarMass >= Gal[t].MetalsStellarMass)) printf("Gal[t].StellarMass, Gal[t].MetalsStellarMass = %e, %e\n", Gal[t].StellarMass, Gal[t].MetalsStellarMass);
 	assert(Gal[t].StellarMass >= Gal[t].MetalsStellarMass);
 	
 	for(i=0; i<N_BINS; i++) 
 	{
+        assert(Gal[t].DiscGasMetals[i] <= Gal[t].DiscGas[i]);
 		assert(Gal[t].DiscStarsMetals[i] <= Gal[t].DiscStars[i]);
         assert(disc_mass_ratio[i]==0.0);
 	}
@@ -522,6 +378,7 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
         }
         else
         {
+            cos_angle_sat_disc = 0.0;
             i_min = 0;
             i_max = 1;
         }
@@ -570,14 +427,19 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
     else
         for(i=0; i<N_BINS; i++) PostRetroGas[i] = Gal[t].DiscGas[i];
       
+
+      
     // update specific angular momentum of merger-driven bulge
+    J_sat_disc = get_disc_ang_mom(p,1);
+    m_sum = Gal[t].ClassicalBulgeMass + Gal[p].StellarMass + Gal[p].ICS;
     for(s=0; s<3; s++)
     {        
-        Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + get_disc_ang_mom(p,1)*Gal[p].SpinStars[s]) / (Gal[t].ClassicalBulgeMass + Gal[p].StellarMass);
+        Gal[t].SpinClassicalBulge[s] = (Gal[t].ClassicalBulgeMass*Gal[t].SpinClassicalBulge[s] + Gal[p].ClassicalBulgeMass*Gal[p].SpinClassicalBulge[s] + J_sat_disc*Gal[p].SpinStars[s]) / m_sum; // assuming any ICS of the satellite don't contribute to J
         
     }
+      
       radial_velocity = (dVel[0]*dPos[0] + dVel[1]*dPos[1] + dVel[2]*dPos[2]) / pos_mag ;
-      msig2_sum += (Gal[p].StellarMass * sqr(radial_velocity));
+      msig2_sum += ((Gal[p].StellarMass + Gal[p].ICS) * sqr(radial_velocity));
       
   }
   else // Major mergers -- a more complex treatment of the gas could be done in future versions
@@ -587,7 +449,7 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
 	assert(DiscGasSum <= 1.01*Gal[p].ColdGas && DiscGasSum >= Gal[p].ColdGas/1.01);
       
     // First need to know the pos and vel of the centre of momentum to measure j relative to there
-    double dCOM_p[3], dCOM_t[3], dvCOM_p[3], dvCOM_t[3], j_t[3], j_p[3], m_t, m_p, inv_m_sum;
+    double dCOM_p[3], dCOM_t[3], dvCOM_p[3], dvCOM_t[3], j_t[3], j_p[3], m_t, m_p;
     m_t = get_Mhost_internal(p, t, 0.0);
     m_p = get_satellite_mass(p);
     double m_t_frac = m_t/(m_t+m_p);
@@ -703,40 +565,14 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
                     
                     j_seg = sqrt( sqr(NewSpin[0]*jvec[0]) + sqr(NewSpin[1]*jvec[1]) + sqr(NewSpin[2]*jvec[2]) ); // only accounts for component parallel to the new gas disc plane
                     
-                    for(k=0; k<N_BINS; k++)
-                    {
-                        if(NewDisc[k] <= 0.0)
-                        {
-                            if(NewDiscMetals[k] >= 1e-10) printf("Resetting both to 0: k, NewDisc[k] , NewDiscMetals[k] = %i, %e, %e\n", k, NewDisc[k] , NewDiscMetals[k]);
-                            NewDisc[k] = 0.0;
-                            NewDiscMetals[k] = 0.0;
-                        }
-                        
-                        if(!(NewDiscMetals[k] <= NewDisc[k]))
-                        {
-                            printf("k, NewDisc[k], NewDiscMetals[k] = %i, %e, %e\n", k, NewDisc[k], NewDiscMetals[k]);
-                            printf("g, i, Gal[gal].DiscGas[i], Gal[gal].DiscGasMetals[i], seg_frac = %i, %i, %e, %e, %e\n", g, i, Gal[gal].DiscGas[i], Gal[gal].DiscGasMetals[i], seg_frac);
-                        }
-                        assert(NewDiscMetals[k] <= NewDisc[k]);
-                    }
-                    
-                    
                     // find the annulus of the new disc that j_seg corresponds to
-                    for(k=1; k<=N_BINS; k++)
+                    for(k=1; k<N_BINS; k++)
                     {
                         if(j_seg < DiscBinEdge[k]) break;
                     }
                     k -= 1;
-                    // In principle, should be able to add DiscGasMetals directly to NewDiscMetals, but there was a case Metals exceeding total mass leaking through on OzSTAR somehow.  No idea what the cause was, but going through get_metallicity() as an extra step will hopefully circumvent the issue.
                     NewDisc[k] += Gal[gal].DiscGas[i] * seg_frac;
-                    NewDiscMetals[k] += get_metallicity(Gal[gal].DiscGas[i], Gal[gal].DiscGasMetals[i]) * Gal[gal].DiscGas[i] * seg_frac;
-                    
-                    
-                    if(!(NewDiscMetals[k] <= NewDisc[k]))
-                    {
-                        printf("k, NewDisc[k], NewDiscMetals[k] = %i, %e, %e\n", k, NewDisc[k], NewDiscMetals[k]);
-                        printf("g, i, Gal[gal].DiscGas[i], Gal[gal].DiscGasMetals[i], seg_frac = %i, %i, %e, %e, %e\n", g, i, Gal[gal].DiscGas[i], Gal[gal].DiscGasMetals[i], seg_frac);
-                    }
+                    NewDiscMetals[k] += Gal[gal].DiscGasMetals[i] * seg_frac;
                     assert(NewDiscMetals[k] <= NewDisc[k]);
                     
                     // check if projection was prograde or retrograde
@@ -750,19 +586,8 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
         // Update cold gas mass and spin of central (equate to NewDisc)
         for(i=0; i<N_BINS; i++)
         {
-            if(NewDisc[i] <= 0)
-            {
-                NewDisc[i] = 0.0;
-                NewDiscMetals[i] = 0.0;
-            }
-            if(!(NewDiscMetals[i] <= NewDisc[i])) printf("i, NewDisc[i], NewDiscMetals[i] = %i, %e, %e\n", i, NewDisc[i], NewDiscMetals[i]);
-            assert(NewDiscMetals[i] <= NewDisc[i]);
-            
             Gal[t].DiscGas[i] = NewDisc[i];
             Gal[t].DiscGasMetals[i] = NewDiscMetals[i];
-            
-            if(!(NewDiscMetals[i] <= NewDisc[i])) printf("i, Gal[t].DiscGas[i], Gal[t].DiscGasMetals[i] = %i, %e, %e\n", i, Gal[t].DiscGas[i], Gal[t].DiscGasMetals[i]);
-            assert(Gal[t].DiscGasMetals[i] <= Gal[t].DiscGas[i]);
         }
         DiscGasSum = get_disc_gas(t); // mostly just there to make sure ColdGas and MetalsColdGas are correct
         
@@ -783,7 +608,6 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
             
       msig2_sum += (Gal[p].StellarMass * sqr(dCOM_p[0]*dvCOM_p[0] + dCOM_p[1]*dvCOM_p[1] + dCOM_p[2]*dvCOM_p[2]) / (sqr(dCOM_p[0]) + sqr(dCOM_p[1]) + sqr(dCOM_p[2])) );
       msig2_sum += (Gal[t].StellarMass * sqr(dCOM_t[0]*dvCOM_t[0] + dCOM_t[1]*dvCOM_t[1] + dCOM_t[2]*dvCOM_t[2]) / (sqr(dCOM_t[0]) + sqr(dCOM_t[1]) + sqr(dCOM_t[2])) );
-      
   }
     
   // update term used to calculate merger-driven bulge's velocity dispersion
@@ -792,6 +616,32 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
   msig2_sum += (Gal[p].SecularBulgeMass * sqr(Gal[p].VelDispBulge));
   for(i=0; i<N_BINS; i++) msig2_sum += (Gal[p].DiscStars[i] * sqr(Gal[p].VelDispStars[i]));
 
+    
+  // Deciding to add any remaining ICS of the satellite (which would be stripped down) to the merger-driven bulge for a minor merger
+  // Same for intrahalo black holes
+  // Similar deal for outflowing and fountaining gas
+  if(mass_ratio<ThreshMajorMerger)
+  {
+      Gal[t].ClassicalBulgeMass += Gal[p].ICS;
+      Gal[t].ClassicalMetalsBulgeMass += Gal[p].MetalsICS;
+      Gal[t].BlackHoleMass += Gal[p].ICBHmass;
+      Gal[t].HotGas += (Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass);
+      Gal[t].MetalsHotGas += (Gal[p].MetalsFountainGas + Gal[p].MetalsOutflowGas + Gal[p].MetalsEjectedMass);
+  }
+  else
+  {
+      Gal[t].ICS += Gal[p].ICS;
+      Gal[t].MetalsICS += Gal[p].MetalsICS;
+      Gal[t].ICBHnum += Gal[p].ICBHnum;
+      Gal[t].ICBHmass += Gal[p].ICBHmass;
+      
+      if(Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass > 0.0)
+      {
+          Gal[t].FountainTime = (Gal[t].FountainGas * Gal[t].FountainTime + (Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass) * Gal[t].Rvir/Gal[t].Vvir) / (Gal[t].FountainGas + Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass);
+          Gal[t].FountainGas += (Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass);
+          Gal[t].MetalsFountainGas += (Gal[p].MetalsFountainGas + Gal[p].MetalsOutflowGas + Gal[p].MetalsEjectedMass);
+      }
+  }
 
   Gal[t].StarsFromH2 += Gal[p].StarsFromH2;
   Gal[t].StarsInstability += Gal[p].StarsInstability;
@@ -809,9 +659,6 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
   Gal[t].MetalsStarsExSitu += Gal[p].MetalsStellarMass;
     
   Gal[t].VelDispMergerBulge = sqrt(msig2_sum / Gal[t].ClassicalBulgeMass);
-
-  Gal[t].ICS += Gal[p].ICS;
-  Gal[t].MetalsICS += Gal[p].MetalsICS;
 
   // If accounting for age, need to deposit all the smaller galaxies' stars into the right age bins for the classical bulge  
   if(AgeStructOut>0)
@@ -836,8 +683,17 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
 
           }
           
-          Gal[t].ICS_Age[k] += Gal[p].ICS_Age[k];
-          Gal[t].MetalsICS_Age[k] += Gal[p].MetalsICS_Age[k];
+          
+          if(mass_ratio<ThreshMajorMerger)
+          {
+              Gal[t].ClassicalBulgeMassAge[k] += Gal[p].ICS_Age[k];
+              Gal[t].ClassicalMetalsBulgeMassAge[k] += Gal[p].MetalsICS_Age[k];
+          }
+          else
+          {
+              Gal[t].ICS_Age[k] += Gal[p].ICS_Age[k];
+              Gal[t].MetalsICS_Age[k] += Gal[p].MetalsICS_Age[k];
+          }
       }
   }
 
@@ -845,15 +701,9 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
 
   Gal[t].HotGas += Gal[p].HotGas;
   Gal[t].MetalsHotGas += Gal[p].MetalsHotGas;
-  
-  Gal[t].HotGas += Gal[p].EjectedMass;
-  Gal[t].MetalsHotGas += Gal[p].MetalsEjectedMass;
 
   Gal[t].BlackHoleMass += Gal[p].BlackHoleMass;
   assert(Gal[t].BlackHoleMass>=0.0);
-    
-  Gal[t].ICBHnum += Gal[p].ICBHnum;
-  Gal[t].ICBHmass += Gal[p].ICBHmass;
   
 
   for(step = 0; step < STEPS; step++)
@@ -872,6 +722,8 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
     if(disc_mass_ratio[i] > 1.0)
       disc_mass_ratio[i] = 1.0/disc_mass_ratio[i];
     assert(disc_mass_ratio[i]<=1.0 && disc_mass_ratio[i]>=0.0);
+      assert(Gal[t].DiscGasMetals[i] <= Gal[t].DiscGas[i]);
+      assert(Gal[t].DiscStarsMetals[i] <= Gal[t].DiscStars[i]);
   }
 }
 
@@ -1009,172 +861,3 @@ void disrupt_satellite_to_ICS(int centralgal, int gal, int k_now)
     Gal[gal].mergeIntoGalaxyNr = Gal[centralgal].GalaxyNr;
     Gal[gal].mergeType = 4;  // mark as disruption to the ICS
 }
-
-
-
-
-
-
-
-//==== FUNCTION BELOW IS DEPRECATED FOR NEW MODEL ====//
-void collisional_starburst_recipe(double disc_mass_ratio[N_BINS], int merger_centralgal, int centralgal, double dt, int mode, int step, int k_now)
-{
- double stars, reheated_mass, ejected_mass, fac, metallicity, CentralVvir, eburst, Sigma_0gas, area, stars_sum, metals_stars, stars_angmom, ejected_cold_mass;
- double r_inner, r_outer, j_bin, new_metals;
- //double NewStars[N_BINS], NewStarsMetals[N_BINS];
- int k, s;
-
- // This is the major and minor merger starburst recipe of Somerville et al. 2001. 
- // The coefficients in eburst are taken from TJ Cox's PhD thesis. 
- // The recipe has been modified from Croton et al. 2016 to function for each annulus.
-    
- double ejected_sum = 0.0;
- double metals_stars_sum = 0.0;
- double feedback_mass[4];
-    
- // these terms only used when SupernovaRecipeOn>=3
- double hot_specific_energy, ejected_specific_energy, satellite_specific_energy, hot_thermal_and_kinetic, j_hot;
- if(HeatedToCentral>0)
- {
-    satellite_specific_energy = get_satellite_potential(merger_centralgal, centralgal);
-    j_hot = 2 * Gal[centralgal].Vvir * Gal[centralgal].CoolScaleRadius;
-    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[centralgal].Vvir) + sqr(j_hot)/Gal[centralgal].R2_hot_av);
-    hot_specific_energy = Gal[centralgal].HotGasPotential + hot_thermal_and_kinetic - satellite_specific_energy;
- }
- else
- {
-    satellite_specific_energy = 0.0;
-    j_hot = 2 * Gal[merger_centralgal].Vvir * Gal[merger_centralgal].CoolScaleRadius;
-    hot_thermal_and_kinetic = 0.5 * (sqr(Gal[merger_centralgal].Vvir) + sqr(j_hot)/Gal[merger_centralgal].R2_hot_av);
-    hot_specific_energy = Gal[merger_centralgal].HotGasPotential + hot_thermal_and_kinetic;
- }
- ejected_specific_energy = Gal[centralgal].EjectedPotential + hot_thermal_and_kinetic - satellite_specific_energy;
-
-
- stars_sum = 0.0;
- stars_angmom = 0.0;
- assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
-
- if(Gal[merger_centralgal].ColdGas>0)
- {
-  CentralVvir = Gal[centralgal].Vvir;
-
-  // update the star formation rate 
-  Gal[merger_centralgal].SfrBulgeColdGas[step] += Gal[merger_centralgal].ColdGas;
-  Gal[merger_centralgal].SfrBulgeColdGasMetals[step] += Gal[merger_centralgal].MetalsColdGas;
-
-  for(k=0; k<N_BINS; k++)
-  {
-    if(disc_mass_ratio[k] > 1.0 || disc_mass_ratio[k]!=disc_mass_ratio[k]) printf("i, disc_mass_ratio[i] = %d, %e\n", k, disc_mass_ratio[k]);
-    assert(disc_mass_ratio[k] <= 1.0);
-      
-	// the bursting fraction 
-    if(mode == 1)
-      eburst = disc_mass_ratio[k];
-    else
-      eburst = BetaBurst * pow(disc_mass_ratio[k], AlphaBurst);
-
-    stars = eburst * Gal[merger_centralgal].DiscGas[k];
-    if(stars < MIN_STARFORMATION)
-      stars = 0.0;
-
-	if(stars > Gal[merger_centralgal].DiscGas[k])
-      stars = Gal[merger_centralgal].DiscGas[k];
-      
-    // this bursting results in SN feedback on the cold/hot gas
-    r_inner = Gal[merger_centralgal].DiscRadii[k];
-    r_outer = Gal[merger_centralgal].DiscRadii[k+1];
-    area = M_PI * (r_outer*r_outer - r_inner*r_inner);
-    calculate_feedback_masses(merger_centralgal, stars, k, centralgal, area, Gal[merger_centralgal].DiscGas[k], hot_specific_energy, ejected_specific_energy, feedback_mass);
-    reheated_mass = feedback_mass[0];
-    ejected_mass = feedback_mass[1];
-    stars = feedback_mass[2];
-    ejected_cold_mass = feedback_mass[3];
-    assert(ejected_cold_mass>=0);
-
-    ejected_sum += ejected_mass;
-      
-	if(reheated_mass!=reheated_mass || reheated_mass<0.0)
-		printf("reheated_mass, stars, DiscGas -- %e\t%e\t%e\n", reheated_mass, stars, Gal[merger_centralgal].DiscGas[k]);
-	assert(reheated_mass >= 0.0);
-      
-	metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[k], Gal[merger_centralgal].DiscGasMetals[k]);
-	assert(Gal[merger_centralgal].DiscGasMetals[k] <= Gal[merger_centralgal].DiscGas[k]);
-    metals_stars = metallicity * stars;
-    
-    update_from_star_formation(merger_centralgal, stars, metallicity, k);
-
-    if(reheated_mass > Gal[merger_centralgal].DiscGas[k] && reheated_mass < 1.01*Gal[merger_centralgal].DiscGas[k])
-	  reheated_mass = Gal[merger_centralgal].DiscGas[k];
-
-      // Inject new metals from SN II
-      if(SupernovaRecipeOn>0 && stars>=MIN_STARS_FOR_SN)
-      {
-          new_metals = Yield * stars*(1-metallicity) * RecycleFraction/FinalRecycleFraction;
-          Gal[merger_centralgal].DiscGasMetals[k] += new_metals;
-          Gal[merger_centralgal].MetalsColdGas += new_metals;
-      }
-
-      
-      // update from feedback
-	metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[k], Gal[merger_centralgal].DiscGasMetals[k]);
-	assert(Gal[merger_centralgal].DiscGasMetals[k] <= Gal[merger_centralgal].DiscGas[k]);
-      assert(reheated_mass==reheated_mass && reheated_mass!=INFINITY);
-      assert(Gal[merger_centralgal].MetalsHotGas>=0);
-	update_from_feedback(merger_centralgal, centralgal, reheated_mass, metallicity, k, ejected_cold_mass);
- 
-      
-    if(!(Gal[merger_centralgal].DiscGasMetals[k]<=Gal[merger_centralgal].DiscGas[k]))
-    {
-          printf("metals, gas = %e, %e\n", Gal[merger_centralgal].DiscGasMetals[k], Gal[merger_centralgal].DiscGas[k]);
-        printf("stars, reheated_mass, ejected_mass, added metals = %e, %e, %e, %e\n", stars, reheated_mass, ejected_mass, Yield * stars*(1-get_metallicity(stars,metals_stars)));
-
-    }
-      
-	assert(Gal[merger_centralgal].DiscGasMetals[k]<=Gal[merger_centralgal].DiscGas[k]);
-	assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
-	
-    j_bin = (DiscBinEdge[k]+DiscBinEdge[k+1])*0.5;
-    if(stars>=MIN_STARS_FOR_SN)
-    {
-        stars_sum += (1 - RecycleFraction) * stars;
-        metals_stars_sum += (1 - RecycleFraction) * metals_stars;
-        stars_angmom += (1 - RecycleFraction) * stars * j_bin;
-    }
-    else
-    {
-        stars_sum += stars;
-        metals_stars_sum += metals_stars;
-        stars_angmom += stars * j_bin;
-    }
-    Gal[merger_centralgal].DiscSFR[k] += stars / dt;
-    Gal[merger_centralgal].StellarFormationMassAge[k_now] += stars;
-  }
-     
-  if(ejected_sum>0.0)
-      update_from_ejection(merger_centralgal, centralgal, ejected_sum);
-     
-  if(stars_sum>0)
-  {
-      
-     // Now adding all new stars directly to the bulge
-     Gal[merger_centralgal].StellarMass += stars_sum; // Recycling fraction already taken into account when adding to stars_sum etc above
-     Gal[merger_centralgal].ClassicalBulgeMass += stars_sum;
-     Gal[merger_centralgal].MetalsStellarMass += metals_stars_sum;
-     Gal[merger_centralgal].ClassicalMetalsBulgeMass += metals_stars_sum;
-      
-     Gal[merger_centralgal].ClassicalBulgeMassAge[k_now] += stars_sum;
-     Gal[merger_centralgal].ClassicalMetalsBulgeMassAge[k_now] += metals_stars_sum;
-
-  }
-
-  Gal[merger_centralgal].SfrMerge[step] += stars_sum / dt;
-  Gal[merger_centralgal].StarsMergeBurst += stars_sum;
-     
-  check_channel_stars(merger_centralgal);
-  
- }
-}
-//====================================================//
-
-

@@ -1,0 +1,7 @@
+SfrEfficiency,SFE,0,0.2,1.0
+FeedbackReheatCoupling,eHeat,0,0.1,1.0
+FeedbackEjectCoupling,eEject,0,0.1,1.0
+RadioModeEfficiency,eRadio,0,0.001,0.02
+QuasarModeEfficiency,eQuasar,0,0.0005,0.1
+GasSinkRate,fSink,0,0.1,0.9
+

@@ -158,37 +158,18 @@ void walk_down(int i)
 {
     if(HaloGal[i].RootID >= 0) return; // No need to do anything if the RootID has already been found for this galaxy
     
-    double StellarMass, ICS, LocalIGS;
+//    double StellarMass, ICS, LocalIGS;
     int GalaxyNr, p, SnapNum, mergeType, g;
     GalaxyNr = HaloGal[i].GalaxyNr;
     SnapNum = HaloGal[i].SnapNum;
 
     mergeType = 0;
-    
-    // If galaxy is along a main branch or merges into a central, StellarMass+ICS should never decrease.  If a galaxy merges into a satellite then StellarMass should never decrease (but ICS might, as that goes to the central).
-//    StellarMass = HaloGal[i].StellarMass; // This can only decrease a small amount while walking down if delayed feedback is on
-//    ICS = HaloGal[i].ICS;
-//    LocalIGS = HaloGal[i].LocalIGS;
-    
+        
     for(p=i; p<NumGals; p++)
     {        
-        if(HaloGal[p].GalaxyNr==GalaxyNr && HaloGal[p].SnapNum>=SnapNum)// && HaloGal[p].StellarMass + HaloGal[p].ICS >= StellarMass)
+        if(HaloGal[p].GalaxyNr==GalaxyNr && HaloGal[p].SnapNum>=SnapNum)
         {
             if(mergeType==4) assert(HaloGal[p].Type==0);
-            
-//            // This must be a fly-by or something weird.  Assume there is no appropriate root
-//            if((HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS + HaloGal[p].LocalIGS < StellarMass + ICS + LocalIGS && DelayedFeedbackOn==0) || 
-//               (HaloGal[p].Type==1 && HaloGal[p].StellarMass<StellarMass && DelayedFeedbackOn==0) ||
-//               (HaloGal[p].Type==0 && HaloGal[p].StellarMass + HaloGal[p].ICS + HaloGal[p].LocalIGS < FinalRecycleFraction*(StellarMass + ICS + LocalIGS)) ||
-//               (HaloGal[p].Type==1 && HaloGal[p].StellarMass < FinalRecycleFraction*StellarMass))
-//            {
-//                printf("i, p, NumGals = %i, %i, %i\n", i, p, NumGals);
-//                printf("GalaxyNr, SnapNum, Type, mergeType = %i, %i, %i, %i\n", GalaxyNr, SnapNum, HaloGal[p].Type, mergeType);
-//                printf("StellarMass, ICS, sum = %e, %e, %e\n", StellarMass, ICS, StellarMass+ICS);
-//                printf("HaloGal[p].StellarMass, HaloGal[p].ICS, sum = %e, %e, %e\n", HaloGal[p].StellarMass, HaloGal[p].ICS, HaloGal[p].StellarMass + HaloGal[p].ICS);
-//                printf("HaloGal[i].RotSupportScaleRadius, HaloGal[p].RotSupportScaleRadius = %e, %e\n", HaloGal[i].RotSupportScaleRadius, HaloGal[p].RotSupportScaleRadius);
-//                return;
-//            }
             
             if(HaloGal[p].RootID >= 0) // If we arrive at a galaxy that already has a known root, then they must have the same root.
             {
@@ -232,10 +213,6 @@ void walk_down(int i)
                     mergeType = 0;
                     SnapNum = HaloGal[p].SnapNum+1;
                 }
-                
-//                StellarMass = HaloGal[p].StellarMass;
-//                ICS = HaloGal[p].ICS;
-//                LocalIGS = HaloGal[p].LocalIGS;
             }
         }
         
@@ -246,17 +223,33 @@ void walk_down(int i)
 void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GALAXY_OUTPUT *o)
 {
     
-  int j, step, HaloID, RootHaloID, mergeSum;
+  int j, step;
         
   o->SnapNum = g->SnapNum;
   o->Type = g->Type;
+    o->TypeMax = g->TypeMax;
     
   assert( g->GalaxyNr < TREE_MUL_FAC ); // breaking tree size assumption
-  assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
-  o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-  assert( (o->GalaxyIndex - g->GalaxyNr - TREE_MUL_FAC*tree)/FILENR_MUL_FAC == filenr );
-  assert( (o->GalaxyIndex - g->GalaxyNr -FILENR_MUL_FAC*filenr) / TREE_MUL_FAC == tree );
-  assert( o->GalaxyIndex - TREE_MUL_FAC*tree - FILENR_MUL_FAC*filenr == g->GalaxyNr );
+  if(tree < 10000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+  }
+  else if(tree < 20000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 10000000) + FILENR_MUL_FAC * (filenr + 100);
+  }
+  else if(tree < 30000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 20000000) + FILENR_MUL_FAC * (filenr + 200);
+  }
+  else if(tree < 40000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 30000000) + FILENR_MUL_FAC * (filenr + 300);
+  }
+  else
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 40000000) + FILENR_MUL_FAC * (filenr + 400);
+  }
 
   o->CentralGalaxyIndex = HaloGal[HaloAux[Halo[g->HaloNr].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
 
@@ -289,17 +282,17 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   }
 
   o->Len = g->Len;
-    o->LenMax = g->LenMax;
+  o->LenMax = g->LenMax;
   o->Mvir = g->Mvir;
   o->CentralMvir = get_virial_mass(Halo[g->HaloNr].FirstHaloInFOFgroup, -1);
-  o->Rvir = get_virial_radius(g->HaloNr, -1);
-  o->Vvir = get_virial_velocity(g->HaloNr, -1); 
+  o->Rvir = g->Rvir;
+  o->Vvir = g->Vvir;
   o->Vmax = g->Vmax;
   o->VelDisp = Halo[g->HaloNr].VelDisp;
-    
-    for(j=0; j<N_BINS+1; j++)
+  
+  for(j=0; j<N_BINS+1; j++)
     o->DiscRadii[j] = g->DiscRadii[j];
-    
+  
   o->ColdGas = g->ColdGas;
   o->StellarMass = g->StellarMass;
   o->StellarFormationMass = g->StellarMass / (1 - RecycleFraction);
@@ -307,6 +300,8 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->SecularBulgeMass = g->SecularBulgeMass;
   o->StarsExSitu = g->StarsExSitu;
   o->HotGas = g->HotGas;
+  o->FountainGas = g->FountainGas;
+  o->OutflowGas = g->OutflowGas;
   o->EjectedMass = g->EjectedMass;
   o->LocalIGM = g->LocalIGM;
   o->BlackHoleMass = g->BlackHoleMass;
@@ -319,6 +314,8 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->SecularMetalsBulgeMass = g->SecularMetalsBulgeMass;
   o->MetalsStarsExSitu = g->MetalsStarsExSitu;
   o->MetalsHotGas = g->MetalsHotGas;
+  o->MetalsFountainGas = g->MetalsFountainGas;
+  o->MetalsOutflowGas = g->MetalsOutflowGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
   o->MetalsLocalIGM = g->MetalsLocalIGM;
   o->MetalsICS = g->MetalsICS;
@@ -327,9 +324,9 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;
   o->StarsMergeBurst = g->StarsMergeBurst;
-    
-    o->LocalIGBHmass = g->LocalIGBHmass;
-    o->LocalIGBHnum = g->LocalIGBHnum;
+  
+  o->LocalIGBHmass = g->LocalIGBHmass;
+  o->LocalIGBHnum = g->LocalIGBHnum;
   
   for(j=0; j<N_BINS; j++)
   {
@@ -337,32 +334,33 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
 	o->DiscStars[j] = g->DiscStars[j];
 	o->DiscGasMetals[j] = g->DiscGasMetals[j];
 	o->DiscStarsMetals[j] = g->DiscStarsMetals[j];
-      o->DiscHI[j] = g->DiscHI[j];
-      o->DiscH2[j] = g->DiscH2[j];
-      o->DiscSFR[j] = g->DiscSFR[j] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
-      o->VelDispStars[j] = g->VelDispStars[j];
+    o->DiscHI[j] = g->DiscHI[j];
+    o->DiscH2[j] = g->DiscH2[j];
+    o->DiscSFR[j] = g->DiscSFR[j] * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS / STEPS;
+    o->VelDispStars[j] = g->VelDispStars[j];
   }
     
   o->VelDispBulge = g->VelDispBulge;
-    o->VelDispMergerBulge = g->VelDispMergerBulge;
-    
-    double aa, bb, cc, a_ICS;
-    aa = 2*sqr(g->a_InstabBulge) + 4*(g->a_InstabBulge)*(g->Rvir) + sqr(g->Rvir);
-    bb = -2 * (g->a_InstabBulge) * sqr(g->Rvir);
-    cc = -sqr(g->a_InstabBulge) * sqr(g->Rvir);
+  o->VelDispMergerBulge = g->VelDispMergerBulge;
+  
+  double aa, bb, cc, a_ICS;
+  aa = 2*sqr(g->a_InstabBulge) + 4*(g->a_InstabBulge)*(g->Rvir) + sqr(g->Rvir);
+  bb = -2 * (g->a_InstabBulge) * sqr(g->Rvir);
+  cc = -sqr(g->a_InstabBulge) * sqr(g->Rvir);
   o->HalfMassRadiusInstabilityBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
-    
-    aa = 2*sqr(g->a_MergerBulge) + 4*(g->a_MergerBulge)*(g->Rvir) + sqr(g->Rvir);
-    bb = -2 * (g->a_MergerBulge) * sqr(g->Rvir);
-    cc = -sqr(g->a_MergerBulge) * sqr(g->Rvir);
+  
+  aa = 2*sqr(g->a_MergerBulge) + 4*(g->a_MergerBulge)*(g->Rvir) + sqr(g->Rvir);
+  bb = -2 * (g->a_MergerBulge) * sqr(g->Rvir);
+  cc = -sqr(g->a_MergerBulge) * sqr(g->Rvir);
   o->HalfMassRadiusMergerBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
 
-    a_ICS = get_a_ICS(-1, g->Rvir, g->R_ICS_av);
-    aa = 2*sqr(a_ICS) + 4*(a_ICS)*(g->Rvir) + sqr(g->Rvir);
-    bb = -2 * a_ICS * sqr(g->Rvir);
-    cc = -sqr(a_ICS) * sqr(g->Rvir);
-    o->HalfMassRadiusICS = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
-
+  a_ICS = get_a_ICS(-1, g->Rvir, g->R_ICS_av);
+  aa = 2*sqr(a_ICS) + 4*(a_ICS)*(g->Rvir) + sqr(g->Rvir);
+  bb = -2 * a_ICS * sqr(g->Rvir);
+  cc = -sqr(a_ICS) * sqr(g->Rvir);
+  o->HalfMassRadiusICS = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
+  
+  o->R_ejec_av = g->R_ejec_av;
 
   o->SfrFromH2 = 0.0;
   o->SfrInstab = 0.0;
@@ -401,9 +399,9 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
 
   o->LastMajorMerger = g->LastMajorMerger * UnitTime_in_Megayears;
   o->LastMinorMerger = g->LastMinorMerger * UnitTime_in_Megayears;
-    o->NumMajorMergers = g->NumMajorMergers;
-    o->NumMinorMergers = g->NumMinorMergers;
-    
+  o->NumMajorMergers = g->NumMajorMergers;
+  o->NumMinorMergers = g->NumMinorMergers;
+  
   o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
   o->SNejectRate = g->SNejectRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
 
@@ -426,24 +424,40 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
 
 void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, struct GALAXY_OUTPUT_LARGE *o)
 {
-  int j, k, step, HaloID, RootHaloID, mergeSum;
+  int j, k, step;
     
   o->SnapNum = g->SnapNum;
   o->Type = g->Type;
-    
+  o->TypeMax = g->TypeMax;
+
   assert( g->GalaxyNr < TREE_MUL_FAC ); // breaking tree size assumption
-  assert(tree < FILENR_MUL_FAC/TREE_MUL_FAC);
-  o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-  assert( (o->GalaxyIndex - g->GalaxyNr - TREE_MUL_FAC*tree)/FILENR_MUL_FAC == filenr );
-  assert( (o->GalaxyIndex - g->GalaxyNr -FILENR_MUL_FAC*filenr) / TREE_MUL_FAC == tree );
-  assert( o->GalaxyIndex - TREE_MUL_FAC*tree - FILENR_MUL_FAC*filenr == g->GalaxyNr );
-    
+  if(tree < 10000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
+  }
+  else if(tree < 20000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 10000000) + FILENR_MUL_FAC * (filenr + 100);
+  }
+  else if(tree < 30000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 20000000) + FILENR_MUL_FAC * (filenr + 200);
+  }
+  else if(tree < 40000000)
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 30000000) + FILENR_MUL_FAC * (filenr + 300);
+  }
+  else
+  {
+      o->GalaxyIndex = g->GalaxyNr + TREE_MUL_FAC * (tree - 40000000) + FILENR_MUL_FAC * (filenr + 400);
+  }
+  
   o->CentralGalaxyIndex = HaloGal[HaloAux[Halo[g->HaloNr].FirstHaloInFOFgroup].FirstGalaxy].GalaxyNr + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
-    
+  
   o->HaloIndex = g->HaloNr;
   o->TreeIndex = tree;
   o->SimulationHaloIndex = Halo[g->HaloNr].SubhaloIndex;
-    
+  
   if(g->RootID>=0)
     o->RootID = g->RootID + TREE_MUL_FAC * tree + FILENR_MUL_FAC * filenr;
   else
@@ -469,15 +483,15 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
   }
 
   o->Len = g->Len;
-    o->LenMax = g->LenMax;
+  o->LenMax = g->LenMax;
   o->Mvir = g->Mvir;
   o->CentralMvir = get_virial_mass(Halo[g->HaloNr].FirstHaloInFOFgroup, -1);
-  o->Rvir = get_virial_radius(g->HaloNr, -1);
-  o->Vvir = get_virial_velocity(g->HaloNr, -1); 
+  o->Rvir = g->Rvir;
+  o->Vvir = g->Vvir;
   o->Vmax = g->Vmax;
   o->VelDisp = Halo[g->HaloNr].VelDisp;
-    
-    for(j=0; j<N_BINS+1; j++)
+  
+  for(j=0; j<N_BINS+1; j++)
     o->DiscRadii[j] = g->DiscRadii[j];
     
   o->ColdGas = g->ColdGas;
@@ -492,11 +506,13 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->StellarFormationMass[k] = g->StellarFormationMassAge[k];
   }
   o->HotGas = g->HotGas;
+  o->FountainGas = g->FountainGas;
+  o->OutflowGas = g->OutflowGas;
   o->EjectedMass = g->EjectedMass;
   o->LocalIGM = g->LocalIGM;
   o->BlackHoleMass = g->BlackHoleMass;
   
-    o->VelDispMergerBulge = g->VelDispMergerBulge;
+  o->VelDispMergerBulge = g->VelDispMergerBulge;
 
   o->MetalsColdGas = g->MetalsColdGas;
   o->MetalsStellarMass = g->MetalsStellarMass;
@@ -510,35 +526,39 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
     o->VelDispBulge[k] = g->VelDispBulgeAge[k];
   }
   o->MetalsHotGas = g->MetalsHotGas;
+  o->MetalsFountainGas = g->MetalsFountainGas;
+  o->MetalsOutflowGas = g->MetalsOutflowGas;
   o->MetalsEjectedMass = g->MetalsEjectedMass;
   o->MetalsLocalIGM = g->MetalsLocalIGM;
    
-    double aa, bb, cc, a_ICS;
-    aa = 2*sqr(g->a_InstabBulge) + 4*(g->a_InstabBulge)*(g->Rvir) + sqr(g->Rvir);
-    bb = -2 * (g->a_InstabBulge) * sqr(g->Rvir);
-    cc = -sqr(g->a_InstabBulge) * sqr(g->Rvir);
+  double aa, bb, cc, a_ICS;
+  aa = 2*sqr(g->a_InstabBulge) + 4*(g->a_InstabBulge)*(g->Rvir) + sqr(g->Rvir);
+  bb = -2 * (g->a_InstabBulge) * sqr(g->Rvir);
+  cc = -sqr(g->a_InstabBulge) * sqr(g->Rvir);
   o->HalfMassRadiusInstabilityBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
-    
-    aa = 2*sqr(g->a_MergerBulge) + 4*(g->a_MergerBulge)*(g->Rvir) + sqr(g->Rvir);
-    bb = -2 * (g->a_MergerBulge) * sqr(g->Rvir);
-    cc = -sqr(g->a_MergerBulge) * sqr(g->Rvir);
+  
+  aa = 2*sqr(g->a_MergerBulge) + 4*(g->a_MergerBulge)*(g->Rvir) + sqr(g->Rvir);
+  bb = -2 * (g->a_MergerBulge) * sqr(g->Rvir);
+  cc = -sqr(g->a_MergerBulge) * sqr(g->Rvir);
   o->HalfMassRadiusMergerBulge = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
-    
-    a_ICS = get_a_ICS(-1, g->Rvir, g->R_ICS_av);
-    aa = 2*sqr(a_ICS) + 4*(a_ICS)*(g->Rvir) + sqr(g->Rvir);
-    bb = -2 * a_ICS * sqr(g->Rvir);
-    cc = -sqr(a_ICS) * sqr(g->Rvir);
-    o->HalfMassRadiusICS = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
-    
+  
+  a_ICS = get_a_ICS(-1, g->Rvir, g->R_ICS_av);
+  aa = 2*sqr(a_ICS) + 4*(a_ICS)*(g->Rvir) + sqr(g->Rvir);
+  bb = -2 * a_ICS * sqr(g->Rvir);
+  cc = -sqr(a_ICS) * sqr(g->Rvir);
+  o->HalfMassRadiusICS = (-bb + sqrt(sqr(bb) - 4*aa*cc))/(2*aa);
+  
+  o->R_ejec_av = g->R_ejec_av;
+
   o->StarsFromH2 = g->StarsFromH2;
   o->StarsInstability = g->StarsInstability;
   o->StarsMergeBurst = g->StarsMergeBurst;
-    
-    o->ICBHmass = g->ICBHmass;
-    o->ICBHnum = g->ICBHnum;
-    o->LocalIGBHmass = g->LocalIGBHmass;
-    o->LocalIGBHnum = g->LocalIGBHnum;
-    
+  
+  o->ICBHmass = g->ICBHmass;
+  o->ICBHnum = g->ICBHnum;
+  o->LocalIGBHmass = g->LocalIGBHmass;
+  o->LocalIGBHnum = g->LocalIGBHnum;
+  
   
   for(j=0; j<N_BINS; j++)
   {
@@ -593,12 +613,12 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
 
   o->LastMajorMerger = g->LastMajorMerger * UnitTime_in_Megayears;
   o->LastMinorMerger = g->LastMinorMerger * UnitTime_in_Megayears;
-    
-    o->NumMajorMergers = g->NumMajorMergers;
-    o->NumMinorMergers = g->NumMinorMergers;
+  
+  o->NumMajorMergers = g->NumMajorMergers;
+  o->NumMinorMergers = g->NumMinorMergers;
 
-    o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;    
-    o->SNejectRate = g->SNejectRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+  o->SNreheatRate = g->SNreheatRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+  o->SNejectRate = g->SNejectRate * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
     
   //infall properties
   if(g->Type != 0)
@@ -621,6 +641,7 @@ void prepare_galaxy_for_output_large(int filenr, int tree, struct GALAXY *g, str
 void finalize_galaxy_file(int filenr)
 {
     int n;
+    printf("Finalizing file number %i\n", filenr);
     
     for(n = 0; n < NOUT; n++)
     {

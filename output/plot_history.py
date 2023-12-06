@@ -11,17 +11,20 @@ warnings.filterwarnings("ignore")
 
 
 ###### USER NEEDS TO SET THESE THINGS ######
-#indir = '/Users/adam/DarkSage_runs/571r/' # directory where the Dark Sage data are
-#indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/ParameterSweep/f0p70_e0p30/'
-indir = '/Users/adam/DarkSage/output/results/millennium/'
-sim = 0 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
+#indir = '/Users/adam/DarkSage_runs/OzSTAR/mini_millennium/001/'
+#indir = '/Users/adam/DarkSage/output/results/millennium/'
+indir = '/Users/adam/DarkSage_runs/MTNG_mini/OzSTAR/31/' # directory where the Dark Sage data are
+#indir = '/Users/adam/DarkSage_runs/Genesis/L75n324/56/'
+sim = 8 # which simulation Dark Sage has been run on -- if it's new, you will need to set its defaults below.
 #   0 = Mini Millennium, 1 = Full Millennium, 2 = SMDPL, 3 = Genesis-Millennium, 4=Genesis-Calibration, 5 = MDPL2
 
 Nannuli = 30 # number of annuli used for discs in Dark Sage
 Nage = 30 # number of age bins used for stars -- not advised to use a run with this for calibration
-age_alist_file = '/Users/adam/millennium_mini/millennium.a_list' # File with expansion factors used for age bins
+#age_alist_file = '/Users/adam/millennium_mini/millennium.a_list' # File with expansion factors used for age bins
 #age_alist_file = '/Users/adam/Genesis_calibration_trees/L75n324/alist.txt'
-RecycleFraction = 0.43 # Only needed for comparing stellar-age based SFR with raw SFR
+#age_alist_file = '/Users/adam/Illustris/alist_TNG.txt'
+age_alist_file = '/Users/adam/MTNG_trees/MTNG_alist.txt'
+#RecycleFraction = 0.43 # Only needed for comparing stellar-age based SFR with raw SFR
 ###### ============================== ######
 
 
@@ -83,7 +86,22 @@ elif sim==4:
 elif sim==5:
     h = 0.6777
     vol = (1000.0/h)**3 * len(filenumbers)/1000.
-# add here 'elif sim==6:' etc for a new simulation
+elif sim==6:
+    h = 0.6774
+    vol = (205.0/h)**3 * len(filenumbers)/128.
+    Omega_M = 0.3089
+    Omega_L = 0.6911
+elif sim==7:
+    h = 0.6774
+    vol = (75.0/h)**3 * len(filenumbers)/16.
+    Omega_M = 0.3089
+    Omega_L = 0.6911
+elif sim==8:
+    h = 0.6774
+    vol = (62.5/h)**3 #* len(filenumbers)/44.
+    Omega_M = 0.3089
+    Omega_L = 0.6911
+# add here 'elif sim==8:' etc for a new simulation
 else:
     print('Please specify a valid simulation.  You may need to add its defaults to this code.')
     quit()
@@ -278,14 +296,14 @@ if Nage>1:
             StarsByAge[k] += np.sum(G0['DiscStars'][:,:,k][f])
             StarsByAge[k] += np.sum(G0['MergerBulgeMass'][:,k][f])
             StarsByAge[k] += np.sum(G0['InstabilityBulgeMass'][:,k][f])
-#            StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k][f])
-#            StarsByAge[k] += np.sum(G0['LocalIGS'][:,k][f])
+            StarsByAge[k] += np.sum(G0['IntraClusterStars'][:,k][f])
+            StarsByAge[k] += np.sum(G0['LocalIGS'][:,k][f])
             
             MetalsByAge[k] += np.sum(G0['DiscStarsMetals'][:,:,k][f])
             MetalsByAge[k] += np.sum(G0['MetalsMergerBulgeMass'][:,k][f])
             MetalsByAge[k] += np.sum(G0['MetalsInstabilityBulgeMass'][:,k][f])
-#            MetalsByAge[k] += np.sum(G0['MetalsIntraClusterStars'][:,k][f])
-#            MetalsByAge[k] += np.sum(G0['MetalsLocalIGS'][:,k][f])
+            MetalsByAge[k] += np.sum(G0['MetalsIntraClusterStars'][:,k][f])
+            MetalsByAge[k] += np.sum(G0['MetalsLocalIGS'][:,k][f])
 
         eff_recycle = np.interp(TimeBinCentre + 0.5*dT, lifetime[::-1], returned_mass_fraction_integrated[::-1])
         SFRDH = StarsByAge*10/h/dT/(1.-eff_recycle) / vol # CAUTION: SIMPLE USE OF RecycleFraction NO LONGER WORKS WHEN DELAYED FEEDBACK IS ON
