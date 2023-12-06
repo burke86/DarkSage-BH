@@ -20,14 +20,6 @@ void construct_galaxies(int halonr, int tree)
 {
   static int halosdone = 0;
   int prog, fofhalo, ngal;
-    
-//    // soft fix in bug converting MTNG trees
-//    int j;
-//    for(j = 0; j < 3; j++)
-//    {
-//      Halo[halonr].Spin[j] *= (Hubble_h * 1e3);
-//    }
-
 
   HaloAux[halonr].DoneFlag = 1;
   halosdone++;
@@ -85,9 +77,10 @@ void construct_galaxies(int halonr, int tree)
 
 int join_galaxies_of_progenitors(int halonr, int ngalstart)
 {
-  int ngal, prog, i, j, first_occupied, lenmax, lenoccmax, centralgal;
+  int ngal, prog, i, j, first_occupied, centralgal;
     double previousMvir, previousVvir, previousVmax, SpinMag;//, jHotRatio;
   int step;
+    long long HaloLen, lenmax, lenoccmax;
 
   lenmax = 0;
   lenoccmax = 0;
@@ -103,13 +96,18 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
 
   while(prog >= 0)
   {
-    if(Halo[prog].Len > lenmax)
+      if(Halo[prog].Len > 0)
+          HaloLen = (long long) Halo[prog].Len;
+      else
+          HaloLen = (long long) (dmax(Halo[prog].Mvir1, dmax(Halo[prog].Mvir2, Halo[prog].Mvir3)) / PartMass);
+      
+    if(HaloLen > lenmax)
     {
-      lenmax = Halo[prog].Len;
+      lenmax = HaloLen;
     }
-    if(lenoccmax != -1 && Halo[prog].Len > lenoccmax && HaloAux[prog].NGalaxies > 0)
+    if(lenoccmax != -1 && HaloLen > lenoccmax && HaloAux[prog].NGalaxies > 0)
     {
-      lenoccmax = Halo[prog].Len;
+      lenoccmax = HaloLen;
       first_occupied = prog;
     }
     prog = Halo[prog].NextProgenitor;
@@ -160,8 +158,14 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
             Gal[ngal].Vel[j] = Halo[halonr].Vel[j];
           }
   
-          if(Halo[halonr].Len > Gal[ngal].LenMax) Gal[ngal].LenMax = Halo[halonr].Len;
-          Gal[ngal].Len = Halo[halonr].Len;
+            
+            if(Halo[halonr].Len > 0)
+                HaloLen = (long long) Halo[halonr].Len;
+            else
+                HaloLen = (long long) (dmax(Halo[halonr].Mvir1, dmax(Halo[halonr].Mvir2, Halo[halonr].Mvir3)) / PartMass);
+            
+          if(HaloLen > Gal[ngal].LenMax) Gal[ngal].LenMax = HaloLen;
+          Gal[ngal].Len = HaloLen;
           Gal[ngal].Vmax = Halo[halonr].Vmax;
           assert(Gal[ngal].LenMax>=Gal[ngal].Len);
             
@@ -229,14 +233,6 @@ int join_galaxies_of_progenitors(int halonr, int ngalstart)
             }
 
             Gal[ngal].Type = 1;
-              
-//            if(Gal[ngal].deltaMvir<0.0)
-//            { // for satellites, reduce angular momentum of hot gas when the subhalo loses mass
-//                jHotRatio = cbrt(sqr(Gal[ngal].Mvir / previousMvir)); // assumes j propto M^2/3 during stripping
-//                assert(jHotRatio<1.0);
-//                assert(jHotRatio>0.0);
-//                for(j = 0; j < 3; j++) Gal[ngal].SpinHot[j] *= jHotRatio;
-//            }
           }
         }
         else
@@ -386,17 +382,18 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
           assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
       }
         
-        assert(Gal[p].OutflowGas >= 0.0);
+      assert(Gal[p].OutflowGas >= 0.0);
+        
       // move outflowing, fountaining, and reincorporating ejected gas as appropriate
       reincorporate_gas(p, centralgal, dt);
-        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
-        assert(Gal[p].OutflowGas >= 0.0);
+      assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+      assert(Gal[p].OutflowGas >= 0.0);
           
       // Ram pressure stripping of cold gas from satellites
       if(RamPressureOn>0 && Gal[p].Type == 1 && Gal[p].ColdGas>0.0)
           ram_pressure_stripping(centralgal, p, k_now);
-        assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
-        assert(Gal[p].OutflowGas >= 0.0);
+      assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+      assert(Gal[p].OutflowGas >= 0.0);
 
       // determine cooling gas given halo properties
       // Preventing cooling when there's no angular momentum, as the code isn't built to handle that.  This only cropped up for Vishnu haloes with 2 particles, which clearly weren't interesting/physical.  Haloes always have some spin otherwise.
@@ -410,10 +407,9 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         }
 
       // Update radii of the annuli.  Done again at end of full time-step, so seems redundant on first sub-time-step (costly)
-        assert(Gal[p].OutflowGas >= 0.0);
-      if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && step!=0)
-        update_disc_radii(p);
-        assert(Gal[p].OutflowGas >= 0.0);
+      assert(Gal[p].OutflowGas >= 0.0);
+      if(Gal[p].Mvir > 0 && Gal[p].Rvir > 0 && step!=0) update_disc_radii(p);
+      assert(Gal[p].OutflowGas >= 0.0);
 
       // If using newer feedback model, calculate the instantaneous recycling fraction for the current time-step + apply delayed feedback from earlier stellar populations
       if(DelayedFeedbackOn>0 && N_AGE_BINS>1 && (Gal[p].StellarMass>0 || Gal[p].ICS>0 || Gal[p].LocalIGS>0))
@@ -423,9 +419,9 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         RecycleFraction = 1.0*StellarOutput[0];
         SNperMassFormed = 1.0*StellarOutput[1];
           
-          assert(Gal[p].OutflowGas >= 0.0);
+        assert(Gal[p].OutflowGas >= 0.0);
         delayed_feedback(p, k_now, time, dt);
-          assert(Gal[p].OutflowGas >= 0.0);
+        assert(Gal[p].OutflowGas >= 0.0);
       }
 
 
@@ -440,9 +436,8 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         gas_instab = check_disk_instability(p, dt, step, time, k_now);
         
       // stars form and then explode!
-//      if(gas_instab==0 && SfrEfficiency>0.0) // passive H2 channel, can be switched off if one sets this to zero
-        starformation_and_feedback(p, centralgal, dt, step, time, k_now);
-    assert(Gal[p].OutflowGas >= 0.0);
+      starformation_and_feedback(p, centralgal, dt, step, time, k_now);
+      assert(Gal[p].OutflowGas >= 0.0);
 
     }
 
@@ -467,10 +462,10 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         currentMvir = Gal[p].Mvir - Gal[p].deltaMvir * (1.0 - ((double)step + 1.0) / (double)STEPS);
         galaxyBaryons = Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass + Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].ICS + Gal[p].ICBHmass; // not adding ejected gas as it outside the virial radius, strictly
           
-          double reionization_modifier;
-          if(ReionizationOn)
+        double reionization_modifier;
+        if(ReionizationOn)
             reionization_modifier = do_reionization(p, ZZ[Halo[halonr].SnapNum]);
-          else
+        else
             reionization_modifier = 1.0;
           
         if((galaxyBaryons == 0.0) || (galaxyBaryons > 0.0 && (currentMvir / galaxyBaryons <= ThresholdSatDisruption / reionization_modifier)))        

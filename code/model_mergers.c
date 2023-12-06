@@ -109,47 +109,34 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
 	printf("Had to correct mass_ratio < 0.0");
   }
     
-//  double gas_mass_ratio = 0.0;
-//  double const g_min = dmin(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
-//  double const g_max = dmax(Gal[p].ColdGas, Gal[merger_centralgal].ColdGas);
-//  if(g_max>0) 
-//    gas_mass_ratio = g_min/g_max;
-
   add_galaxies_together(merger_centralgal, p, centralgal, k_now, mass_ratio, disc_mass_ratio, PostRetroGas);
-    
-//    for(i=0; i<N_BINS; i++)
-//    {
-//        metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-//        assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-//        assert(disc_mass_ratio[i] <= 1.0 && disc_mass_ratio[i]>=0.0);
-//    }
       
-    // If galaxy collision was retrograde, remove artifically added angular momentum from the disc by shrinking it
-    double J_current = 0.0;
-    double J_shouldhave = 0.0;
-    double j_av;
+  // If galaxy collision was retrograde, remove artifically added angular momentum from the disc by shrinking it
+  double J_current = 0.0;
+  double J_shouldhave = 0.0;
+  double j_av;
+  for(i=N_BINS-1; i>=0; i--)
+  {
+    j_av = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]);
+    J_current = j_av * Gal[merger_centralgal].DiscGas[i];
+    J_shouldhave = j_av * PostRetroGas[i];
+  }
+    
+  // safety net 1% -- don't bother reducing disc if AM difference is so small
+  if(J_shouldhave < 0.99*J_current)
+  {
+    double NewGasDisc[N_BINS];
+    double NewGasDiscMetals[N_BINS];
+    
+    project_disc(Gal[p].DiscGas, J_shouldhave/J_current, p, NewGasDisc);
+    project_disc(Gal[p].DiscGasMetals, J_shouldhave/J_current, p, NewGasDiscMetals);
+    
     for(i=N_BINS-1; i>=0; i--)
     {
-        j_av = 0.5 * (DiscBinEdge[i] + DiscBinEdge[i+1]);
-        J_current = j_av * Gal[merger_centralgal].DiscGas[i];
-        J_shouldhave = j_av * PostRetroGas[i];
+        Gal[p].DiscGas[i] = NewGasDisc[i];
+        Gal[p].DiscGasMetals[i] = NewGasDiscMetals[i];
     }
-    
-    // safety net 1% -- don't bother reducing disc if AM difference is so small
-    if(J_shouldhave < 0.99*J_current)
-    {
-        double NewGasDisc[N_BINS];
-        double NewGasDiscMetals[N_BINS];
-        
-        project_disc(Gal[p].DiscGas, J_shouldhave/J_current, p, NewGasDisc);
-        project_disc(Gal[p].DiscGasMetals, J_shouldhave/J_current, p, NewGasDiscMetals);
-        
-        for(i=N_BINS-1; i>=0; i--)
-        {
-            Gal[p].DiscGas[i] = NewGasDisc[i];
-            Gal[p].DiscGasMetals[i] = NewGasDiscMetals[i];
-        }
-    }
+  }
     
     
     
@@ -174,13 +161,8 @@ void deal_with_galaxy_merger(int p, int merger_centralgal, int centralgal, doubl
     
   if(DiskInstabilityOn>0)
   {
-//      for(i=0; i<N_BINS; i++)
-//      {
-//          metallicity = get_metallicity(Gal[merger_centralgal].DiscGas[i], Gal[merger_centralgal].DiscGasMetals[i]);
-//          assert(Gal[merger_centralgal].DiscGasMetals[i] <= Gal[merger_centralgal].DiscGas[i]);
-//      }
-      int gas_instab = check_disk_instability(merger_centralgal, dt, step, time, k_now);
-      assert(gas_instab==0 || gas_instab==1);
+    int gas_instab = check_disk_instability(merger_centralgal, dt, step, time, k_now);
+    assert(gas_instab==0 || gas_instab==1);
   }
   else
     update_stellardisc_scaleradius(p); // will already be done within check_disk_instability otherwise

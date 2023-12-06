@@ -34,8 +34,8 @@ def galdtype_darksage(Nannuli=30,Nage=1):
                     ('Pos'                          , (floattype, 3)),
                     ('Vel'                          , (floattype, 3)),
                     ('Spin'                         , (floattype, 3)),
-                    ('Len'                          , np.int32),
-                    ('LenMax'                       , np.int32),
+                    ('Len'                          , np.int64),
+                    ('LenMax'                       , np.int64),
                     ('Mvir'                         , floattype),
                     ('Rvir'                         , floattype),
                     ('Vvir'                         , floattype),
@@ -143,8 +143,8 @@ def darksage_out_single(fname, fields=[], Nannuli=30, Nage=1):
         G_single_size = sys.getsizeof(np.empty(1,dtype=Galdesc)) - G_overhead_size
         size_left_less_overhead = file_size - size_read_sofar - G_overhead_size
         if size_left_less_overhead>0:
-            assert(size_left_less_overhead % G_single_size)
-            NtotGals = int(size_left_less_overhead / G_single_size)
+            print(size_left_less_overhead, G_single_size, size_left_less_overhead % G_single_size)
+            NtotGals = int(size_left_less_overhead / G_single_size) + 1
             if NtotGals>0:
                 print('NtotGals updated to', NtotGals, 'based on file size instead')
         

@@ -771,7 +771,7 @@ void add_infall_to_hot(int centralgal, double infallingGas)
 
   metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
-    assert(Gal[centralgal].MetalsLocalIGM >= 0);
+  assert(Gal[centralgal].MetalsLocalIGM >= 0);
 
   // add the ambient infalling gas to the central galaxy hot component 
   if(infallingGas > 0.0)
@@ -801,8 +801,8 @@ void add_infall_to_hot(int centralgal, double infallingGas)
   metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
     
-    assert(Gal[centralgal].LocalIGM >= 0);
-    assert(Gal[centralgal].MetalsLocalIGM >= 0);
+  assert(Gal[centralgal].LocalIGM >= 0);
+  assert(Gal[centralgal].MetalsLocalIGM >= 0);
 
 }
 

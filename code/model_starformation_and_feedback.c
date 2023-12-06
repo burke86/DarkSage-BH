@@ -328,7 +328,6 @@ void calculate_feedback_masses(int p, double stars, int i, double max_consume, d
     }
         
     feedback_mass[0] = reheated_mass;
-//    feedback_mass[1] = ejected_mass;
     feedback_mass[2] = stars;
     feedback_mass[3] = ejected_cold_mass;
         
@@ -374,18 +373,15 @@ void update_from_star_formation(int p, double stars, double metallicity, int i)
 
 void update_from_feedback(int p, double reheated_mass, double metallicity, int i, double ejected_cold_mass)
 {
-    assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
-    assert(Gal[p].HotGas>=0);
-    assert(Gal[p].MetalsHotGas>=0);
-    assert(metallicity>=0);
-    assert(reheated_mass>=0);
-    assert(ejected_cold_mass>=0);
-    assert(Gal[p].OutflowGas >= 0.0);
-    
+  assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
+  assert(Gal[p].HotGas>=0);
+  assert(Gal[p].MetalsHotGas>=0);
+  assert(metallicity>=0);
+  assert(reheated_mass>=0);
+  assert(ejected_cold_mass>=0);
+  assert(Gal[p].OutflowGas >= 0.0);
   
-    double reheat_eject_sum = reheated_mass + ejected_cold_mass;
-//    if(Gal[p].SnapNum > 50) printf("SnapNum, Mvir, ejected fraction = %i, %e, %e\n", Gal[p].SnapNum, Gal[p].Mvir, ejected_cold_mass/reheat_eject_sum);
-    
+  double reheat_eject_sum = reheated_mass + ejected_cold_mass;
 
   if(SupernovaRecipeOn>0 && reheat_eject_sum>MIN_STARFORMATION) // Imposing a minimum. Chosen as MIN_STARFORMATION for convenience.  Makes sense to be same order of magnitude though.
   {
@@ -1097,56 +1093,6 @@ void update_HI_H2(int p, double time, int k_now)
 
             }
 
-            // solve for f_neutral, which will lead to absolute H2 and HI masses per annulus
-//            if(H2prescription<3)
-//            {
-//                if(f_H2_HI > 0.0)
-//                {
-//                    if(Z >= 0.025)
-//                        X_H = 0.753 - 1.26*Z;
-//                    else
-//                        X_H = dmin(0.76, 0.762 - 2.3*Z + 24.2*sqr(Z));
-//                                    
-//                    f_H2 = X_H / (1.0/f_H2_HI + 1);
-//                    
-//                    A_term_annulus = A_term_global * sqr(X_H) * sqr(sqr(Sigma_cold)) / (3.0*X_H + 1.0);
-//                    xi_term_annulus = xi_term_global * f_H2 * sqr(Sigma_cold);
-//                    xi_on_2A = xi_term_annulus / (2.0 * A_term_annulus);
-//                    f_neutral = 1.0 + xi_on_2A - sqrt(xi_on_2A + sqr(xi_on_2A));
-//                    
-//                    if(f_H2 > 1e-10) // some sensible minimum
-//                    {
-//                        Gal[p].DiscH2[i] = f_H2 * f_neutral * Gal[p].DiscGas[i];
-//                        Gal[p].DiscHI[i] = Gal[p].DiscH2[i] / f_H2_HI;
-//                    }
-//                    else
-//                    {
-//                        Gal[p].DiscH2[i] = 0.0;
-//                        Gal[p].DiscHI[i] = X_H * f_neutral * Gal[p].DiscGas[i];
-//                    }
-//                    
-//                    if(!(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]))
-//                    {
-//                        printf("Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]  = %e, %e, %e, %e\n", Gal[p].DiscHI[i], Gal[p].DiscH2[i], Gal[p].DiscGas[i], X_H*Gal[p].DiscGas[i]);
-//                        printf("f_neutral, X_H, f_H2_HI = %e, %e, %e\n", f_neutral, X_H, f_H2_HI);
-//                        printf("f_H2 = %e\n", f_H2);
-//                    }
-//                    assert(Gal[p].DiscHI[i] + Gal[p].DiscH2[i] <= X_H*Gal[p].DiscGas[i]);
-//                }
-//                else
-//                {
-//                    Gal[p].DiscH2[i] = 0.0;
-//                    Gal[p].DiscHI[i] = X_H*Gal[p].DiscGas[i]; // All cold hydrogen must be in the form of HI if there's no H2.
-//                }
-//            }
-            
-            // If the GD14 prescription is called, use that instead!
-            // Still handy to have the above already calculated in case the below cannot be done
-            // The UV flux below is calculated from recent histroical SFR, rather than having it approximately relate to the instantaneous value.
-            // The GD14 prescription requires the neutral fraction to be calculated first
-            
-//            else
-//            {
             double SFR_guess = 0.0;
             
             if(Gal[p].DiscStarsAge[i][k_now] > 0.0)
@@ -1174,14 +1120,13 @@ void update_HI_H2(int p, double time, int k_now)
             double f_neutral_max = dmax(1.0 + gamma_term - sqrt(sqr(gamma_term) + 2*gamma_term), 0.0);
             if(f_neutral > f_neutral_max)
             {
-//                    printf("f_neutral, f_neutral_max = %e, %e\n", f_neutral, f_neutral_max);
                 f_neutral = f_neutral_max;
             }
                 
             if(H2prescription==3)
             {
                 // THIS IS NOT THE AVERAGE DISTANCE FROM A DISTRIBUTED SOURCE. AN INTEGRAL IS REQUIRED.  Could approximate as a 1D integral around the centre of the annulus?
-                double av_dist = sqrt(area);//0.25*(Gal[p].DiscRadii[i+1] - Gal[p].DiscRadii[i]);
+                double av_dist = sqrt(area);
                 double Sbar = av_dist * 1e4/Hubble_h;
                 double Sbar5 = Sbar*Sbar*Sbar*Sbar*Sbar;
                 double Dstar = 0.17 * (2.0 + Sbar5) / (1.0 + Sbar5);
@@ -1189,28 +1134,11 @@ void update_HI_H2(int p, double time, int k_now)
                 double gbar = sqrt(sqr(Dstar) + DMW2);
                 double UMW, alphabar, Sigma_R1;
 
-//                if(UVB_z[Gal[p].SnapNum] > 0.9 * UVMW_perSFRdensity * SFR_guess / sqr(av_dist) && SFR_guess>0.0)
-//                    printf("Background, local UV field, SFR, av_dist = %e, %e, %e, %e\n", UVB_z[Gal[p].SnapNum], 0.9 * UVMW_perSFRdensity * SFR_guess / sqr(av_dist), SFR_guess, av_dist); // assumes 10% escape fraction
                 UMW = dmax(UVB_z[Gal[p].SnapNum], UVMW_perSFRdensity * SFR_guess / area); 
                 alphabar = 0.5 + 1.0 / (1.0 + sqrt(UMW * DMW2 / 600.0));
                 Sigma_R1 = Sigma_R1_fac * sqrt(0.001 + 0.1*UMW) / (gbar * (1.0 + 1.69*sqrt(0.001 + 0.1*UMW)));
                 f_H2_HI = pow(f_neutral * X_H * Gal[p].DiscGas[i] / (Sigma_R1 * area), alphabar);
-                
-//                if(f_H2_HI < 1e-10)
-//                {
-//                    printf("\nf_H2_HI = %e\n", f_H2_HI);
-//                    printf("SFR_guess = %e\n", SFR_guess);
-//                    printf("UMW = %e\n", UMW);
-//                    printf("alphabar = %e\n", alphabar);
-//                    printf("Sigma_R1 = %e\n", Sigma_R1);
-//                    printf("av_dist = %e\n", av_dist);
-//                    printf("Sbar5 = %e\n", Sbar5);
-//                    printf("Gal[p].DiscGas[i], area = %e, %e\n", Gal[p].DiscGas[i], area);
-//                    printf("k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time = %i, %e, %e, %e\n", k_now, AgeBinEdge[k_now], AgeBinEdge[k_now+1], time);
-//                    f_H2_HI = 0.0;
-//                }
             }
-//                
                 // reset HI and H2 values based on GD14 prescription
                 if(f_H2_HI > 0.0)
                 {
@@ -1223,12 +1151,7 @@ void update_HI_H2(int p, double time, int k_now)
                 {
                     Gal[p].DiscH2[i] = 0.0;
                     Gal[p].DiscHI[i] = X_H * f_neutral * Gal[p].DiscGas[i];
-                }
-//                }
-//            }
-
-            
-            
+                }            
         }
     }
     else if (Gal[p].ColdGas <= 0.0)
@@ -1399,13 +1322,6 @@ void delayed_feedback(int p, int k_now, double time, double dt)
     {
         Gal[p].OutflowSpecificEnergy = Gal[p].EjectedPotential + hot_thermal_and_kinetic; // set as the minimum
         assert(Gal[p].OutflowSpecificEnergy == Gal[p].OutflowSpecificEnergy);
-
-//        printf("Gal[p].OutflowGas, Gal[p].FountainGas = %e, %e\n", Gal[p].OutflowGas, Gal[p].FountainGas);
-//        printf("Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS = %e, %e, %e\n", Gal[p].StellarMass, Gal[p].ICS, Gal[p].LocalIGS);
-//        printf("Gal[p].OutflowSpecificEnergy, hot_specific_energy = %e, %e\n", Gal[p].OutflowSpecificEnergy, hot_specific_energy);
-//        printf("Ejected potential, Hot potential = %e, %e\n", Gal[centralgal].EjectedPotential, Gal[centralgal].HotGasPotential);
-//        printf("centralgal, Rvir = %i, %e\n", centralgal, Gal[centralgal].Rvir);
-//        assert(Gal[p].OutflowSpecificEnergy>hot_specific_energy);
     }
 
     
@@ -1590,6 +1506,13 @@ void delayed_feedback(int p, int k_now, double time, double dt)
         else
         { 
             eject_specific_energy = Gal[p].EjectedPotential + hot_thermal_and_kinetic;
+            if(!(eject_specific_energy > hot_specific_energy))
+            {
+                printf("eject_specific_energy, hot_specific_energy = %e, %e\n", eject_specific_energy, hot_specific_energy);
+                printf("hot_thermal_and_kinetic, Gal[p].EjectedPotential, Gal[p].HotGasPotential = %e, %e, %e\n", hot_thermal_and_kinetic, Gal[p].EjectedPotential, Gal[p].HotGasPotential);
+                printf("Gal[p].Vvir, j_hot, Gal[p].R2_hot_av = %e, %e, %e\n", Gal[p].Vvir, j_hot, Gal[p].R2_hot_av);
+                printf("Gal[p].CoolScaleRadius = %e\n", Gal[p].CoolScaleRadius);
+            }
             assert(eject_specific_energy > hot_specific_energy);
             ejected_sum = energy_onto_hot / (eject_specific_energy - hot_specific_energy);
             

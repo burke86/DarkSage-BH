@@ -58,12 +58,19 @@ double cooling_recipe(int gal, double dt)
       // infall dominated regime 
       coolingGas = Gal[gal].HotGas / (Gal[gal].Rvir / Gal[gal].Vvir) * dt;
       Gal[gal].CoolScaleRadius = 1.0*Gal[gal].DiskScaleRadius;
+        assert(! isinf(Gal[gal].CoolScaleRadius));
     }
     else
     {
       // hot phase regime 
       coolingGas = (Gal[gal].HotGas / Gal[gal].Rvir) * (rcool / (2.0 * tcool)) * cb_term * dt;
         Gal[gal].CoolScaleRadius = pow(10, CoolingScaleSlope*log10(1.414*Gal[gal].DiskScaleRadius/Gal[gal].Rvir) - CoolingScaleConst) * Gal[gal].Rvir; // Stevens et al. (2017)
+        if(isinf(Gal[gal].CoolScaleRadius))
+        {
+            printf("Gal[gal].CoolScaleRadius = %e\n", Gal[gal].CoolScaleRadius);
+            printf("Gal[gal].DiskScaleRadius, Gal[gal].Rvir, CoolingScaleConst, CoolingScaleSlope = %e, %e, %e, %e\n", Gal[gal].DiskScaleRadius, Gal[gal].Rvir, CoolingScaleConst, CoolingScaleSlope);
+        }
+        assert(! isinf(Gal[gal].CoolScaleRadius));
     }
 
       
@@ -91,17 +98,17 @@ double cooling_recipe(int gal, double dt)
           rfrac1 = Gal[gal].DiscRadii[i] / Gal[gal].CoolScaleRadius;
           rfrac2 = Gal[gal].DiscRadii[i+1] / Gal[gal].CoolScaleRadius;
           massfrac = (rfrac1+1.0)*exp(-rfrac1) - (rfrac2+1.0)*exp(-rfrac2);
+          if(massfrac<0) massfrac=0.0;
         }
         else
         {
           jfrac1 = DiscBinEdge[i] / (Gal[gal].Vvir * Gal[gal].CoolScaleRadius);
           jfrac2 = DiscBinEdge[i+1] / (Gal[gal].Vvir * Gal[gal].CoolScaleRadius);
           massfrac = (jfrac1+1.0)*exp(-jfrac1) - (jfrac2+1.0)*exp(-jfrac2);
+          if(massfrac<0) massfrac=0.0;
           massfrac_sum += massfrac;
-          assert(massfrac>=0);
         }
 
-        //          printf("i, massfrac, pot_av, v_av = %i, %e, %e, %e\n", i, massfrac, pot_av, v_av);
         cold_specific_energy += (massfrac * (pot_av + 0.5*sqr(v_av)));
     }
     j_hot = 2 * Gal[gal].Vvir * Gal[gal].CoolScaleRadius;
@@ -184,11 +191,7 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
         AGNrate = RadioModeEfficiency / (UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS)
           * (Gal[p].BlackHoleMass / 0.01) * cube(Gal[p].Vvir / 200.0);
     }
-      
-    // NEW WAY OF DOING RADIO MODE MEMORY
-//    if(AGNrate < Gal[p].MaxRadioModeAccretionRate)
-//          AGNrate = Gal[p].MaxRadioModeAccretionRate; // don't let current accretion rate be lower than in history
-      
+            
     // accretion onto BH is always limited by the Eddington rate 
     EDDrate = 1.4444444444e37 * Gal[p].BlackHoleMass / UnitEnergy_in_cgs * UnitTime_in_s; // 1.4444444444e37 = 1.3e48 / 9e10
     if(AGNrate > EDDrate)

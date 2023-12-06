@@ -16,6 +16,7 @@
 void init_galaxy(int p, int halonr)
 {
     int j, k, step;
+    long long HaloLen;
     double SpinMag;
     
     double c_s = (1.1e6 + 1.13e6 * ZZ[Gal[p].SnapNum]) / UnitVelocity_in_cm_per_s;
@@ -65,14 +66,18 @@ void init_galaxy(int p, int halonr)
         Gal[p].SpinSecularBulge[j] = 0.0;
     }
     
-    Gal[p].Len = Halo[halonr].Len;
-    Gal[p].LenMax = Halo[halonr].Len;
+    if(Halo[halonr].Len > 0)
+        HaloLen = (long long) Halo[halonr].Len;
+    else
+        HaloLen = (long long) (dmax(Halo[halonr].Mvir1, dmax(Halo[halonr].Mvir2, Halo[halonr].Mvir3)) / PartMass);
+
+    Gal[p].Len = HaloLen;
+    Gal[p].LenMax = HaloLen;
     Gal[p].Vmax = Halo[halonr].Vmax;
-//    Gal[p].Mratio = 0.0; // needs a value assigned before Mvir calculated
     Gal[p].Vvir = get_virial_velocity(halonr, p);
     Gal[p].Mvir = get_virial_mass(halonr, p);
     Gal[p].Rvir = get_virial_radius(halonr, p, Gal[p].Mvir);
-    Gal[p].Mratio = Gal[p].Mvir / (Halo[halonr].Len * PartMass); // proper starting value
+    Gal[p].Mratio = Gal[p].Mvir / (HaloLen * PartMass); // proper starting value
     
     Gal[p].deltaMvir = 0.0;
     
@@ -154,10 +159,6 @@ void init_galaxy(int p, int halonr)
         Gal[p].SfrFromH2[step] = 0.0;
         Gal[p].SfrInstab[step] = 0.0;
         Gal[p].SfrMerge[step] = 0.0;
-//        Gal[p].SfrDiskColdGas[step] = 0.0;
-//        Gal[p].SfrDiskColdGasMetals[step] = 0.0;
-//        Gal[p].SfrBulgeColdGas[step] = 0.0;
-//        Gal[p].SfrBulgeColdGasMetals[step] = 0.0;
     }
     
     Gal[p].DiskScaleRadius = get_disk_radius(halonr, p);
@@ -240,13 +241,28 @@ double get_disk_radius(int halonr, int p)
         SpinMagnitude = sqrt(Halo[halonr].Spin[0] * Halo[halonr].Spin[0] +
                              Halo[halonr].Spin[1] * Halo[halonr].Spin[1] + Halo[halonr].Spin[2] * Halo[halonr].Spin[2]);
         
-        if(SpinMagnitude==0 && Gal[p].DiskScaleRadius>=0) return Gal[p].DiskScaleRadius;
+        if(SpinMagnitude==0 && Gal[p].DiskScaleRadius>=0 && !isinf(Gal[p].DiskScaleRadius)) return Gal[p].DiskScaleRadius;
         radius = SpinMagnitude / (2.0 * Gal[p].Vvir);
+        if(isinf(radius))
+        {
+            printf("radius = %e\n", radius);
+            printf("SpinMagnitude, Gal[p].Vvir = %e, %e\n", SpinMagnitude, Gal[p].Vvir);
+        }
+        assert(!isinf(radius));
     }
     else
     {
         SpinMagnitude = 0.0; // place holder
-        radius = Gal[p].DiskScaleRadius * pow(Gal[p].Mvir/(Gal[p].Mvir-Gal[p].deltaMvir), 0.666667);
+        if(Gal[p].Mvir-Gal[p].deltaMvir > 0.0)
+            radius = Gal[p].DiskScaleRadius * pow(Gal[p].Mvir/(Gal[p].Mvir-Gal[p].deltaMvir), 0.666667);
+        else
+            radius = Gal[p].DiskScaleRadius;
+        if(isinf(radius))
+        {
+            printf("radius = %e\n", radius);
+            printf("Gal[p].DiskScaleRadius, Gal[p].Mvir, Gal[p].deltaMvir = %e, %e, %e\n", Gal[p].DiskScaleRadius, Gal[p].Mvir, Gal[p].deltaMvir);
+        }
+        assert(!isinf(radius));
     }
     
     if(!(radius>0.0))
@@ -257,6 +273,7 @@ double get_disk_radius(int halonr, int p)
         radius = 0.0;
     }
     assert(radius>0.0);
+    assert(!isinf(radius));
     
     return radius;
     
@@ -327,28 +344,30 @@ double exp_f(double x)
 
 double get_virial_mass(int halonr, int p)
 {
+    double Mvir;
     if(halonr == Halo[halonr].FirstHaloInFOFgroup && Halo[halonr].Mvir1 > 0.0 && MvirDefinition==1)
     {
-        return Halo[halonr].Mvir1;
+        Mvir = Halo[halonr].Mvir1;
     }
     else if(halonr == Halo[halonr].FirstHaloInFOFgroup && Halo[halonr].Mvir2 > 0.0 && MvirDefinition==2)
     {
-        return Halo[halonr].Mvir2;
+        Mvir = Halo[halonr].Mvir2;
     }
     else if(halonr == Halo[halonr].FirstHaloInFOFgroup && Halo[halonr].Mvir3 > 0.0 && MvirDefinition==3)
     {
-        return Halo[halonr].Mvir3;
+        Mvir = Halo[halonr].Mvir3;
     }
     else if(Halo[halonr].Len>0)
     {
-        return Halo[halonr].Len * PartMass;
-    }
-    else if(p!=-1)
-    {
-        return Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass + Gal[p].ICS + Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].ICBHmass;
+        Mvir = Halo[halonr].Len * PartMass;
     }
     else
-        return 0.0;
+    {
+        Mvir = Gal[p].StellarMass + Gal[p].ColdGas + Gal[p].HotGas + Gal[p].BlackHoleMass + Gal[p].ICS + Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].ICBHmass;
+    }
+    
+    return dmax(2.0*PartMass, Mvir); // Has to have at least 1 particle, surely. Factor of 2 there out of choice (ensures no shenanigans with Len)
+    
 }
 
 
@@ -433,16 +452,10 @@ double get_disc_gas(int p)
         DiscMetalsSum = 0.0;
         Gal[p].MetalsColdGas = 0.0;
     }
-    
-//    if(DiscGasSum>1.001*Gal[p].ColdGas || DiscGasSum<Gal[p].ColdGas*0.999)
-//    {
-//        printf("get_disc_gas report ... DiscSum, ColdGas =  %e, %e\n", DiscGasSum, Gal[p].ColdGas);
-//        printf("get_disc_gas report ... MetalsSum, ColdMetals =  %e, %e\n", DiscMetalsSum, Gal[p].MetalsColdGas);
+            
+    Gal[p].ColdGas = DiscGasSum; // Prevent small errors from blowing up
+    Gal[p].MetalsColdGas = DiscMetalsSum;
         
-        Gal[p].ColdGas = DiscGasSum; // Prevent small errors from blowing up
-        Gal[p].MetalsColdGas = DiscMetalsSum;
-        
-//    }
     return DiscGasSum;
 }
 
@@ -453,12 +466,10 @@ double get_disc_stars(int p)
     
     DiscStarSum = 0.0;
     DiscMetalsSum = 0.0;
-//    dumped_mass = 0.0;
     for(l=N_BINS-1; l>=0; l--)
     {
         if(Gal[p].DiscStars[l]<1e-11) // This would be less than a single star in an annulus.  Not likely.
         {
-//            dumped_mass += Gal[p].DiscStars[l];
             Gal[p].DiscStars[l] = 0.0;
             Gal[p].DiscStarsMetals[l] = 0.0;
             
@@ -486,18 +497,12 @@ double get_disc_stars(int p)
             
             if(AgeSum>1.001*Gal[p].DiscStars[l] || AgeSum<0.999*Gal[p].DiscStars[l])
             {
-//                assert(AgeSum<=1.01*Gal[p].DiscStars[l] && AgeSum>=0.99*Gal[p].DiscStars[l]);
-//                if(AgeSum>1.01*Gal[p].DiscStars[l] || AgeSum<0.99*Gal[p].DiscStars[l])
-//                    printf("get_disc_stars age report: l, AgeSum, Gal[p].DiscStars[l], Gal[p].StellarMass: %i, %e, %e, %e\n", l, AgeSum, Gal[p].DiscStars[l], Gal[p].StellarMass);
                 Gal[p].DiscStars[l] = AgeSum;
                 Gal[p].DiscStarsMetals[l] = AgeMetalsSum;
             }
             
             if(VelDispNet > 1.001*Gal[p].VelDispStars[l] || VelDispNet < 0.999*Gal[p].VelDispStars[l])
             {
-//                assert(VelDispNet<=1.01*Gal[p].VelDispStars[l] && VelDispNet>=0.99*Gal[p].VelDispStars[l]);
-//                if(VelDispNet > 1.01*Gal[p].VelDispStars[l] || VelDispNet < 0.99*Gal[p].VelDispStars[l])
-//                    printf("get_disc_stars age report: l, VelDispNet, Gal[p].VelDispStars[l]: %i, %e, %e\n", l, VelDispNet, Gal[p].VelDispStars[l]);
                 Gal[p].VelDispStars[l] = VelDispNet;
                 assert(Gal[p].VelDispStars[l] >= 0);
             }
@@ -526,7 +531,6 @@ double get_disc_stars(int p)
         
         if(SecularSum>1.000*Gal[p].SecularBulgeMass || SecularSum<0.999*Gal[p].SecularBulgeMass)
         {
-//            printf("\nSecular bulge mass not consistent with age bins: SecularSum, Gal[p].SecularBulgeMass = %e, %e\n", SecularSum, Gal[p].SecularBulgeMass);
             Gal[p].SecularBulgeMass = SecularSum;
             Gal[p].SecularMetalsBulgeMass = MetalsSecularSum;
             assert(Gal[p].SecularBulgeMass >= 0);
@@ -541,7 +545,6 @@ double get_disc_stars(int p)
         
         if(ClassicalSum>1.001*Gal[p].ClassicalBulgeMass || ClassicalSum<0.999*Gal[p].ClassicalBulgeMass)
         {
-//            printf("Classical bulge mass not consistent with age bins: ClassicalSum, Gal[p].ClassicalBulgeMass = %e, %e\n", ClassicalSum, Gal[p].ClassicalBulgeMass);
             Gal[p].ClassicalBulgeMass = ClassicalSum;
             Gal[p].ClassicalMetalsBulgeMass = MetalsClassicalSum;
             assert(Gal[p].ClassicalBulgeMass >= 0);
@@ -556,8 +559,6 @@ double get_disc_stars(int p)
     
     if(DiscAndBulge>1.001*Gal[p].StellarMass || DiscAndBulge<0.999*Gal[p].StellarMass)
     {
-//        if(DiscAndBulge>1.01*Gal[p].StellarMass || DiscAndBulge<0.99*Gal[p].StellarMass)
-//            printf("get_disc_stars report: DiscAndBulge, StellarMass, dumped_mass = %e, %e, %e\n", DiscAndBulge, Gal[p].StellarMass, Gal[p].StellarMass-DiscAndBulge);
         Gal[p].StellarMass = DiscAndBulge; // Prevent small errors from blowing up
         Gal[p].MetalsStellarMass = MetalsDiscAndBulge;
         if(Gal[p].StellarMass <= Gal[p].ClassicalBulgeMass + Gal[p].SecularBulgeMass)
@@ -594,7 +595,6 @@ void check_channel_stars(int p)
     if(Gal[p].StellarMass>0.0)
     {
         ChannelFrac = Gal[p].StellarMass / (Gal[p].StarsFromH2+Gal[p].StarsInstability+Gal[p].StarsMergeBurst);
-//        if(ChannelFrac>1.01 || ChannelFrac<0.99) printf("1. ChannelFrac, StellarMass = %e, %e\n", ChannelFrac, Gal[p].StellarMass);
         Gal[p].StarsFromH2 *= ChannelFrac;
         Gal[p].StarsInstability *= ChannelFrac;
         Gal[p].StarsMergeBurst *= ChannelFrac;
@@ -634,7 +634,6 @@ void check_ejected(int p)
 {
     if(!(Gal[p].EjectedMass >= Gal[p].MetalsEjectedMass))
     {
-//        printf("ejected mass, metals = %e, %e\n", Gal[p].EjectedMass, Gal[p].MetalsEjectedMass);
         if(Gal[p].EjectedMass <= 1e-10 || Gal[p].MetalsEjectedMass <= 1e-10*BIG_BANG_METALLICITY)
         {
             Gal[p].EjectedMass = 0.0;
@@ -721,7 +720,6 @@ void update_disc_radii(int p)
     if(Gal[p].Mvir>0.0 && BTT<1.0)
     {
         const double hot_fraction = (Gal[p].HotGas + Gal[p].FountainGas + Gal[p].OutflowGas) * inv_Rvir; // when assuming a singular isothermal sphere
-//        const double exponent_support =  -3.0*(1.0-BTT)/Gal[p].StellarDiscScaleRadius;
         const double exponent_support =  -1.0 / Gal[p].RotSupportScaleRadius;
         const int NUM_R_BINS=51;
 
@@ -744,7 +742,6 @@ void update_disc_radii(int p)
         analytic_potential[NUM_R_BINS-1] = 0.0; // consider making this -G*Gal[p].Mvir/Gal[p].Rvir, which would aassume that analytic_r was always <Rvir.  This assumption likely wouldn't be strictly true.  In a way, it doesn't matter, provided potentials are always used for taking differences (what else would they be useful for?)
         double r_jmax = 10.0*DiscBinEdge[N_BINS]/Gal[p].Vvir;
         if(r_jmax<Gal[p].Rvir) r_jmax = 1.0*Gal[p].Rvir;
-//        if(baryon_fraction>1.0) r_jmax *= (100*baryon_fraction);
         double r = r_jmax;
         const double inv_ExponentBin = 1.0/ExponentBin;
         const double c_sdisc = Gal[p].Rvir / Gal[p].StellarDiscScaleRadius;
@@ -842,6 +839,7 @@ void update_disc_radii(int p)
             for(k=1; k<N_BINS+1; k++)
             {
                 if(DiscBinEdge[k]<analytic_j_reduced[0]) printf("If this assert statement is triggered, it's probably because the analytic_r and analytic_j arrays don't go deep enough.  Changing the rrat threshold for the break statement in the previous loop or increasing NUM_R_BINS might help.  First, check that everything in the parameter file is accurate, especially quantities like particle mass.");
+                if(!(DiscBinEdge[k] >= analytic_j_reduced[0])) printf("DiscBinEdge[k], analytic_j_reduced[0] = %e, %e\n", DiscBinEdge[k], analytic_j_reduced[0]);
                 assert(DiscBinEdge[k] >= analytic_j_reduced[0]);
                 assert(DiscBinEdge[k] <= analytic_j_reduced[NUM_R_BINS_REDUCED-1]);
                 Gal[p].DiscRadii[k] = gsl_spline_eval(spline, DiscBinEdge[k], acc);
@@ -1380,11 +1378,6 @@ double get_Mhost_internal(int p, int centralgal, double dr)
         const double a_CB = Gal[centralgal].a_MergerBulge;
         const double M_mBulge = Gal[centralgal].ClassicalBulgeMass * sqr((Rvir_host+a_CB)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_CB));
         
-//        double a_ICS = 0.0;
-//        if(Gal[p].ClassicalBulgeMass>0.0)
-//            a_ICS = 13.0 * a_CB; // Gonzalez et al (2005)
-//        else if(a_SB>0.0)
-//            a_ICS = 13.0 * a_SB; // Feeding Fisher & Drory (2008) relation into Gonzalez et al (2005)
         double a_ICS = get_a_ICS(centralgal, Gal[centralgal].Rvir, Gal[centralgal].R_ICS_av);
         const double M_ICS = Gal[centralgal].ICS * sqr((Rvir_host+a_ICS)/Rvir_host) * sqr(SatelliteRadius/(SatelliteRadius + a_ICS));
         
