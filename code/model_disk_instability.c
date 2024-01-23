@@ -131,6 +131,7 @@ int check_disk_instability(int p, double dt, int step, double time, int k_now)
                     printf("metallicity = %e\n", metallicity);
                     printf("p, i, Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1] = %i, %i, %e, %e\n", p, i, Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1]);
                 }
+                if(!(Gal[p].DiscGasMetals[i-1] <= Gal[p].DiscGas[i-1])) printf("Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1] = %e, %e\n", Gal[p].DiscGasMetals[i-1], Gal[p].DiscGas[i-1]);
                 assert(Gal[p].DiscGasMetals[i-1] <= Gal[p].DiscGas[i-1]);
                 
                 stars = deal_with_unstable_gas(unstable_gas, p, i, metallicity);

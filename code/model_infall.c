@@ -724,85 +724,259 @@ double do_reionization(int gal, double Zcurr)
 
 
 
-void add_infall_to_hot(int centralgal, double infallingGas)
+void add_infall_to_hot(int centralgal, double infallingMass)
 {
   double metallicity;
+  int k;
 
   assert(Gal[centralgal].HotGas == Gal[centralgal].HotGas && Gal[centralgal].HotGas >= 0);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
 
-  // if the halo has lost mass, subtract baryons from the ejected mass first, then the hot gas
-  if(infallingGas < 0.0 && Gal[centralgal].EjectedMass > 0.0)
+//  // if the halo has lost mass, subtract baryons from the ejected mass first, then the hot gas
+//  if(infallingMass < 0.0 && Gal[centralgal].EjectedMass > 0.0)
+//  {
+//    check_ejected(centralgal);
+//      
+//    if(Gal[centralgal].EjectedMass <= -infallingMass)
+//    {
+//      infallingMass += Gal[centralgal].EjectedMass;
+//      Gal[centralgal].EjectedMass = 0.0;
+//      Gal[centralgal].MetalsEjectedMass = 0.0;
+//    }
+//    else
+//    {
+//        metallicity = get_metallicity(Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass);
+//        Gal[centralgal].EjectedMass += infallingMass;
+//        Gal[centralgal].MetalsEjectedMass += metallicity * infallingMass;        
+//        assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
+//    }
+//
+//  }
+//
+//  // if the halo has lost mass, subtract hot metals mass next, then the hot gas
+//  if(infallingMass < 0.0 && Gal[centralgal].MetalsHotGas > 0.0)
+//  {
+//    metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
+//	assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
+//    Gal[centralgal].MetalsHotGas += infallingMass*metallicity;
+//	Gal[centralgal].HotGas += infallingMass;
+//	if(Gal[centralgal].HotGas < 0.0) Gal[centralgal].HotGas = Gal[centralgal].MetalsHotGas = 0.0;
+//    if(Gal[centralgal].MetalsHotGas < 0.0) Gal[centralgal].MetalsHotGas = 0.0;
+//	metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
+//	assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
+//  }
+    
+ // halo has shrunk.  Halo material needs to be moved to the Local Intergalactic Medium/Stars for reservoir-definition consistency
+  if(infallingMass < 0.0)
   {
-    check_ejected(centralgal);
+      double halo_baryons = Gal[centralgal].HotGas + Gal[centralgal].FountainGas + Gal[centralgal].OutflowGas + Gal[centralgal].ICS;
+      if(halo_baryons <= 0.0) return;
       
-    if(Gal[centralgal].EjectedMass <= -infallingGas)
-    {
-      infallingGas += Gal[centralgal].EjectedMass;
-      Gal[centralgal].EjectedMass = 0.0;
-      Gal[centralgal].MetalsEjectedMass = 0.0;
-    }
-    else
-    {
-        metallicity = get_metallicity(Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass);
-        Gal[centralgal].EjectedMass += infallingGas;
-        Gal[centralgal].MetalsEjectedMass += metallicity * infallingGas;        
-        assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
-    }
+      if(-infallingMass >= halo_baryons)
+      {
+          Gal[centralgal].LocalIGM += (Gal[centralgal].HotGas + Gal[centralgal].FountainGas + Gal[centralgal].OutflowGas);
+          Gal[centralgal].MetalsLocalIGM += (Gal[centralgal].MetalsHotGas + Gal[centralgal].MetalsFountainGas + Gal[centralgal].MetalsOutflowGas);
+          Gal[centralgal].LocalIGS += Gal[centralgal].ICS;
+          Gal[centralgal].MetalsLocalIGS += Gal[centralgal].MetalsICS;
+          
+          
+          Gal[centralgal].HotGas = 0.0;
+          Gal[centralgal].FountainGas = 0.0;
+          Gal[centralgal].OutflowGas = 0.0;
+          Gal[centralgal].MetalsHotGas = 0.0;
+          Gal[centralgal].MetalsFountainGas = 0.0;
+          Gal[centralgal].MetalsOutflowGas = 0.0;
 
+          for(k=0; k<N_AGE_BINS; k++)
+          {
+              Gal[centralgal].LocalIGS_Age[k] += Gal[centralgal].ICS_Age[k];
+              Gal[centralgal].MetalsLocalIGS_Age[k] += Gal[centralgal].MetalsICS_Age[k];
+              Gal[centralgal].ICS_Age[k] = 0.0;
+              Gal[centralgal].MetalsICS_Age[k] = 0.0;
+          }
+          Gal[centralgal].ICS = 0.0;
+          Gal[centralgal].MetalsICS = 0.0;
+          
+          // do ejected gas last because it was already outside the virial radius
+          infallingMass += halo_baryons;
+          if(infallingMass < 0.0 && Gal[centralgal].EjectedMass > 0.0)
+          {
+              if(-infallingMass >= Gal[centralgal].EjectedMass)
+              {
+                Gal[centralgal].LocalIGM += Gal[centralgal].EjectedMass;
+                Gal[centralgal].MetalsLocalIGM += Gal[centralgal].MetalsEjectedMass;
+                Gal[centralgal].EjectedMass = 0.0;
+                Gal[centralgal].MetalsEjectedMass = 0.0;
+              }
+              else
+              {
+                  metallicity = get_metallicity(Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass);
+                  Gal[centralgal].LocalIGM -= infallingMass;
+                  Gal[centralgal].EjectedMass += infallingMass;
+                  Gal[centralgal].MetalsLocalIGM -= (metallicity * infallingMass);
+                  Gal[centralgal].MetalsEjectedMass += (metallicity * infallingMass);
+              }
+          }
+          
+      }
+      else
+      {
+          if(Gal[centralgal].HotGas > 0.0)
+          {
+              double lost_hot = -infallingMass * Gal[centralgal].HotGas / halo_baryons;
+              metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
+              Gal[centralgal].LocalIGM += lost_hot;
+              Gal[centralgal].HotGas -= lost_hot;
+              Gal[centralgal].MetalsLocalIGM += (metallicity * lost_hot);
+              Gal[centralgal].MetalsHotGas -= (metallicity * lost_hot);
+          }
+          
+          if(Gal[centralgal].FountainGas > 0.0)
+          {
+              double lost_fount = -infallingMass * Gal[centralgal].FountainGas / halo_baryons;
+              metallicity = get_metallicity(Gal[centralgal].FountainGas, Gal[centralgal].MetalsFountainGas);
+              Gal[centralgal].LocalIGM += lost_fount;
+              Gal[centralgal].FountainGas -= lost_fount;
+              Gal[centralgal].MetalsLocalIGM += (metallicity * lost_fount);
+              Gal[centralgal].MetalsFountainGas -= (metallicity * lost_fount);
+          }
+          
+          if(Gal[centralgal].OutflowGas > 0.0)
+          {
+              double lost_outfl = -infallingMass * Gal[centralgal].OutflowGas / halo_baryons;
+              metallicity = get_metallicity(Gal[centralgal].OutflowGas, Gal[centralgal].MetalsOutflowGas);
+              Gal[centralgal].LocalIGM += lost_outfl;
+              Gal[centralgal].OutflowGas -= lost_outfl;
+              Gal[centralgal].MetalsLocalIGM += (metallicity * lost_outfl);
+              Gal[centralgal].MetalsOutflowGas -= (metallicity * lost_outfl);
+          }
+          
+          if(Gal[centralgal].ICS > 0.0)
+          {
+              double lost_ics = -infallingMass * Gal[centralgal].ICS / halo_baryons;
+              double lost_ics_age;
+              double tot_ICS = 1.0 * Gal[centralgal].ICS;
+              for(k=0; k<N_AGE_BINS; k++)
+              {
+                  lost_ics_age = lost_ics * Gal[centralgal].ICS_Age[k] / tot_ICS;
+                  metallicity = get_metallicity(Gal[centralgal].ICS_Age[k], Gal[centralgal].MetalsICS_Age[k]);
+                  
+                  Gal[centralgal].LocalIGS += lost_ics_age;
+                  Gal[centralgal].LocalIGS_Age[k] += lost_ics_age;
+                  Gal[centralgal].MetalsLocalIGS += (metallicity * lost_ics_age);
+                  Gal[centralgal].MetalsLocalIGS_Age[k] += (metallicity * lost_ics_age);
+                  
+                  Gal[centralgal].ICS -= lost_ics_age;
+                  Gal[centralgal].ICS_Age[k] -= lost_ics_age;
+                  Gal[centralgal].MetalsICS -= (metallicity * lost_ics_age);
+                  Gal[centralgal].MetalsICS_Age[k] -= (metallicity * lost_ics_age);
+              }
+          }
+      }
+
+      
+
+      
+          
   }
-
-  // if the halo has lost mass, subtract hot metals mass next, then the hot gas
-  if(infallingGas < 0.0 && Gal[centralgal].MetalsHotGas > 0.0)
+  else // halo has grown -- add mass!
   {
+//    // limit the infalling gas so that the hot halo alone doesn't exceed the baryon fraction
+//    if((Gal[centralgal].HotGas + infallingMass) / Gal[centralgal].Mvir > BaryonFrac)
+//      infallingMass = BaryonFrac * Gal[centralgal].Mvir - Gal[centralgal].HotGas;
+
     metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
-	assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
-    Gal[centralgal].MetalsHotGas += infallingGas*metallicity;
-	Gal[centralgal].HotGas += infallingGas;
-	if(Gal[centralgal].HotGas < 0.0) Gal[centralgal].HotGas = Gal[centralgal].MetalsHotGas = 0.0;
-    if(Gal[centralgal].MetalsHotGas < 0.0) Gal[centralgal].MetalsHotGas = 0.0;
-	metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
-	assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
-  }
+    if(!(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas)) printf("Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas = %e, %e\n", Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
+    assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
+    assert(Gal[centralgal].MetalsLocalIGM >= 0);
 
-  // limit the infalling gas so that the hot halo alone doesn't exceed the baryon fraction
-  if(infallingGas > 0.0 && (Gal[centralgal].HotGas + infallingGas) / Gal[centralgal].Mvir > BaryonFrac)
-    infallingGas = BaryonFrac * Gal[centralgal].Mvir - Gal[centralgal].HotGas;
-
-  metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
-  assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
-  assert(Gal[centralgal].MetalsLocalIGM >= 0);
-
-  // add the ambient infalling gas to the central galaxy hot component 
-  if(infallingGas > 0.0)
-  {
-    if(Gal[centralgal].LocalIGM >= infallingGas)
+      double infallingGas, infallingStars;
+      if(infallingMass > Gal[centralgal].LocalIGS + Gal[centralgal].LocalIGM)
+          infallingStars = 1.0 * Gal[centralgal].LocalIGS;
+      else if(Gal[centralgal].LocalIGS + Gal[centralgal].LocalIGM > 0.0)
+          infallingStars = infallingMass * Gal[centralgal].LocalIGS / (Gal[centralgal].LocalIGS + Gal[centralgal].LocalIGM);
+      else
+          infallingStars = 0.0;
+      infallingGas = infallingMass - infallingStars;
+      assert(infallingStars >= 0.0);
+      assert(infallingGas >= 0.0);
+      
+      
+    // add the ambient infalling gas to the central galaxy hot component
+    if(Gal[centralgal].LocalIGM > infallingGas)
     {
-        metallicity = get_metallicity(Gal[centralgal].LocalIGM, Gal[centralgal].MetalsLocalIGM);
-        Gal[centralgal].HotGas += infallingGas;
-        Gal[centralgal].MetalsHotGas += metallicity * infallingGas;
-        Gal[centralgal].LocalIGM -= infallingGas;
-        Gal[centralgal].MetalsLocalIGM -= metallicity * infallingGas;
-        if(Gal[centralgal].MetalsLocalIGM <= 0) Gal[centralgal].MetalsLocalIGM = BIG_BANG_METALLICITY * Gal[centralgal].LocalIGM;
+      metallicity = get_metallicity(Gal[centralgal].LocalIGM, Gal[centralgal].MetalsLocalIGM);
+      Gal[centralgal].HotGas += infallingGas;
+      Gal[centralgal].MetalsHotGas += metallicity * infallingGas;
+      Gal[centralgal].LocalIGM -= infallingGas;
+      Gal[centralgal].MetalsLocalIGM -= metallicity * infallingGas;
+      if(Gal[centralgal].MetalsLocalIGM <= 0) Gal[centralgal].MetalsLocalIGM = BIG_BANG_METALLICITY * Gal[centralgal].LocalIGM;
     }
     else if(Gal[centralgal].LocalIGM > 0)
     {
-        Gal[centralgal].HotGas += infallingGas;
-        Gal[centralgal].MetalsHotGas += (Gal[centralgal].MetalsLocalIGM + BIG_BANG_METALLICITY * (infallingGas-Gal[centralgal].LocalIGM));
-        Gal[centralgal].LocalIGM = Gal[centralgal].MetalsLocalIGM = 0.0;
+      Gal[centralgal].HotGas += infallingGas;
+      Gal[centralgal].MetalsHotGas += (Gal[centralgal].MetalsLocalIGM + BIG_BANG_METALLICITY * (infallingGas-Gal[centralgal].LocalIGM));
+      Gal[centralgal].LocalIGM = Gal[centralgal].MetalsLocalIGM = 0.0;
     }
     else
     {
-        Gal[centralgal].HotGas += infallingGas;
-        Gal[centralgal].MetalsHotGas += BIG_BANG_METALLICITY * infallingGas; // some primordial metals come with it
+      Gal[centralgal].HotGas += infallingGas;
+      Gal[centralgal].MetalsHotGas += BIG_BANG_METALLICITY * infallingGas; // some primordial metals come with it
     }
+      
+      
+    // add any stars that fell back inside Rvir
+    if(Gal[centralgal].LocalIGS > infallingStars)
+    {
+        double tot_LIGS = 1.0 * Gal[centralgal].LocalIGS;
+        assert(tot_LIGS > 0.0);
+
+        double infallStars_Age;
+        for(k=0; k<N_AGE_BINS; k++)
+        {
+            infallStars_Age = infallingStars * Gal[centralgal].LocalIGS_Age[k] / tot_LIGS;
+            metallicity = get_metallicity(Gal[centralgal].LocalIGS_Age[k], Gal[centralgal].MetalsLocalIGS_Age[k]);
+            
+            Gal[centralgal].LocalIGS -= infallStars_Age;
+            Gal[centralgal].LocalIGS_Age[k] -= infallStars_Age;
+            Gal[centralgal].MetalsLocalIGS -= (metallicity * infallStars_Age);
+            Gal[centralgal].MetalsLocalIGS_Age[k] -= (metallicity * infallStars_Age);
+            
+            Gal[centralgal].ICS += infallStars_Age;
+            Gal[centralgal].ICS_Age[k] += infallStars_Age;
+            Gal[centralgal].MetalsICS += (metallicity * infallStars_Age);
+            Gal[centralgal].MetalsICS_Age[k] += (metallicity * infallStars_Age);
+        }
+    }
+    else
+    {
+        for(k=0; k<N_AGE_BINS; k++)
+        {
+            Gal[centralgal].ICS_Age[k] += Gal[centralgal].LocalIGS_Age[k];
+            Gal[centralgal].LocalIGS_Age[k] = 0.0;
+            Gal[centralgal].MetalsICS_Age[k] += Gal[centralgal].MetalsLocalIGS_Age[k];
+            Gal[centralgal].MetalsLocalIGS_Age[k] = 0.0;
+        }
+        Gal[centralgal].ICS += Gal[centralgal].LocalIGS;
+        Gal[centralgal].LocalIGS = 0.0;
+        Gal[centralgal].MetalsICS += Gal[centralgal].MetalsLocalIGS;
+        Gal[centralgal].MetalsLocalIGS = 0.0;
+
+
+    }
+          
+    
+
   }
+    
+
 
   metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
+    if(!(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas)) printf("Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas = %e, %e\n", Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
     
-  assert(Gal[centralgal].LocalIGM >= 0);
-  assert(Gal[centralgal].MetalsLocalIGM >= 0);
+  assert(Gal[centralgal].LocalIGM >= 0 && Gal[centralgal].LocalIGM != INFINITY);
+  assert(Gal[centralgal].MetalsLocalIGM >= 0 && Gal[centralgal].MetalsLocalIGM != INFINITY);
 
 }
 
