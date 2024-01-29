@@ -340,7 +340,8 @@ double strip_from_satellite(int halonr, int centralgal, int gal, double max_stri
             {
                 Gal[centralgal].LocalIGS += strippedICS;
                 Gal[centralgal].MetalsLocalIGS += strippedICSmetals;                
-                if(Gal[centralgal].MetalsLocalIGS < 0.0) Gal[centralgal].MetalsLocalIGS = 0.0;
+                if(Gal[centralgal].MetalsLocalIGS < 0.0) Gal[centralgal].MetalsLocalIGS = BIG_BANG_METALLICITY * Gal[centralgal].LocalIGS;
+                if(!(Gal[centralgal].LocalIGS >= 0)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS, strippedICS, strippedICSmetals = %e, %e, %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS, strippedICS, strippedICSmetals);
                 assert(Gal[centralgal].LocalIGS >= 0);
             }
             else
@@ -731,46 +732,23 @@ void add_infall_to_hot(int centralgal, double infallingMass)
 
   assert(Gal[centralgal].HotGas == Gal[centralgal].HotGas && Gal[centralgal].HotGas >= 0);
   assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
+    
+    assert(Gal[centralgal].LocalIGM >= 0 && Gal[centralgal].LocalIGM != INFINITY);
+    assert(Gal[centralgal].MetalsLocalIGM >= 0 && Gal[centralgal].MetalsLocalIGM != INFINITY);
+    assert(Gal[centralgal].LocalIGS >= 0 && Gal[centralgal].LocalIGS != INFINITY);
+    if(!(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+    assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+    assert(Gal[centralgal].ICS >= 0 && Gal[centralgal].ICS != INFINITY);
 
-//  // if the halo has lost mass, subtract baryons from the ejected mass first, then the hot gas
-//  if(infallingMass < 0.0 && Gal[centralgal].EjectedMass > 0.0)
-//  {
-//    check_ejected(centralgal);
-//      
-//    if(Gal[centralgal].EjectedMass <= -infallingMass)
-//    {
-//      infallingMass += Gal[centralgal].EjectedMass;
-//      Gal[centralgal].EjectedMass = 0.0;
-//      Gal[centralgal].MetalsEjectedMass = 0.0;
-//    }
-//    else
-//    {
-//        metallicity = get_metallicity(Gal[centralgal].EjectedMass, Gal[centralgal].MetalsEjectedMass);
-//        Gal[centralgal].EjectedMass += infallingMass;
-//        Gal[centralgal].MetalsEjectedMass += metallicity * infallingMass;        
-//        assert(Gal[centralgal].EjectedMass >= Gal[centralgal].MetalsEjectedMass);
-//    }
-//
-//  }
-//
-//  // if the halo has lost mass, subtract hot metals mass next, then the hot gas
-//  if(infallingMass < 0.0 && Gal[centralgal].MetalsHotGas > 0.0)
-//  {
-//    metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
-//	assert(Gal[centralgal].MetalsHotGas <= Gal[centralgal].HotGas);
-//    Gal[centralgal].MetalsHotGas += infallingMass*metallicity;
-//	Gal[centralgal].HotGas += infallingMass;
-//	if(Gal[centralgal].HotGas < 0.0) Gal[centralgal].HotGas = Gal[centralgal].MetalsHotGas = 0.0;
-//    if(Gal[centralgal].MetalsHotGas < 0.0) Gal[centralgal].MetalsHotGas = 0.0;
-//	metallicity = get_metallicity(Gal[centralgal].HotGas, Gal[centralgal].MetalsHotGas);
-//	assert(Gal[centralgal].HotGas >= Gal[centralgal].MetalsHotGas);
-//  }
     
  // halo has shrunk.  Halo material needs to be moved to the Local Intergalactic Medium/Stars for reservoir-definition consistency
   if(infallingMass < 0.0)
   {
       double halo_baryons = Gal[centralgal].HotGas + Gal[centralgal].FountainGas + Gal[centralgal].OutflowGas + Gal[centralgal].ICS;
-      if(halo_baryons <= 0.0) return;
+      if(halo_baryons <= 0.0)
+      {
+          return;
+      }
       
       if(-infallingMass >= halo_baryons)
       {
@@ -818,6 +796,10 @@ void add_infall_to_hot(int centralgal, double infallingMass)
               }
           }
           
+          if(!(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+          assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+
+          
       }
       else
       {
@@ -861,17 +843,62 @@ void add_infall_to_hot(int centralgal, double infallingMass)
                   lost_ics_age = lost_ics * Gal[centralgal].ICS_Age[k] / tot_ICS;
                   metallicity = get_metallicity(Gal[centralgal].ICS_Age[k], Gal[centralgal].MetalsICS_Age[k]);
                   
-                  Gal[centralgal].LocalIGS += lost_ics_age;
                   Gal[centralgal].LocalIGS_Age[k] += lost_ics_age;
                   Gal[centralgal].MetalsLocalIGS += (metallicity * lost_ics_age);
                   Gal[centralgal].MetalsLocalIGS_Age[k] += (metallicity * lost_ics_age);
                   
-                  Gal[centralgal].ICS -= lost_ics_age;
                   Gal[centralgal].ICS_Age[k] -= lost_ics_age;
                   Gal[centralgal].MetalsICS -= (metallicity * lost_ics_age);
                   Gal[centralgal].MetalsICS_Age[k] -= (metallicity * lost_ics_age);
               }
+              
+              Gal[centralgal].LocalIGS += lost_ics;
+              Gal[centralgal].ICS -= lost_ics;
+              if(Gal[centralgal].MetalsICS < BIG_BANG_METALLICITY * Gal[centralgal].ICS) Gal[centralgal].MetalsICS = BIG_BANG_METALLICITY * Gal[centralgal].ICS;
+              
+              if(!(Gal[centralgal].ICS >= Gal[centralgal].MetalsICS))
+              {
+                  if(Gal[centralgal].ICS <= 1e-10 || Gal[centralgal].MetalsICS <= 1e-10*BIG_BANG_METALLICITY)
+                  {
+                      Gal[centralgal].ICS = 0.0;
+                      Gal[centralgal].MetalsICS = 0.0;
+                      
+                      for(k=0; k<N_AGE_BINS; k++)
+                      {
+                          Gal[centralgal].ICS_Age[k] = 0.0;
+                          Gal[centralgal].MetalsICS_Age[k] = 0.0;
+                      }
+
+                  }
+              }
+              
+              if(!(Gal[centralgal].LocalIGS >= Gal[centralgal].MetalsLocalIGS))
+              {
+                  if(Gal[centralgal].LocalIGS <= 1e-10 || Gal[centralgal].MetalsLocalIGS <= 1e-10*BIG_BANG_METALLICITY)
+                  {
+                      Gal[centralgal].LocalIGS = 0.0;
+                      Gal[centralgal].MetalsLocalIGS = 0.0;
+                      
+                      for(k=0; k<N_AGE_BINS; k++)
+                      {
+                          Gal[centralgal].LocalIGS_Age[k] = 0.0;
+                          Gal[centralgal].MetalsLocalIGS_Age[k] = 0.0;
+                      }
+
+                  }
+              }
+              
+              if(!(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+              assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+
+              
+              
           }
+          
+          assert(Gal[centralgal].ICS >= 0.0);
+          if(!(Gal[centralgal].ICS >= Gal[centralgal].MetalsICS)) printf("Gal[centralgal].ICS, Gal[centralgal].MetalsICS = %e, %e\n", Gal[centralgal].ICS, Gal[centralgal].MetalsICS);
+          assert(Gal[centralgal].ICS >= Gal[centralgal].MetalsICS);
+          assert(Gal[centralgal].LocalIGS >= Gal[centralgal].MetalsLocalIGS);
       }
 
       
@@ -898,6 +925,8 @@ void add_infall_to_hot(int centralgal, double infallingMass)
       else
           infallingStars = 0.0;
       infallingGas = infallingMass - infallingStars;
+      if(!(infallingStars >= 0.0))
+          printf("infallingStars, infallingMass, Gal[centralgal].LocalIGS, Gal[centralgal].LocalIGM = %e, %e, %e, %e\n", infallingStars, infallingMass, Gal[centralgal].LocalIGS, Gal[centralgal].LocalIGM);
       assert(infallingStars >= 0.0);
       assert(infallingGas >= 0.0);
       
@@ -937,16 +966,23 @@ void add_infall_to_hot(int centralgal, double infallingMass)
             infallStars_Age = infallingStars * Gal[centralgal].LocalIGS_Age[k] / tot_LIGS;
             metallicity = get_metallicity(Gal[centralgal].LocalIGS_Age[k], Gal[centralgal].MetalsLocalIGS_Age[k]);
             
-            Gal[centralgal].LocalIGS -= infallStars_Age;
             Gal[centralgal].LocalIGS_Age[k] -= infallStars_Age;
             Gal[centralgal].MetalsLocalIGS -= (metallicity * infallStars_Age);
             Gal[centralgal].MetalsLocalIGS_Age[k] -= (metallicity * infallStars_Age);
             
-            Gal[centralgal].ICS += infallStars_Age;
             Gal[centralgal].ICS_Age[k] += infallStars_Age;
             Gal[centralgal].MetalsICS += (metallicity * infallStars_Age);
             Gal[centralgal].MetalsICS_Age[k] += (metallicity * infallStars_Age);
         }
+        
+        Gal[centralgal].LocalIGS -= infallingStars;
+        Gal[centralgal].ICS += infallingStars;
+        if(Gal[centralgal].MetalsLocalIGS < BIG_BANG_METALLICITY * Gal[centralgal].LocalIGS) Gal[centralgal].MetalsLocalIGS = BIG_BANG_METALLICITY * Gal[centralgal].LocalIGS;
+        
+        if(!(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+        assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+
+
     }
     else
     {
@@ -961,6 +997,9 @@ void add_infall_to_hot(int centralgal, double infallingMass)
         Gal[centralgal].LocalIGS = 0.0;
         Gal[centralgal].MetalsICS += Gal[centralgal].MetalsLocalIGS;
         Gal[centralgal].MetalsLocalIGS = 0.0;
+
+        if(!(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+        assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
 
 
     }
@@ -977,6 +1016,13 @@ void add_infall_to_hot(int centralgal, double infallingMass)
     
   assert(Gal[centralgal].LocalIGM >= 0 && Gal[centralgal].LocalIGM != INFINITY);
   assert(Gal[centralgal].MetalsLocalIGM >= 0 && Gal[centralgal].MetalsLocalIGM != INFINITY);
+  assert(Gal[centralgal].LocalIGS >= 0 && Gal[centralgal].LocalIGS != INFINITY);
+  assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+    assert(Gal[centralgal].ICS >= 0 && Gal[centralgal].ICS != INFINITY);
+    
+    if(!(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+    assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+
 
 }
 

@@ -318,6 +318,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     ABORT(54);
   }
 
+    assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
   // calculate cosmological gas to be added to halo to maintain baryon fraction
   infallingGas = infall_recipe(centralgal, ngal, ZZ[Halo[halonr].SnapNum]);
     
@@ -369,15 +370,21 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
         
     
       // hot-gas stripping of satellites --  do before reincorporation to ensure stripping is preventative
+        assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
       if(HotStripOn>0 && Gal[p].Type == 1 && Gal[p].HotGas > 0.0 && Gal[p].MaxStrippedGas>0.0)
             Gal[p].MaxStrippedGas = strip_from_satellite(halonr, centralgal, p, Gal[p].MaxStrippedGas, k_now);
       assert(Gal[p].MetalsHotGas>=0);
       assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
+        assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+
 
       // fresh cosmological added to CGM
       if(p==centralgal)
       {
+          assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+
           add_infall_to_hot(p, infallingGas / STEPS);
+          assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
           assert(Gal[p].MetalsHotGas>=0);
           assert(Gal[p].MetalsHotGas<=Gal[p].HotGas);
       }
@@ -484,10 +491,16 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
           k_now = get_stellar_age_bin_index(time);
             
           if(Gal[p].MergTime > 0.0)  // disruption has occured!
+          {
+              assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
             disrupt_satellite_to_ICS(centralgal, p, k_now);
+              assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+          }
           else
           {
+              assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
             deal_with_galaxy_merger(p, merger_centralgal, centralgal, time, dt, step, k_now);
+              assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
           }
  
         }
@@ -495,6 +508,7 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
       }
 
     }
+      assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
 
   } // end move forward in interval STEPS 
 

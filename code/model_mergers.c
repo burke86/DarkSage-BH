@@ -829,23 +829,35 @@ void disrupt_satellite_to_ICS(int centralgal, int gal, int k_now)
     else
     {
 
-        Gal[centralgal].LocalIGM += (Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass);
-        Gal[centralgal].MetalsLocalIGM += (Gal[gal].MetalsColdGas + Gal[gal].MetalsHotGas + Gal[gal].MetalsEjectedMass);
-
-        Gal[centralgal].LocalIGS += (Gal[gal].ICS + Gal[gal].StellarMass + Gal[gal].LocalIGS);
-        Gal[centralgal].MetalsLocalIGS += (Gal[gal].MetalsICS + Gal[gal].MetalsStellarMass + Gal[gal].MetalsLocalIGS);
-
-        if(AgeStructOut>0)
+        if(Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass > 0.0)
         {
-            for(k=k_now; k<N_AGE_BINS; k++)
+            Gal[centralgal].LocalIGM += (Gal[gal].ColdGas + Gal[gal].HotGas + Gal[gal].EjectedMass);
+            Gal[centralgal].MetalsLocalIGM += (Gal[gal].MetalsColdGas + Gal[gal].MetalsHotGas + Gal[gal].MetalsEjectedMass);
+        }
+
+        if(!(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+        assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+
+        if(Gal[gal].ICS + Gal[gal].StellarMass + Gal[gal].LocalIGS > 0.0)
+        {
+            Gal[centralgal].LocalIGS += (Gal[gal].ICS + Gal[gal].StellarMass + Gal[gal].LocalIGS);
+            Gal[centralgal].MetalsLocalIGS += (Gal[gal].MetalsICS + Gal[gal].MetalsStellarMass + Gal[gal].MetalsLocalIGS);
+
+            if(!(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY)) printf("Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS = %e, %e\n", Gal[centralgal].LocalIGS, Gal[centralgal].MetalsLocalIGS);
+            assert(Gal[centralgal].MetalsLocalIGS >= 0 && Gal[centralgal].MetalsLocalIGS != INFINITY);
+
+            if(AgeStructOut>0)
             {
-                Gal[centralgal].LocalIGS_Age[k] += (Gal[gal].ClassicalBulgeMassAge[k] + Gal[gal].SecularBulgeMassAge[k] + Gal[gal].ICS_Age[k]);
-                Gal[centralgal].MetalsLocalIGS_Age[k] += (Gal[gal].ClassicalMetalsBulgeMassAge[k] + Gal[gal].SecularMetalsBulgeMassAge[k] + Gal[gal].MetalsICS_Age[k]);
-                
-                for(i=0; i<N_BINS; i++)
+                for(k=k_now; k<N_AGE_BINS; k++)
                 {
-                    Gal[centralgal].LocalIGS_Age[k] += Gal[gal].DiscStarsAge[i][k];
-                    Gal[centralgal].MetalsLocalIGS_Age[k] += Gal[gal].DiscStarsMetalsAge[i][k];
+                    Gal[centralgal].LocalIGS_Age[k] += (Gal[gal].ClassicalBulgeMassAge[k] + Gal[gal].SecularBulgeMassAge[k] + Gal[gal].ICS_Age[k]);
+                    Gal[centralgal].MetalsLocalIGS_Age[k] += (Gal[gal].ClassicalMetalsBulgeMassAge[k] + Gal[gal].SecularMetalsBulgeMassAge[k] + Gal[gal].MetalsICS_Age[k]);
+                    
+                    for(i=0; i<N_BINS; i++)
+                    {
+                        Gal[centralgal].LocalIGS_Age[k] += Gal[gal].DiscStarsAge[i][k];
+                        Gal[centralgal].MetalsLocalIGS_Age[k] += Gal[gal].DiscStarsMetalsAge[i][k];
+                    }
                 }
             }
         }
