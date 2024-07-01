@@ -523,6 +523,7 @@ double deal_with_unstable_gas(double unstable_gas, int p, int i, double metallic
             m_up = j_lose / (j_gain + j_lose) * gas_sink;
             m_down = m_up * j_gain / j_lose;
             Gal[p].BlackHoleMass += m_down;
+            Gal[p].InstaBlackHoleMass += m_down;
             Gal[p].ColdGas -= m_down;
             Gal[p].MetalsColdGas -= metallicity * m_down;
             assert(Gal[p].MetalsColdGas<=Gal[p].ColdGas);

@@ -95,6 +95,10 @@ double ThresholdSatDisruption;
 //double Ratio_Ia_II;
 double HalfBoxLen;
 
+//DarkSage-BH
+double SeedPowerLawIndex;
+double SeedProb;
+
 // more misc
 double UnitLength_in_cm,
   UnitTime_in_s,

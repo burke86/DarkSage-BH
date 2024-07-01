@@ -227,6 +227,7 @@ double do_AGN_heating(double coolingGas, int p, double dt, double x, double rcoo
     metallicity = get_metallicity(Gal[p].HotGas, Gal[p].MetalsHotGas);
     assert(Gal[p].MetalsHotGas <= Gal[p].HotGas);
     Gal[p].BlackHoleMass += ((1.0 - RadiativeEfficiency) * AGNaccreted); // some inertial mass lost during accretion
+    Gal[p].RadioBlackHoleMass += ((1.0 - RadiativeEfficiency) * AGNaccreted);
     assert(Gal[p].BlackHoleMass>=0.0);
     
     if(Gal[p].HotGas > AGNaccreted)

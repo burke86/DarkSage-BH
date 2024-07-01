@@ -181,6 +181,14 @@ void read_parameter_file(char *fname)
   addr[nt] = &EnergySN;
   id[nt++] = DOUBLE;
 
+  strcpy(tag[nt], "SeedPowerLawIndex");
+  addr[nt] = &SeedPowerLawIndex;
+  id[nt++] = DOUBLE;
+
+  strcpy(tag[nt], "SeedProb");
+  addr[nt] = &SeedProb;
+  id[nt++] = DOUBLE;
+
   strcpy(tag[nt], "Yield");
   addr[nt] = &Yield;
   id[nt++] = DOUBLE;

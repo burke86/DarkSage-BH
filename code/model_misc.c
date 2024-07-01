@@ -91,9 +91,42 @@ void init_galaxy(int p, int halonr)
     Gal[p].OutflowGas = 0.0;
     Gal[p].EjectedMass = 0.0;
     Gal[p].LocalIGM = 0.0;
-    Gal[p].BlackHoleMass = 0.0;
     Gal[p].ICS = 0.0;
     Gal[p].LocalIGS = 0.0;
+
+    // DarkSage-BH
+    double x0 = 30; // Min seed mass Solar mass
+    double x1 = 1e6; // max seed mass Solar mass
+    double blackHoleSeedMass;
+
+    if (gsl_rng_uniform(random_generator) < SeedProb) {
+        blackHoleSeedMass = 1.0e-10 * pow( (pow(x1, SeedPowerLawIndex) - pow(x0, SeedPowerLawIndex))*gsl_rng_uniform(random_generator) +
+                            pow(x0, SeedPowerLawIndex), 1/SeedPowerLawIndex); // UNIT = 1e-10 M_BH h 
+    }
+    else {
+        blackHoleSeedMass = 0.0; // No BH
+    }
+    
+    // blackHoleSeedMass = 1.0e-10 * 1e2;
+    Gal[p].BlackHoleSeedMass = blackHoleSeedMass; // UNIT = 1e-10 M_BH h 
+    Gal[p].BlackHoleMass = blackHoleSeedMass; // UNIT = 1e-10 M_BH h 
+
+    Gal[p].BHaccreted = 0.0;
+    Gal[p].RadioBHaccreted = 0.0;
+    Gal[p].QuasarBHaccreted = 0.0;
+    Gal[p].InstaBHaccreted = 0.0;
+    Gal[p].MergerBHaccreted = 0.0;
+
+    Gal[p].prevBlackHoleMass = 0.0;
+    Gal[p].prevRadioBlackHoleMass = 0.0;
+    Gal[p].prevQuasarBlackHoleMass = 0.0;
+    Gal[p].prevInstaBlackHoleMass = 0.0;
+    Gal[p].prevMergerBlackHoleMass = 0.0;
+
+    Gal[p].RadioBlackHoleMass = blackHoleSeedMass;
+    Gal[p].QuasarBlackHoleMass = blackHoleSeedMass;
+    Gal[p].InstaBlackHoleMass = blackHoleSeedMass;
+    Gal[p].MergerBlackHoleMass = blackHoleSeedMass;
     
     Gal[p].StarsFromH2 = 0.0;
     Gal[p].StarsInstability = 0.0;

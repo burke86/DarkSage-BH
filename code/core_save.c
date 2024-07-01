@@ -308,6 +308,14 @@ void prepare_galaxy_for_output(int filenr, int tree, struct GALAXY *g, struct GA
   o->ICS = g->ICS;
   o->LocalIGS = g->LocalIGS;
 
+  // DarkSage-BH
+  o->BHaccreted = g->BHaccreted * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS; // total
+
+  o->RadioBHaccreted = g->RadioBHaccreted * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+  o->QuasarBHaccreted = g->QuasarBHaccreted * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+  o->InstaBHaccreted = g->InstaBHaccreted * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+  o->MergerBHaccreted = g->MergerBHaccreted * UnitMass_in_g / UnitTime_in_s * SEC_PER_YEAR / SOLAR_MASS;
+
   o->MetalsColdGas = g->MetalsColdGas;
   o->MetalsStellarMass = g->MetalsStellarMass;
   o->ClassicalMetalsBulgeMass = g->ClassicalMetalsBulgeMass;

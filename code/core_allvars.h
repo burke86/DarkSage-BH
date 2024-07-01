@@ -151,6 +151,20 @@ struct GALAXY_OUTPUT
   float SNreheatRate;
   float SNejectRate;
 
+  // DarkSage-BH
+  double BHaccreted;
+  double RadioBHaccreted;
+  double QuasarBHaccreted;
+  double InstaBHaccreted;
+  double MergerBHaccreted;  
+
+  double BlackHoleSeedMass;
+
+  double RadioBlackHoleMass;
+  double QuasarBlackHoleMass;
+  double InstaBlackHoleMass;
+  double MergerBlackHoleMass;
+
   //infall properties
   float infallMvir;
   float infallVvir;
@@ -362,6 +376,26 @@ struct GALAXY
   double R_ICS_av;
   double R_ejec_av;
 
+  // DarkSage-BH
+  double BHaccreted;
+  double RadioBHaccreted;
+  double QuasarBHaccreted;
+  double InstaBHaccreted;
+  double MergerBHaccreted;  
+
+  double BlackHoleSeedMass;
+
+  double RadioBlackHoleMass;
+  double QuasarBlackHoleMass;
+  double InstaBlackHoleMass;
+  double MergerBlackHoleMass;
+  
+  double prevBlackHoleMass;
+  double prevRadioBlackHoleMass;
+  double prevQuasarBlackHoleMass;
+  double prevInstaBlackHoleMass;
+  double prevMergerBlackHoleMass;
+
   // inflow/outflow tracking
   double AccretedGasMass;
   double EjectedSNGasMass;
@@ -545,6 +579,10 @@ extern double Reionization_z0;
 extern double Reionization_zr;
 extern double ThresholdSatDisruption;
 extern double Ratio_Ia_II;
+
+// DarkSage-BH
+extern double SeedPowerLawIndex;
+extern double SeedProb;
 
 extern double UnitLength_in_cm,
   UnitTime_in_s,

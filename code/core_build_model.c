@@ -532,8 +532,20 @@ void evolve_galaxies(int halonr, int ngal)	// note: halonr is here the FOF-backg
     }
       
     Gal[p].prevHotGasPotential = Gal[p].HotGasPotential;
-      
-      
+
+    // DarkSage-BH  
+    Gal[p].RadioBHaccreted = (Gal[p].RadioBlackHoleMass-Gal[p].prevRadioBlackHoleMass)/deltaT;
+    Gal[p].QuasarBHaccreted = (Gal[p].QuasarBlackHoleMass-Gal[p].prevQuasarBlackHoleMass)/deltaT;
+    Gal[p].InstaBHaccreted = (Gal[p].InstaBlackHoleMass-Gal[p].prevInstaBlackHoleMass)/deltaT;
+    Gal[p].MergerBHaccreted = (Gal[p].MergerBlackHoleMass-Gal[p].prevMergerBlackHoleMass)/deltaT;
+    // BH Accreted does not include mergers
+    Gal[p].BHaccreted = (Gal[p].RadioBHaccreted + Gal[p].QuasarBHaccreted + Gal[p].InstaBHaccreted);
+
+    Gal[p].prevRadioBlackHoleMass = Gal[p].RadioBlackHoleMass;
+    Gal[p].prevQuasarBlackHoleMass = Gal[p].QuasarBlackHoleMass;
+    Gal[p].prevInstaBlackHoleMass = Gal[p].InstaBlackHoleMass;
+    Gal[p].prevMergerBlackHoleMass = Gal[p].MergerBlackHoleMass;
+
   }
 
   // attach final galaxy list to halo 

@@ -625,6 +625,7 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
       Gal[t].ClassicalBulgeMass += Gal[p].ICS;
       Gal[t].ClassicalMetalsBulgeMass += Gal[p].MetalsICS;
       Gal[t].BlackHoleMass += Gal[p].ICBHmass;
+      Gal[t].QuasarBlackHoleMass += Gal[p].ICBHmass;
       Gal[t].HotGas += (Gal[p].FountainGas + Gal[p].OutflowGas + Gal[p].EjectedMass);
       Gal[t].MetalsHotGas += (Gal[p].MetalsFountainGas + Gal[p].MetalsOutflowGas + Gal[p].MetalsEjectedMass);
   }
@@ -703,6 +704,7 @@ void add_galaxies_together(int t, int p, int centralgal, int k_now, double mass_
   Gal[t].MetalsHotGas += Gal[p].MetalsHotGas;
 
   Gal[t].BlackHoleMass += Gal[p].BlackHoleMass;
+  Gal[t].QuasarBlackHoleMass += Gal[p].BlackHoleMass; // DarkSage-BH
   assert(Gal[t].BlackHoleMass>=0.0);
   
 
