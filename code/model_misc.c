@@ -1139,7 +1139,7 @@ void get_RecycleFraction_and_NumSNperMass(double t0, double t1, double *stellar_
     
     // note the swapping of labels 0 and 1, as min time is max mass and vice versa. Note that mass is in solar masses, not Dark Sage internal units!!  m0 and m1 refer to the range of initial star masses over which the IMF is integrated.
     
-    assert(t1>=t0); // no point running this otherwise
+    assert(t1>t0); // no point running this otherwise
     
     m0 = 1.0 / pow(t1 * UnitTime_in_s / SEC_PER_MEGAYEAR * 1e-4 / Hubble_h, 0.4);
     
